@@ -1,0 +1,12 @@
+{
+	"name": "Default Linux Universal",
+	"image": "mcr.microsoft.com/devcontainers/base:bookworm",
+	"onCreateCommand": "bash ./.devcontainer/on-create.sh",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ESPHome.esphome-vscode"
+			]
+		}
+	}
+}
