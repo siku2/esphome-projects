@@ -14,9 +14,12 @@ dashboard_import:
   package_import_url: "github://siku2/esphome-projects/reflow-oven/esp32.yaml@main"
 
 esp32:
-  board: esp32dev
+  board: esp32-c6-devkitc-1
+  variant: esp32c6
   framework:
-    type: arduino
+    type: esp-idf
+    version: latest
+    platform_version: 6.5.0
 
 logger:
 
@@ -55,26 +58,27 @@ i2c:
   sda: GPIO21
   scl: GPIO22
 
-number:
-  - id: "number_pwm_use_override"
-    name: "PWM User Override"
-    platform: template
-    min_value: 0.0
-    max_value: 1.0
-    step: 0.01
-    update_interval: never
-    optimistic: true
-    set_action:
-      then:
-        - lambda: |-
-            id(output_pwm).set_level(x);
+# number:
+#   - id: "number_pwm_use_override"
+#     name: "PWM User Override"
+#     platform: template
+#     min_value: 0.0
+#     max_value: 1.0
+#     step: 0.01
+#     update_interval: never
+#     optimistic: true
+#     set_action:
+#       then:
+#         - lambda: |-
+#             id(output_pwm).set_level(x);
 
-output:
-  - id: output_pwm
-    name: PWM
-    platfom: ac_dimmer
-    gate_pin: GPIO10
-    zero_cross_pin: GPIO11
+# output:
+#   - id: output_pwm
+#     platform: ac_dimmer
+#     gate_pin: GPIO10
+#     zero_cross_pin:
+#       number: GPIO11
+#       ignore_strapping_warning: true
 
 select:
   - id: "select_state"
