@@ -37,7 +37,9 @@ binary_sensor:
   - id: "bs_switch1"
     name: "Switch1"
     platform: gpio
-    pin: GPIO15
+    pin:
+      number: GPIO15
+      ignore_strapping_warning: true
 
   - id: "bs_switch0"
     name: "Switch0"
@@ -58,27 +60,24 @@ i2c:
   sda: GPIO21
   scl: GPIO22
 
-# number:
-#   - id: "number_pwm_use_override"
-#     name: "PWM User Override"
-#     platform: template
-#     min_value: 0.0
-#     max_value: 1.0
-#     step: 0.01
-#     update_interval: never
-#     optimistic: true
-#     set_action:
-#       then:
-#         - lambda: |-
-#             id(output_pwm).set_level(x);
+number:
+  - id: "number_pwm_use_override"
+    name: "PWM User Override"
+    platform: template
+    min_value: 0.0
+    max_value: 1.0
+    step: 0.01
+    update_interval: never
+    optimistic: true
+    set_action:
+      then:
+        - lambda: |-
+            id(output_pwm).set_level(x);
 
-# output:
-#   - id: output_pwm
-#     platform: ac_dimmer
-#     gate_pin: GPIO10
-#     zero_cross_pin:
-#       number: GPIO11
-#       ignore_strapping_warning: true
+output:
+  - id: output_pwm
+    platform: ledc
+    pin: GPIO10
 
 select:
   - id: "select_state"
@@ -117,6 +116,12 @@ sensor:
     name: "Oven Temperature"
     spi_id: "spi_main"
     cs_pin: GPIO19
+    update_interval: 1s
+  
+  - id: "sensor_count"
+    name: "COUNT"
+    platform: pulse_counter
+    pin: GPIO11
     update_interval: 1s
 
 spi:
