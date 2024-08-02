@@ -103,7 +103,9 @@ select:
               default:
                 break;
             }
+            if (id(display_main).is_ready()) {
             id(display_main).update();
+            }
 
 sensor:
   - id: "sensor_temp_pcb"
