@@ -53,7 +53,7 @@ display:
   - id: "display_main"
     platform: lcd_pcf8574
     dimensions: 20x4
-    address: 0x3F
+    address: 0x27
     update_interval: never
     lambda: |-
       it.print("Hello World!");
