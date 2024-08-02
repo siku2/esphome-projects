@@ -11,7 +11,7 @@ esphome:
     version: "0.1.0"
 
 dashboard_import:
-  package_import_url: "github://siku2/esphome-projects/reflow-oven/esp32.yaml@main"
+  package_import_url: "github://siku2/esphome-projects/reflow-oven/esp32c6.yaml@main"
 
 esp32:
   board: esp32-c6-devkitc-1
