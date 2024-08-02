@@ -1,0 +1,299 @@
+esphome:
+  name: microscope-light
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Hardware Interfaces
+
+binary_sensor:
+  - id: bs_button
+    name: "Button"
+    entity_category: DIAGNOSTIC
+    platform: gpio
+    pin: GPIO15
+    on_click:
+      # short press
+      - min_length: 50ms
+        max_length: 500ms
+        then:
+          - lambda: |-
+              ESP_LOGD("microscope-light", "Detected short click");
+              switch (id(select_mode)->active_index().value_or(0)) {
+                // default -> enter pattern config mode
+                case 0:
+                  id(select_mode)
+                    ->make_call()
+                    .set_index(1)
+                    .perform();
+                  break;
+                // if in a config mode, exit
+                default:
+                  id(select_mode)
+                    ->make_call()
+                    .set_index(0)
+                    .perform();
+                  break;
+              }
+
+      # long press
+      - min_length: 500ms
+        max_length: 2s
+        then:
+          - lambda: |-
+              ESP_LOGD("microscope-light", "Detected long click");
+              id(light_main)->toggle().perform();
+
+    on_double_click:
+      min_length: 50ms
+      max_length: 500ms
+      then:
+        - lambda: |-
+            ESP_LOGD("microscope-light", "Detected double click");
+            switch (id(select_mode).active_index().value_or(0)) {
+              // color config -> leave color config
+              case 2:
+                id(select_mode)
+                  ->make_call()
+                  .set_index(0)
+                  .perform();
+                break;
+              // enter color config
+              default:
+                id(select_mode)
+                  ->make_call()
+                  .set_index(2)
+                  .perform();
+                break;
+            }
+
+sensor:
+  - id: sensor_rotary_encoder
+    name: "Rotary Encoder"
+    entity_category: DIAGNOSTIC
+    platform: rotary_encoder
+    pin_a:
+      number: GPIO26
+      mode:
+        input: true
+        pullup: true
+    pin_b:
+      number: GPIO13
+      mode:
+        input: true
+        pullup: true
+    on_value:
+      then:
+        - lambda: |-
+            switch (id(select_mode)->active_index().value_or(0)) {
+              // pattern config -> change pattern index
+              case 1: {
+                auto scaling = id(number_pattern_scaling)->state;
+                id(select_pattern)->make_call().set_index(x / scaling).perform();
+                break;
+              }
+              // color config -> change hue
+              case 2: {
+                auto scaling = id(number_hue_scaling)->state;
+                id(number_color_hue)->publish_state(x / scaling);
+                break;
+              }
+              // default -> change brightness
+              case 0: {
+                auto scaling = id(number_brightness_scaling)->state;
+                id(number_color_brightness)->publish_state(x / scaling);
+                break;
+              }
+            }
+
+light:
+  - id: light_main
+    name: "NeoPixel Light"
+    restore_mode: RESTORE_DEFAULT_ON
+    platform: neopixelbus
+    num_leds: 24
+    type: GRB
+    variant: WS2812X
+    pin: GPIO17
+
+# State
+
+select:
+  - id: select_mode
+    name: "Mode"
+    icon: "mdi:cog"
+    entity_category: CONFIG
+    platform: template
+    options:
+      # 0
+      - Default
+      # 1
+      - Pattern Config
+      # 2
+      - Color Config
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    on_value:
+      then:
+        - lambda: |-
+            auto encoder = id(sensor_rotary_encoder);
+            switch (i) {
+              // pattern config -> initialize encoder with pattern index
+              case 1: {
+                ESP_LOGD("microscope-light", "Switching to pattern config");
+                auto scaling = id(number_pattern_scaling)->state;
+                encoder->set_min_value(0);
+                encoder->set_max_value(scaling * id(select_pattern)->size());
+                encoder->set_value(scaling * id(select_pattern)->active_index().value_or(0));
+                break;
+              }
+              // color config -> initialize encoder with color
+              case 2: {
+                ESP_LOGD("microscope-light", "Switching to color config");
+                auto number = id(number_color_hue);
+                auto scaling = id(number_hue_scaling)->state;
+                encoder->set_min_value(scaling * number->traits.get_min_value());
+                encoder->set_max_value(scaling * number->traits.get_max_value());
+                encoder->set_value(scaling * number->state);
+                break;
+              }
+              // default -> initialize encoder with brightness
+              default: {
+                ESP_LOGD("microscope-light", "Switching to default mode");
+                auto number = id(number_color_brightness);
+                auto scaling = id(number_hue_scaling)->state;
+                encoder->set_min_value(scaling * number->traits.get_min_value());
+                encoder->set_max_value(scaling * number->traits.get_max_value());
+                encoder->set_value(scaling * number->state);
+                break;
+              }
+            }
+
+  - id: select_pattern
+    name: "Light Pattern"
+    icon: "mdi:led-strip-variant"
+    entity_category: CONFIG
+    platform: template
+    options:
+      - All
+      - Left Half
+      - Right Half
+      - Top Left Quarter
+      - Top Right Quarter
+      - Bottom Right Quarter
+      - Bottom Left Quarter
+      - Every Second
+      - Every Third
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    on_value:
+      # TODO
+      then:
+
+number:
+  # scaling for rotary encoder
+  - id: number_brightness_scaling
+    name: "Brightness Scaling"
+    entity_category: CONFIG
+    platform: template
+    min_value: 1
+    max_value: 1000
+    step: 1
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    initial_value: 1
+
+  - id: number_pattern_scaling
+    name: "Pattern Scaling"
+    entity_category: CONFIG
+    platform: template
+    min_value: 1
+    max_value: 100
+    step: 1
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    initial_value: 1
+
+  - id: number_hue_scaling
+    name: "Hue Scaling"
+    entity_category: CONFIG
+    platform: template
+    min_value: 1
+    max_value: 100
+    step: 1
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    initial_value: 1
+
+  # color
+
+  - id: number_color_hue
+    name: "Color Hue"
+    platform: template
+    min_value: 0
+    max_value: 255
+    step: 1
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    on_value: 
+      then:
+        - script.execute: script_apply_color
+
+  - id: number_color_saturation
+    name: "Color Saturation"
+    platform: template
+    min_value: 0
+    max_value: 255
+    step: 1
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    initial_value: 255
+    on_value: 
+      then:
+        - script.execute: script_apply_color
+
+  - id: number_color_brightness
+    name: "Color Brightness"
+    platform: template
+    min_value: 0
+    max_value: 100
+    step: 1
+    update_interval: never
+    optimistic: true
+    restore_value: true
+    initial_value: 100
+    on_value: 
+      then:
+        - script.execute: script_apply_color
+
+script:
+  id: script_apply_color
+  mode: restart
+  then:
+    - lambda: |-
+        ESPHSVColor hsv;
+        hsv.h = id(number_color_hue)->state;
+        hsv.s = id(number_color_saturation)->state;
+        hsv.v = 255;
+        Color rgb = hsv.to_rgb();
+
+        auto brightness = id(number_color_brightness)->state / 100.0f;
+        ESP_LOGD("microscope-light", "Applying color:");
+        ESP_LOGD("microscope-light", "  HSV: h=%d, s=%d, v=%d", hsv.h, hsv.s, hsv.v);
+        ESP_LOGD("microscope-light", "  RGB: r=%d, g=%d, b=%d", rgb.r, rgb.g, rgb.b);
+        ESP_LOGD("microscope-light", "  Brightness: %.0f%%", brightness * 100.0f);
+        id(light_main)
+          ->make_call()
+          .set_rgb(rgb.r / 255.0f, rgb.g / 255.0f, rgb.b / 255.0f)
+          .set_brightness(brightness)
+          .perform();
