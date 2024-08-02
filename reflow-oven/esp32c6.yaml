@@ -18,10 +18,11 @@ esp32:
   variant: esp32c6
   framework:
     type: esp-idf
-    version: 5.2.2
-    platform_version: 6.7.0
+    version: 5.1.2
+    platform_version: 6.5.0
+    source: https://github.com/tasmota/esp-idf/releases/download/v5.1.3.240313/esp-idf-v5.1.3.zip
     sdkconfig_options:
-      CONFIG_ESPTOOLPY_FLASHSIZE_8MB: y
+      CONFIG_ESPTOOLPY_FLASHSIZE_4MB: y
 
 logger:
 
@@ -104,7 +105,7 @@ select:
                 break;
             }
             if (id(display_main).is_ready()) {
-            id(display_main).update();
+              id(display_main).update();
             }
 
 sensor:
@@ -144,10 +145,14 @@ switch:
     restore_mode: RESTORE_DEFAULT_ON
     turn_on_action:
       - lambda: |-
-          id(display_main).backlight();
+          if (id(display_main).is_ready()) {
+            id(display_main).backlight();
+          }
     turn_off_action:
       - lambda: |-
-          id(display_main).no_backlight();
+          if (id(display_main).is_ready()) {
+            id(display_main).no_backlight();
+          }
 
   - id: "switch_buzzer"
     name: "BUZZER"
