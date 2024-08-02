@@ -1,0 +1,29 @@
+substitutions:
+  name: reflow-oven
+  friendly_name: Reflow Oven
+
+esphome:
+  name: ${name}
+  name_add_mac_suffix: true
+  friendly_name: ${friendly_name}
+  project:
+    name: "siku2.reflow_oven"
+    version: "0.1.0"
+
+dashboard_import:
+  package_import_url: github://siku2/esphome-projects/reflow-oven/esp32.yaml@main
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ap:
