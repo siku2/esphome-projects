@@ -18,8 +18,10 @@ esp32:
   variant: esp32c6
   framework:
     type: esp-idf
-    platform_version: 6.8.1
-    version: 5.3.0
+    version: 5.2.2
+    platform_version: 6.7.0
+    sdkconfig_options:
+      CONFIG_ESPTOOLPY_FLASHSIZE_8MB: y
 
 logger:
 
