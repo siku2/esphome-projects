@@ -30,6 +30,7 @@ external_components:
       url: "https://github.com/siku2/esphome-projects"
       ref: "main"
       path: "reflow-oven/components"
+    refresh: 10s
     components:
       - adc
   # - source:
@@ -164,6 +165,7 @@ sensor:
   - id: "sensor_ntc1_adc"
     platform: adc
     pin: GPIO4
+    attenuation: 12db
     update_interval: 5s
 
   - id: "sensor_ntc2"
@@ -184,6 +186,7 @@ sensor:
   - id: "sensor_ntc2_adc"
     platform: adc
     pin: GPIO5
+    attenuation: 12db
     update_interval: 5s
 
 spi:

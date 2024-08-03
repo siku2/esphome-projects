@@ -33,8 +33,8 @@ ATTENUATION_MODES = {
     "0db": cg.global_ns.ADC_ATTEN_DB_0,
     "2.5db": cg.global_ns.ADC_ATTEN_DB_2_5,
     "6db": cg.global_ns.ADC_ATTEN_DB_6,
-    "11db": adc_ns.ADC_ATTEN_DB_12_COMPAT,
-    "12db": adc_ns.ADC_ATTEN_DB_12_COMPAT,
+    "11db": cg.global_ns.ADC_ATTEN_DB_11,
+    "12db": cg.global_ns.ADC_ATTEN_DB_12,
     "auto": "auto",
 }
 

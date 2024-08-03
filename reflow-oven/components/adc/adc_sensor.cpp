@@ -20,19 +20,33 @@ static bool g_initialized;
 void ADCSensor::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADC '%s'...", this->get_name().c_str());
 
+  esp_err_t ret = ESP_FAIL;
+
   if (!g_initialized) {
     adc_oneshot_unit_init_cfg_t cfg = {
         .unit_id = ADC_UNIT_1,
     };
-    adc_oneshot_new_unit(&cfg, &g_adc_handle);
+    ret = adc_oneshot_new_unit(&cfg, &g_adc_handle);
     g_initialized = true;
+    ESP_LOGI(TAG, "'%s': adc_oneshot_new_unit()=%d", this->get_name().c_str(), ret);
   }
 
   adc_oneshot_chan_cfg_t config = {
     .atten = this->attenuation_,
     .bitwidth = ADC_BITWIDTH_DEFAULT,
   };
-  adc_oneshot_config_channel(g_adc_handle, this->channel1_, &config);
+  ret = adc_oneshot_config_channel(g_adc_handle, this->channel1_, &config);
+  ESP_LOGI(TAG, "'%s': adc_oneshot_config_channel()=%d", this->get_name().c_str(), ret);
+
+  ESP_LOGCONFIG(TAG, "ADC '%s' calibration scheme version is Curve Fitting", this->get_name().c_str());
+  adc_cali_curve_fitting_config_t cali_config = {
+      .unit_id = ADC_UNIT_1,
+      .chan = this->channel1_,
+      .atten = this->attenuation_,
+      .bitwidth = ADC_BITWIDTH_DEFAULT,
+  };
+  ret = adc_cali_create_scheme_curve_fitting(&cali_config, &this->cali_chan0_handle_);
+  ESP_LOGI(TAG, "'%s': adc_cali_create_scheme_curve_fitting()=%d", this->get_name().c_str(), ret);
 
   ESP_LOGCONFIG(TAG, "ADC '%s' setup finished!", this->get_name().c_str());
 }
@@ -61,15 +75,6 @@ void ADCSensor::dump_config() {
   //       break;
   //   }
   // }
-  
-  ESP_LOGI(TAG, "calibration scheme version is %s", "Curve Fitting");
-  adc_cali_curve_fitting_config_t cali_config = {
-      .unit_id = ADC_UNIT_1,
-      .chan = this->channel1_,
-      .atten = this->attenuation_,
-      .bitwidth = ADC_BITWIDTH_DEFAULT,
-  };
-  adc_cali_create_scheme_curve_fitting(&cali_config, &this->cali_chan0_handle_);
 
   ESP_LOGCONFIG(TAG, "  Samples: %i", this->sample_count_);
   LOG_UPDATE_INTERVAL(this);
@@ -93,6 +98,7 @@ float ADCSensor::sample() {
   int voltage = 0;
 
   adc_oneshot_read(g_adc_handle, this->channel1_, &adc_raw);
+  ESP_LOGI(TAG, "'%s': Got raw=%d", this->get_name().c_str(), adc_raw);
   adc_cali_raw_to_voltage(this->cali_chan0_handle_, adc_raw, &voltage);
 
   return voltage / 1000.0;
