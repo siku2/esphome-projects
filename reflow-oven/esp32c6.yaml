@@ -24,6 +24,15 @@ esp32:
     sdkconfig_options:
       CONFIG_ESPTOOLPY_FLASHSIZE_4MB: y
 
+external_components:
+  - source:
+      type: git
+      url: "https://github.com/siku2/esphome-projects"
+      ref: "main"
+      path: "reflow-oven/components"
+    components:
+      - adc
+
 logger:
 
 api:
