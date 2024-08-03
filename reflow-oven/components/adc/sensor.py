@@ -128,9 +128,4 @@ async def to_code(config):
         ):
             chan = ESP32_VARIANT_ADC1_PIN_TO_CHANNEL[variant][pin_num]
             cg.add(var.set_channel1(chan))
-        elif (
-            variant in ESP32_VARIANT_ADC2_PIN_TO_CHANNEL
-            and pin_num in ESP32_VARIANT_ADC2_PIN_TO_CHANNEL[variant]
-        ):
-            chan = ESP32_VARIANT_ADC2_PIN_TO_CHANNEL[variant][pin_num]
-            cg.add(var.set_channel2(chan))
+
