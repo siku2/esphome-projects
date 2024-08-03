@@ -6,19 +6,18 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/hal.h"
 
-#include <esp_adc_cal.h>
-#include "driver/adc.h"
+#include "esp_adc/adc_oneshot.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
 
 namespace esphome {
 namespace adc {
-
-static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_12;
 
 class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage_sampler::VoltageSampler {
  public:
   /// Set the attenuation for this pin. Only available on the ESP32.
   void set_attenuation(adc_atten_t attenuation) { this->attenuation_ = attenuation; }
-  void set_channel1(adc1_channel_t channel) {
+  void set_channel1(adc_channel_t channel) {
     this->channel1_ = channel;
   }
   void set_autorange(bool autorange) { this->autorange_ = autorange; }
@@ -39,11 +38,12 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   InternalGPIOPin *pin_;
   bool output_raw_{false};
   uint8_t sample_count_{1};
+  adc_channel_t channel1_;
 
   adc_atten_t attenuation_{ADC_ATTEN_DB_0};
-  adc1_channel_t channel1_{ADC1_CHANNEL_MAX};
   bool autorange_{false};
-  esp_adc_cal_characteristics_t cal_characteristics_[SOC_ADC_ATTEN_NUM] = {};
+
+  adc_cali_handle_t cali_chan0_handle_;
 };
 
 }  // namespace adc
