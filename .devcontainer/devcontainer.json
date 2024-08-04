@@ -9,7 +9,8 @@
 		"vscode": {
 			"extensions": [
 				"ESPHome.esphome-vscode",
-				"platformio.platformio-ide"
+				"ms-vscode.cmake-tools",
+				"platformio.platformio-ide",
 			]
 		}
 	}

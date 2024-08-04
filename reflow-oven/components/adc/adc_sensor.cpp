@@ -28,7 +28,7 @@ void ADCSensor::setup() {
     };
     ret = adc_oneshot_new_unit(&cfg, &g_adc_handle);
     g_initialized = true;
-    ESP_LOGI(TAG, "'%s': adc_oneshot_new_unit()=%d", this->get_name().c_str(), ret);
+    ESP_LOGCONFIG(TAG, "'%s': adc_oneshot_new_unit()=%d", this->get_name().c_str(), ret);
   }
 
   adc_oneshot_chan_cfg_t config = {
@@ -36,7 +36,7 @@ void ADCSensor::setup() {
     .bitwidth = ADC_BITWIDTH_DEFAULT,
   };
   ret = adc_oneshot_config_channel(g_adc_handle, this->channel1_, &config);
-  ESP_LOGI(TAG, "'%s': adc_oneshot_config_channel()=%d", this->get_name().c_str(), ret);
+  ESP_LOGCONFIG(TAG, "'%s': adc_oneshot_config_channel()=%d", this->get_name().c_str(), ret);
 
   ESP_LOGCONFIG(TAG, "ADC '%s' calibration scheme version is Curve Fitting", this->get_name().c_str());
   adc_cali_curve_fitting_config_t cali_config = {
@@ -46,7 +46,7 @@ void ADCSensor::setup() {
       .bitwidth = ADC_BITWIDTH_DEFAULT,
   };
   ret = adc_cali_create_scheme_curve_fitting(&cali_config, &this->cali_chan0_handle_);
-  ESP_LOGI(TAG, "'%s': adc_cali_create_scheme_curve_fitting()=%d", this->get_name().c_str(), ret);
+  ESP_LOGCONFIG(TAG, "'%s': adc_cali_create_scheme_curve_fitting()=%d", this->get_name().c_str(), ret);
 
   ESP_LOGCONFIG(TAG, "ADC '%s' setup finished!", this->get_name().c_str());
 }
@@ -98,7 +98,7 @@ float ADCSensor::sample() {
   int voltage = 0;
 
   adc_oneshot_read(g_adc_handle, this->channel1_, &adc_raw);
-  ESP_LOGI(TAG, "'%s': Got raw=%d", this->get_name().c_str(), adc_raw);
+  ESP_LOGV(TAG, "'%s': Got raw=%d", this->get_name().c_str(), adc_raw);
   adc_cali_raw_to_voltage(this->cali_chan0_handle_, adc_raw, &voltage);
 
   return voltage / 1000.0;
