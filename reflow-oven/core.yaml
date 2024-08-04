@@ -167,6 +167,13 @@ light:
     name: "LED"
     platform: binary
     output: output_led
+    effects:
+      - pulse:
+          name: "blink"
+          transition_length: 0.1s
+          update_interval: 0.5s
+          min_brightness: 0%
+          max_brightness: 100%
 
 number:
   - id: number_tc_target
