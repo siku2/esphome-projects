@@ -30,6 +30,21 @@ binary_sensor:
       number: GPIO15
       ignore_strapping_warning: true
     on_click:
+      - min_length: 20ms
+        max_length: ${long_press_min_length}
+        then:
+          - lambda: |-
+              switch (id(select_state).active_index().value_or(0)) {
+                // back to idle when complete
+                case 5: // Program Complete
+                  id(select_state)->make_call()
+                    .set_index(0) // Idle
+                    .perform();
+                  break;
+                default:
+                  break;
+              }
+
       - min_length: ${long_press_min_length}
         max_length: ${long_press_max_length}
         then:
@@ -76,6 +91,7 @@ binary_sensor:
                   id(select_state)->make_call()
                     .set_index(1) // Preheat
                     .perform();
+                  break;
                 // switch to next program in program select
                 case 8: // Program Select
                   id(select_program)->make_call()
@@ -137,12 +153,51 @@ number:
       then:
         - lambda: |-
             if (x > 0.0) {
+              id(select_tc_state)->make_call()
+                .set_index(2) // Relay
+                .perform();
               id(script_tc_act)->execute();
             } else {
               id(select_tc_state)->make_call()
                 .set_index(0) // Off
                 .perform();
             }
+
+  - id: number_prog_run_max_temp
+    name: "Program Run Max Temperature"
+    unit_of_measurement: °C
+    device_class: temperature
+    platform: template
+    min_value: 0.0
+    max_value: 300.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+
+  - id: number_preheat_temp
+    name: "Preheat Temperature"
+    unit_of_measurement: °C
+    device_class: temperature
+    platform: template
+    min_value: 0.0
+    max_value: 300.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+
+  - id: number_preheat_time
+    name: "Preheat Temperature"
+    unit_of_measurement: °C
+    device_class: temperature
+    platform: template
+    min_value: 0.0
+    max_value: 300.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
 
 output:
   - id: output_pwm
@@ -260,6 +315,16 @@ script:
   - id: script_tc_act
     mode: single
     then:
+      - lambda: |-
+          switch (id(select_tc_state).active_index().value_or(0)) {
+            case 0: // Off
+            case 1: // Error
+              // stop early since we don't want to run
+              id(script_tc_act)->stop();
+              break;
+            default:
+              break;
+          }
       - if:
           condition:
             lambda: |-
@@ -272,26 +337,83 @@ script:
             - script.wait: script_tc_relay_on
 
   - id: script_buzzer
-    mode: single
+    mode: restart
     parameters:
       duration_ms: int
+      count: int
     then:
-      - switch.turn_on: switch_buzzer
-      - delay: !lambda return duration_ms;
-      - switch.turn_off: switch_buzzer
+      - repeat:
+          count: !lambda return count;
+          then:
+            - switch.turn_on: switch_buzzer
+            - delay: !lambda return duration_ms;
+            - switch.turn_off: switch_buzzer
+            - delay: 200ms
 
   - id: script_s_abort
     mode: single
     then:
+      # stop the temperature controller
+      - number.set:
+          id: number_tc_target
+          value: 0
       - light.turn_on: light_led
       - component.update: display_main
       - script.execute:
           id: script_buzzer
           duration_ms: 3000
+          count: 1
       - script.wait: script_buzzer
       - select.set_index:
           id: select_state
           index: 0 # Idle
+
+  - id: script_s_prog_complete
+    mode: single
+    then:
+      # stop the temperature controller
+      - number.set:
+          id: number_tc_target
+          value: 0
+      - script.execute:
+          id: script_buzzer
+          duration_ms: 500
+          count: 3
+      - light.turn_off: light_led
+
+  - id: script_s_prog_run
+    mode: single
+    then:
+      - script.execute:
+          id: script_buzzer
+          duration_ms: 500
+          count: 1
+      - light.turn_on:
+          id: light_led
+          effect: blink
+      - component.update: display_main
+      - wait_until:
+          condition:
+            lambda: |-
+              float current_temp = id(sensor_temp_cs2)->state;
+              float max_temp = id(number_prog_run_max_temp)->state;
+              return current_temp <= max_temp;
+      - select.set_index:
+          id: select_state
+          index: 1 # Preheat
+
+  - id: script_s_preheat
+    mode: single
+    then:
+      - number.set:
+          id: number_tc_target
+          value: !lambda return id(number_preheat_temp)->state;
+      # TODO
+      - delay: 60s
+      - select.set_index:
+          id: select_state
+          index: 5 # Program Complete
+
 
 select:
   - id: select_tc_state
@@ -336,12 +458,22 @@ select:
       then:
         - lambda: |-
             // stop all currently running state scripts first
-            auto all_scripts = {id(script_s_abort)};
+            auto all_scripts = {
+              id(script_s_abort),
+              id(script_s_prog_run),
+              id(script_s_preheat),
+            };
             for (auto script : all_scripts) script->stop();
             // then decide what to do
             switch (i) {
+              case 1: // Preheat
+                id(script_s_preheat)->execute();
+                break;
               case 6: // Program Aborted
                 id(script_s_abort)->execute();
+                break;
+              case 7: // Program Run
+                id(script_s_prog_run)->execute();
                 break;
               default:
                 break;
@@ -381,6 +513,15 @@ sensor:
     spi_id: spi_main
     cs_pin: GPIO19
     update_interval: 5s
+    on_value:
+      then:
+        # abort if the oven gets too hot
+        - lambda: |-
+            if (x > 300.0) {
+              id(select_state)->make_call()
+                .set_index(6) // Program Aborted
+                .perform();
+            }
 
   - id: sensor_count
     name: "COUNT"
