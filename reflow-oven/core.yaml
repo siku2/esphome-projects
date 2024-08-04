@@ -122,18 +122,27 @@ light:
     output: output_led
 
 number:
-  - id: number_pwm_use_override
-    name: "PWM User Override"
+  - id: number_tc_target
+    name: "Target Temperature"
+    unit_of_measurement: °C
+    device_class: temperature
     platform: template
     min_value: 0.0
-    max_value: 1.0
-    step: 0.01
+    max_value: 300.0
+    step: 1.0
     update_interval: never
     optimistic: true
-    set_action:
+    restore_value: false
+    on_value: 
       then:
         - lambda: |-
-            id(output_pwm).set_level(x);
+            if (x > 0.0) {
+              id(script_tc_act)->execute();
+            } else {
+              id(select_tc_state)->make_call()
+                .set_index(0) // Off
+                .perform();
+            }
 
 output:
   - id: output_pwm
@@ -150,29 +159,164 @@ output:
     pin: GPIO23
 
 script:
-    - id: script_buzzer
-      mode: single
-      parameters:
-        duration_ms: int
-      then:
-        - switch.turn_on: switch_buzzer
-        - delay: !lambda return duration_ms;
-        - switch.turn_off: switch_buzzer
+  # tc: stops all tc scripts and shuts down the heating elements
+  - id: script_tc_off
+    mode: restart
+    then:
+      - lambda: |-
+          auto all_scripts = {
+            id(script_tc_check_count),
+            id(script_tc_triac_on),
+            id(script_tc_relay_on),
+            id(script_tc_act),
+          };
+          for (auto script : all_scripts) script->stop();
+      - switch.turn_off: switch_rel1
+      - output.turn_off: output_pwm
 
-    - id: script_s_abort
-      mode: single
-      then:
-        - light.turn_on: light_led
-        - component.update: display_main
-        - script.execute:
-            id: script_buzzer
-            duration_ms: 3000
-        - script.wait: script_buzzer
-        - select.set_index:
-            id: select_state
-            index: 0 # Idle
+  # tc: waits for the count to be echoed, otherwise enters error state
+  - id: script_tc_check_count
+    mode: single
+    then:
+      - component.update: sensor_count
+      - wait_until:
+          condition:
+            sensor.in_range:
+              id: sensor_count
+              above: 0
+          timeout: 5s
+      - if:
+          condition:
+            sensor.in_range:
+              id: sensor_count
+              above: 0
+          else:
+            # count not available -> error
+            - select.set_index:
+                id: select_tc_state
+                index: 1 # Error
+
+  # TODO: we probably want more than just to turn it on?
+  # tc: turns on the triac with various checks, otherwise enters error state
+  - id: script_tc_triac_on
+    mode: single
+    then:
+      - switch.turn_off: switch_rel1
+      - if:
+          condition:
+            sensor.in_range:
+              id: sensor_ntc1
+              above: 50
+          then:
+            # ntc1 > 50
+            - output.turn_off: output_pwm
+            - wait_until:
+                # wait for ntc1 <= 50
+                condition:
+                  not:
+                    sensor.in_range:
+                      id: sensor_ntc1
+                      above: 50
+                timeout: 5s
+      - if:
+          condition:
+            or:
+              # ntc1 > 50
+              - sensor.in_range:
+                  id: sensor_ntc1
+                  above: 50
+              # ntc2 > 50
+              - sensor.in_range:
+                  id: sensor_ntc2
+                  # technically this should be >= instead of >
+                  above: 50
+          then:
+            - select.set_index:
+                id: select_tc_state
+                index: 1 # Error
+
+      - output.turn_on: output_pwm
+      - select.set_index:
+          id: select_tc_state
+          index: 3 # Triac
+      - script.execute: script_tc_check_count
+      - script.wait: script_tc_check_count
+
+  # tc: turns on the relay and ensures the count is echoed, otherwise enters error state
+  - id: script_tc_relay_on
+    mode: single
+    then:
+      - output.turn_off: output_pwm
+      - switch.turn_on: switch_rel1
+      - select.set_index:
+          id: select_tc_state
+          index: 2 # Relay
+      - script.execute: script_tc_check_count
+      - script.wait: script_tc_check_count
+
+  # tc: act
+  #
+  # triggers: [number_tc_target, sensor_temp_cs2, sensor_ntc1, sensor_ntc2]
+  - id: script_tc_act
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(sensor_temp_cs2)->state > (id(number_tc_target)->state - 5.0);
+          then:
+            - script.execute: script_tc_triac_on
+            - script.wait: script_tc_triac_on
+          else:
+            - script.execute: script_tc_relay_on
+            - script.wait: script_tc_relay_on
+
+  - id: script_buzzer
+    mode: single
+    parameters:
+      duration_ms: int
+    then:
+      - switch.turn_on: switch_buzzer
+      - delay: !lambda return duration_ms;
+      - switch.turn_off: switch_buzzer
+
+  - id: script_s_abort
+    mode: single
+    then:
+      - light.turn_on: light_led
+      - component.update: display_main
+      - script.execute:
+          id: script_buzzer
+          duration_ms: 3000
+      - script.wait: script_buzzer
+      - select.set_index:
+          id: select_state
+          index: 0 # Idle
 
 select:
+  - id: select_tc_state
+    platform: template
+    name: "Temperature Controller Status"
+    optimistic: true
+    update_interval: never
+    options:
+      - "Off" #        0
+      - "Error" #      1
+      - "Relay" #      2
+      - "Triac" #      3
+      - "Triac Cool" # 4
+    on_value:
+      then:
+        - lambda: |-
+            switch (i) {
+              case 0: // Off
+              case 1: // Error
+                id(script_tc_off)->execute();
+                break;
+              default:
+                break;
+            }
+
   - id: select_state
     platform: template
     name: "State"
@@ -221,16 +365,19 @@ select:
         - component.update: display_main
 
 sensor:
-  - id: sensor_temp_pcb
+  - id: sensor_temp_cs2
     platform: max6675
-    name: "PCB Temperature"
+    name: "PCB Temperature (CS2)"
     spi_id: spi_main
     cs_pin: GPIO18
     update_interval: 5s
+    on_value:
+      then:
+        - script.execute: script_tc_act
 
-  - id: sensor_temp_oven
+  - id: sensor_temp_cs3
     platform: max6675
-    name: "Oven Temperature"
+    name: "Oven Temperature (CS3)"
     spi_id: spi_main
     cs_pin: GPIO19
     update_interval: 5s
@@ -242,13 +389,16 @@ sensor:
     update_interval: 5s
 
   - id: sensor_ntc1
-    name: "NTC1"
+    name: "Triac Temperature (NTC1)"
     platform: ntc
     sensor: sensor_ntc1_resistance
     calibration:
       b_constant: 3892
       reference_temperature: 25°C
       reference_resistance: 3kOhm
+    on_value:
+      then:
+        - script.execute: script_tc_act
 
   - id: sensor_ntc1_resistance
     platform: resistance
@@ -263,13 +413,16 @@ sensor:
     update_interval: 5s
 
   - id: sensor_ntc2
-    name: "NTC2"
+    name: "Case Temperature (NTC2)"
     platform: ntc
     sensor: sensor_ntc2_resistance
     calibration:
       b_constant: 3892
       reference_temperature: 25°C
       reference_resistance: 3kOhm
+    on_value:
+      then:
+        - script.execute: script_tc_act
 
   - id: sensor_ntc2_resistance
     platform: resistance
