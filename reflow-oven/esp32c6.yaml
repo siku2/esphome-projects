@@ -22,10 +22,7 @@ esp32:
 external_components:
   # need a custom ADC impl until esphome supports it directly
   - source:
-      type: git
-      url: "https://github.com/siku2/esphome-projects"
-      ref: "main"
-      path: "reflow-oven/components"
-    refresh: 10s
+      type: local
+      path: components
     components:
       - adc
