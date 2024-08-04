@@ -1,6 +1,8 @@
 substitutions:
   name: "reflow-oven"
   friendly_name: "Reflow Oven"
+  long_press_min_length: "1s"
+  long_press_max_length: "2s"
 
 esphome:
   name: "${name}"
@@ -21,20 +23,86 @@ wifi:
   ap:
 
 binary_sensor:
-  - id: "bs_switch1"
+  - id: bs_switch1
     name: "Switch1"
     platform: gpio
     pin:
       number: GPIO15
       ignore_strapping_warning: true
+    on_click:
+      - min_length: ${long_press_min_length}
+        max_length: ${long_press_max_length}
+        then:
+          - lambda: |-
+              switch (id(select_state).active_index().value_or(0)) {
+                // abort running program
+                case 1: // Preheat
+                case 2: // Ramp-up
+                case 3: // Overshoot
+                case 4: // Ramp-down
+                case 7: // Program Run
+                  id(select_state)->make_call()
+                    .set_index(6) // Program Aborted
+                    .perform();
+                  break;
+                // confirm selected program and go back to idle
+                case 8: // Program Select
+                  id(select_state)->make_call()
+                    .set_index(0) // Idle
+                    .perform();
+                  break;
+                default:
+                  break;
+              }
 
-  - id: "bs_switch0"
+  - id: bs_switch0
     name: "Switch0"
     platform: gpio
     pin: GPIO20
+    on_click:
+      - min_length: 20ms
+        max_length: ${long_press_min_length}
+        then:
+          - lambda: |-
+              switch (id(select_state).active_index().value_or(0)) {
+                // enter program select
+                case 0: // Idle
+                  id(select_state)->make_call()
+                    .set_index(8) // Program Select
+                    .perform();
+                  break;
+                // force program to start even when temperature is above min.
+                case 7: // Program Run
+                  id(select_state)->make_call()
+                    .set_index(1) // Preheat
+                    .perform();
+                // switch to next program in program select
+                case 8: // Program Select
+                  id(select_program)->make_call()
+                    .select_next(true)
+                    .perform();
+                  break;
+                default:
+                  break;
+              }
+
+      - min_length: ${long_press_min_length}
+        max_length: ${long_press_max_length}
+        then:
+          - lambda: |-
+              switch (id(select_state).active_index().value_or(0)) {
+                // confirm selected program and move to run
+                case 0: // Idle
+                  id(select_state)->make_call()
+                    .set_index(7) // Program Run
+                    .perform();
+                  break;
+                default:
+                  break;
+              }
 
 display:
-  - id: "display_main"
+  - id: display_main
     platform: lcd_pcf8574
     dimensions: 20x4
     address: 0x27
@@ -43,12 +111,18 @@ display:
       it.print("Hello World!");
 
 i2c:
-  id: "i2c_main"
+  id: i2c_main
   sda: GPIO21
   scl: GPIO22
 
+light:
+  - id: light_led
+    name: "LED"
+    platform: binary
+    output: output_led
+
 number:
-  - id: "number_pwm_use_override"
+  - id: number_pwm_use_override
     name: "PWM User Override"
     platform: template
     min_value: 0.0
@@ -62,17 +136,44 @@ number:
             id(output_pwm).set_level(x);
 
 output:
-  - id: "output_pwm"
+  - id: output_pwm
     platform: ledc
     pin: GPIO10
 
-  - id: "output_buzzer"
+  - id: output_buzzer
     platform: ledc
     pin: GPIO17
     max_power: 0.23
 
+  - id: output_led
+    platform: gpio
+    pin: GPIO23
+
+script:
+    - id: script_buzzer
+      mode: single
+      parameters:
+        duration_ms: int
+      then:
+        - switch.turn_on: switch_buzzer
+        - delay: !lambda return duration_ms;
+        - switch.turn_off: switch_buzzer
+
+    - id: script_s_abort
+      mode: single
+      then:
+        - light.turn_on: light_led
+        - component.update: display_main
+        - script.execute:
+            id: script_buzzer
+            duration_ms: 3000
+        - script.wait: script_buzzer
+        - select.set_index:
+            id: select_state
+            index: 0 # Idle
+
 select:
-  - id: "select_state"
+  - id: select_state
     platform: template
     name: "State"
     optimistic: true
@@ -86,6 +187,30 @@ select:
       - "Program Complete" # 5
       - "Program Aborted" #  6
       - "Program Run" #      7
+      - "Program Select" #   8
+    on_value:
+      then:
+        - lambda: |-
+            // stop all currently running state scripts first
+            auto all_scripts = {id(script_s_abort)};
+            for (auto script : all_scripts) script->stop();
+            // then decide what to do
+            switch (i) {
+              case 6: // Program Aborted
+                id(script_s_abort)->execute();
+                break;
+              default:
+                break;
+            }
+
+  - id: select_program
+    platform: template
+    name: "Program Preset"
+    optimistic: true
+    update_interval: never
+    options:
+      - "Custom" #    0
+      - "Lead Free" # 1
     on_value:
       then:
         - lambda: |-
@@ -93,81 +218,79 @@ select:
               default:
                 break;
             }
-            if (id(display_main).is_ready()) {
-              id(display_main).update();
-            }
+        - component.update: display_main
 
 sensor:
-  - id: "sensor_temp_pcb"
+  - id: sensor_temp_pcb
     platform: max6675
     name: "PCB Temperature"
-    spi_id: "spi_main"
+    spi_id: spi_main
     cs_pin: GPIO18
     update_interval: 5s
 
-  - id: "sensor_temp_oven"
+  - id: sensor_temp_oven
     platform: max6675
     name: "Oven Temperature"
-    spi_id: "spi_main"
+    spi_id: spi_main
     cs_pin: GPIO19
     update_interval: 5s
 
-  - id: "sensor_count"
+  - id: sensor_count
     name: "COUNT"
     platform: pulse_counter
     pin: GPIO11
     update_interval: 5s
 
-  - id: "sensor_ntc1"
+  - id: sensor_ntc1
     name: "NTC1"
     platform: ntc
-    sensor: "sensor_ntc1_resistance"
+    sensor: sensor_ntc1_resistance
     calibration:
       b_constant: 3892
       reference_temperature: 25°C
       reference_resistance: 3kOhm
 
-  - id: "sensor_ntc1_resistance"
+  - id: sensor_ntc1_resistance
     platform: resistance
-    sensor: "sensor_ntc1_adc"
+    sensor: sensor_ntc1_adc
     configuration: DOWNSTREAM
     resistor: 4.7kOhm
 
-  - id: "sensor_ntc1_adc"
+  - id: sensor_ntc1_adc
     platform: adc
     pin: GPIO4
     attenuation: 12db
     update_interval: 5s
 
-  - id: "sensor_ntc2"
+  - id: sensor_ntc2
     name: "NTC2"
     platform: ntc
-    sensor: "sensor_ntc2_resistance"
+    sensor: sensor_ntc2_resistance
     calibration:
       b_constant: 3892
       reference_temperature: 25°C
       reference_resistance: 3kOhm
 
-  - id: "sensor_ntc2_resistance"
+  - id: sensor_ntc2_resistance
     platform: resistance
-    sensor: "sensor_ntc2_adc"
+    sensor: sensor_ntc2_adc
     configuration: UPSTREAM
     resistor: 4.7kOhm
 
-  - id: "sensor_ntc2_adc"
+  - id: sensor_ntc2_adc
     platform: adc
     pin: GPIO5
     attenuation: 12db
     update_interval: 5s
 
 spi:
-  id: "spi_main"
+  id: spi_main
   clk_pin: GPIO6
   mosi_pin: GPIO7
   miso_pin: GPIO2
 
 switch:
-  - id: "switch_display_backlight"
+  - id: switch_display_backlight
     name: "Display Backlight"
     entity_category: config
     platform: template
@@ -185,17 +308,12 @@ switch:
             id(display_main).no_backlight();
           }
 
-  - id: "switch_buzzer"
+  - id: switch_buzzer
     name: "BUZZER"
     platform: output
-    output: "output_buzzer"
+    output: output_buzzer
 
-  - id: "switch_led"
-    name: "LED"
-    platform: gpio
-    pin: GPIO23
-
-  - id: "switch_rel1"
+  - id: switch_rel1
     name: "REL1"
     platform: gpio
     pin: GPIO3

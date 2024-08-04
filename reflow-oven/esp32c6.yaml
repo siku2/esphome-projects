@@ -1,6 +1,6 @@
 substitutions:
-  name: "reflow-oven"
-  friendly_name: "Reflow Oven"
+  # name: "reflow-oven"
+  # friendly_name: "Reflow Oven"
 
 packages:
   core: !include core.yaml
@@ -20,6 +20,7 @@ esp32:
       CONFIG_ESPTOOLPY_FLASHSIZE_4MB: y
 
 external_components:
+  # need a custom ADC impl until esphome supports it directly
   - source:
       type: git
       url: "https://github.com/siku2/esphome-projects"
