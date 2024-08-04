@@ -11,6 +11,7 @@
 				"ESPHome.esphome-vscode",
 				"ms-vscode.cmake-tools",
 				"platformio.platformio-ide",
+				"hediet.vscode-drawio"
 			]
 		}
 	}
