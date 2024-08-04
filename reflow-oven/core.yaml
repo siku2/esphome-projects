@@ -124,7 +124,38 @@ display:
     address: 0x27
     update_interval: never
     lambda: |-
-      it.print("Hello World!");
+      switch (id(select_state).active_index().value_or(0)) {
+        case 0: // Idle
+          it.print("Idle");
+          break;
+        case 1: // Preheat
+          it.print("Preheat");
+          break;
+        case 2: // Ramp-up
+          it.print("Ramp-up");
+          break;
+        case 3: // Overshoot
+          it.print("Overshoot");
+          break;
+        case 4: // Ramp-down
+          it.print("Ramp-down");
+          break;
+        case 5: // Program Complete
+          it.print("Program Complete");
+          break;
+        case 6: // Program Aborted
+          it.print("Program Aborted");
+          break;
+        case 7: // Program Run
+          it.print("Program Run");
+          break;
+        case 8: // Program Select
+          it.print("Program Select");
+          break;
+        default:
+          it.print("Hello World");
+          break;
+      }
 
 i2c:
   id: i2c_main
