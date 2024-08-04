@@ -180,7 +180,7 @@ sensor:
   - id: "sensor_ntc2_resistance"
     platform: resistance
     sensor: "sensor_ntc2_adc"
-    configuration: DOWNSTREAM
+    configuration: UPSTREAM
     resistor: 4.7kOhm
 
   - id: "sensor_ntc2_adc"
