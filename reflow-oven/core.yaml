@@ -168,12 +168,17 @@ light:
     platform: binary
     output: output_led
     effects:
-      - pulse:
+      - lambda:
           name: "blink"
-          transition_length: 0.1s
           update_interval: 0.5s
-          min_brightness: 0%
-          max_brightness: 100%
+          lambda: |-
+            static bool on = true;
+            if (on) {
+              id(light_led).turn_on().perform();
+            } else {
+              id(light_led).turn_off().perform();
+            }
+            on = !on;
 
 number:
   - id: number_tc_target
