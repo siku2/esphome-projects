@@ -1,0 +1,201 @@
+substitutions:
+  name: "reflow-oven"
+  friendly_name: "Reflow Oven"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  name_add_mac_suffix: true
+  project:
+    name: "siku2.reflow-oven"
+    version: "0.2.0"
+
+logger:
+
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ap:
+
+binary_sensor:
+  - id: "bs_switch1"
+    name: "Switch1"
+    platform: gpio
+    pin:
+      number: GPIO15
+      ignore_strapping_warning: true
+
+  - id: "bs_switch0"
+    name: "Switch0"
+    platform: gpio
+    pin: GPIO20
+
+display:
+  - id: "display_main"
+    platform: lcd_pcf8574
+    dimensions: 20x4
+    address: 0x27
+    update_interval: never
+    lambda: |-
+      it.print("Hello World!");
+
+i2c:
+  id: "i2c_main"
+  sda: GPIO21
+  scl: GPIO22
+
+number:
+  - id: "number_pwm_use_override"
+    name: "PWM User Override"
+    platform: template
+    min_value: 0.0
+    max_value: 1.0
+    step: 0.01
+    update_interval: never
+    optimistic: true
+    set_action:
+      then:
+        - lambda: |-
+            id(output_pwm).set_level(x);
+
+output:
+  - id: "output_pwm"
+    platform: ledc
+    pin: GPIO10
+
+  - id: "output_buzzer"
+    platform: ledc
+    pin: GPIO17
+    max_power: 0.23
+
+select:
+  - id: "select_state"
+    platform: template
+    name: "State"
+    optimistic: true
+    update_interval: never
+    options:
+      - "Idle" #             0
+      - "Preheat" #          1
+      - "Ramp-up" #          2
+      - "Overshoot" #        3
+      - "Ramp-down" #        4
+      - "Program Complete" # 5
+      - "Program Aborted" #  6
+      - "Program Run" #      7
+    on_value:
+      then:
+        - lambda: |-
+            switch (i) {
+              default:
+                break;
+            }
+            if (id(display_main).is_ready()) {
+              id(display_main).update();
+            }
+
+sensor:
+  - id: "sensor_temp_pcb"
+    platform: max6675
+    name: "PCB Temperature"
+    spi_id: "spi_main"
+    cs_pin: GPIO18
+    update_interval: 5s
+
+  - id: "sensor_temp_oven"
+    platform: max6675
+    name: "Oven Temperature"
+    spi_id: "spi_main"
+    cs_pin: GPIO19
+    update_interval: 5s
+
+  - id: "sensor_count"
+    name: "COUNT"
+    platform: pulse_counter
+    pin: GPIO11
+    update_interval: 5s
+
+  - id: "sensor_ntc1"
+    name: "NTC1"
+    platform: ntc
+    sensor: "sensor_ntc1_resistance"
+    calibration:
+      b_constant: 3892
+      reference_temperature: 25°C
+      reference_resistance: 3kOhm
+
+  - id: "sensor_ntc1_resistance"
+    platform: resistance
+    sensor: "sensor_ntc1_adc"
+    configuration: DOWNSTREAM
+    resistor: 4.7kOhm
+
+  - id: "sensor_ntc1_adc"
+    platform: adc
+    pin: GPIO4
+    attenuation: 12db
+    update_interval: 5s
+
+  - id: "sensor_ntc2"
+    name: "NTC2"
+    platform: ntc
+    sensor: "sensor_ntc2_resistance"
+    calibration:
+      b_constant: 3892
+      reference_temperature: 25°C
+      reference_resistance: 3kOhm
+
+  - id: "sensor_ntc2_resistance"
+    platform: resistance
+    sensor: "sensor_ntc2_adc"
+    configuration: UPSTREAM
+    resistor: 4.7kOhm
+
+  - id: "sensor_ntc2_adc"
+    platform: adc
+    pin: GPIO5
+    attenuation: 12db
+    update_interval: 5s
+
+spi:
+  id: "spi_main"
+  clk_pin: GPIO6
+  mosi_pin: GPIO7
+  miso_pin: GPIO2
+
+switch:
+  - id: "switch_display_backlight"
+    name: "Display Backlight"
+    entity_category: config
+    platform: template
+    optimistic: true
+    assumed_state: true
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - lambda: |-
+          if (id(display_main).is_ready()) {
+            id(display_main).backlight();
+          }
+    turn_off_action:
+      - lambda: |-
+          if (id(display_main).is_ready()) {
+            id(display_main).no_backlight();
+          }
+
+  - id: "switch_buzzer"
+    name: "BUZZER"
+    platform: output
+    output: "output_buzzer"
+
+  - id: "switch_led"
+    name: "LED"
+    platform: gpio
+    pin: GPIO23
+
+  - id: "switch_rel1"
+    name: "REL1"
+    platform: gpio
+    pin: GPIO3
