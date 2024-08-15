@@ -117,6 +117,16 @@ binary_sensor:
                   break;
               }
 
+climate:
+  - id: climate_pwm
+    name: "PID Controller"
+    platform: pid
+    sensor: sensor_temp_cs2
+    default_target_temperature: 0.0
+    heat_output: output_pwm
+    control_parameters:
+      kp: 1.0
+
 display:
   - id: display_main
     platform: lcd_pcf8574
@@ -269,6 +279,9 @@ script:
             id(script_tc_act),
           };
           for (auto script : all_scripts) script->stop();
+      - climate.control:
+          id: climate_pwm
+          mode: "OFF"
       - switch.turn_off: switch_rel1
       - output.turn_off: output_pwm
 
@@ -307,7 +320,9 @@ script:
               above: 50
           then:
             # ntc1 > 50
-            - output.turn_off: output_pwm
+            - climate.control:
+                id: climate_pwm
+                mode: "OFF"
             - wait_until:
                 # wait for ntc1 <= 50
                 condition:
@@ -333,7 +348,10 @@ script:
                 id: select_tc_state
                 index: 1 # Error
 
-      - output.turn_on: output_pwm
+      - climate.control:
+          id: climate_pwm
+          mode: "HEAT"
+          target_temperature: !lambda return id(number_tc_target)->state;
       - select.set_index:
           id: select_tc_state
           index: 3 # Triac
@@ -344,7 +362,9 @@ script:
   - id: script_tc_relay_on
     mode: single
     then:
-      - output.turn_off: output_pwm
+      - climate.control:
+          id: climate_pwm
+          mode: "OFF"
       - switch.turn_on: switch_rel1
       - select.set_index:
           id: select_tc_state
