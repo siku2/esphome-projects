@@ -117,6 +117,19 @@ binary_sensor:
                   break;
               }
 
+button:
+  - platform: template
+    name: "PID Controller Autotune"
+    on_press:
+      - climate.control:
+          id: climate_pwm
+          target_temperature: 245
+      - climate.pid.autotune:
+          id: climate_pwm
+          noiseband: 0.2
+          positive_output: 1.0
+          negative_output: 0.0
+
 climate:
   - id: climate_pwm
     name: "PID Controller"
@@ -125,7 +138,7 @@ climate:
     default_target_temperature: 0.0
     heat_output: output_pwm
     control_parameters:
-      kp: 1.0
+      kp: 0.0
 
 display:
   - id: display_main
