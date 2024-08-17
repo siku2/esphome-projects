@@ -9,9 +9,9 @@
 		"vscode": {
 			"extensions": [
 				"ESPHome.esphome-vscode",
-				"ms-vscode.cmake-tools",
+				"hediet.vscode-drawio",
+				"ms-vscode.cpptools-extension-pack",
 				"platformio.platformio-ide",
-				"hediet.vscode-drawio"
 			]
 		}
 	}
