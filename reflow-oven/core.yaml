@@ -2,7 +2,7 @@ substitutions:
   name: "reflow-oven"
   friendly_name: "Reflow Oven"
   long_press_min_length: "1s"
-  long_press_max_length: "2s"
+  long_press_max_length: "5s"
 
 esphome:
   name: "${name}"
