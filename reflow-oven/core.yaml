@@ -138,6 +138,14 @@ binary_sensor:
       float diff = std::abs(target_temp - id(sensor_temp_cs2)->state);
       return target_temp != 0.0 && diff < 5.0;
 
+  - id: bs_tc_triac_overheating
+    name: "Triac Overheating"
+    platform: template
+    lambda: |-
+      float max_temp = id(number_tc_triac_max_temp)->state;
+      float current_temp = id(sensor_ntc1)->state;
+      return current_temp > max_temp;
+
 button:
   - platform: template
     name: "PID Controller Autotune"
@@ -251,6 +259,19 @@ number:
                 .set_index(0) // Off
                 .perform();
             }
+
+  - id: number_tc_triac_max_temp
+    name: "Triac Max Temperature"
+    unit_of_measurement: °C
+    device_class: temperature
+    platform: template
+    min_value: 0.0
+    max_value: 120.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+    initial_value: 80.0
 
   - id: number_prog_run_max_temp
     name: "Program Run Max Temperature"
@@ -492,29 +513,19 @@ script:
       - switch.turn_off: switch_rel1
       - if:
           condition:
-            sensor.in_range:
-              id: sensor_ntc1
-              above: 50
+            binary_sensor.is_on: bs_tc_triac_overheating
           then:
-            # ntc1 > 50
             - climate.control:
                 id: climate_pwm
                 mode: "OFF"
             - wait_until:
-                # wait for ntc1 <= 50
                 condition:
-                  not:
-                    sensor.in_range:
-                      id: sensor_ntc1
-                      above: 50
+                  binary_sensor.is_off: bs_tc_triac_overheating
                 timeout: 5s
       - if:
           condition:
             or:
-              # ntc1 > 50
-              - sensor.in_range:
-                  id: sensor_ntc1
-                  above: 50
+              - binary_sensor.is_on: bs_tc_triac_overheating
               # ntc2 > 50
               - sensor.in_range:
                   id: sensor_ntc2
