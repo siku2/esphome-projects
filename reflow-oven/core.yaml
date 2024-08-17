@@ -13,6 +13,7 @@ esphome:
     version: "0.2.0"
 
 logger:
+  level: INFO
 
 api:
 
@@ -117,13 +118,21 @@ binary_sensor:
                   break;
               }
 
+  - id: bs_tc_target_reached
+    name: "Target Temperature Reached"
+    platform: template
+    lambda: |-
+      float target_temp = id(number_tc_target)->state;
+      float diff = std::abs(target_temp - id(sensor_temp_cs2)->state);
+      return target_temp != 0.0 && diff < 5.0;
+
 button:
   - platform: template
     name: "PID Controller Autotune"
     on_press:
       - climate.control:
           id: climate_pwm
-          target_temperature: 245
+          target_temperature: 200
       - climate.pid.autotune:
           id: climate_pwm
           noiseband: 0.2
@@ -240,6 +249,9 @@ number:
     update_interval: never
     optimistic: true
     restore_value: false
+    initial_value: 150
+
+  # Preheat config
 
   - id: number_preheat_temp
     name: "Preheat Temperature"
@@ -252,9 +264,38 @@ number:
     update_interval: never
     optimistic: true
     restore_value: false
+    initial_value: 200
 
   - id: number_preheat_time
-    name: "Preheat Temperature"
+    name: "Preheat Time"
+    unit_of_measurement: s
+    device_class: duration
+    platform: template
+    min_value: 0.0
+    max_value: 600.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+    initial_value: 150
+
+  - id: number_preheat_timeout
+    name: "Preheat Timeout"
+    unit_of_measurement: s
+    device_class: duration
+    platform: template
+    min_value: 0.0
+    max_value: 600.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+    initial_value: 300
+
+  # Ramp-up config
+
+  - id: number_rampup_temp
+    name: "Ramp-up Temperature"
     unit_of_measurement: °C
     device_class: temperature
     platform: template
@@ -264,6 +305,115 @@ number:
     update_interval: never
     optimistic: true
     restore_value: false
+    initial_value: 230
+
+  - id: number_rampup_time
+    name: "Ramp-up Time"
+    unit_of_measurement: s
+    device_class: duration
+    platform: template
+    min_value: 0.0
+    max_value: 600.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+    initial_value: 60
+
+  - id: number_rampup_timeout
+    name: "Ramp-up Timeout"
+    unit_of_measurement: s
+    device_class: duration
+    platform: template
+    min_value: 0.0
+    max_value: 600.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+    initial_value: 300
+
+  # Overshoot config
+
+  - id: number_overshoot_temp
+    name: "Overshoot Temperature"
+    unit_of_measurement: °C
+    device_class: temperature
+    platform: template
+    min_value: 0.0
+    max_value: 300.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+    initial_value: 245
+
+  - id: number_overshoot_time
+    name: "Overshoot Time"
+    unit_of_measurement: s
+    device_class: duration
+    platform: template
+    min_value: 0.0
+    max_value: 600.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+    initial_value: 30
+
+  - id: number_overshoot_timeout
+    name: "Overshoot Timeout"
+    unit_of_measurement: s
+    device_class: duration
+    platform: template
+    min_value: 0.0
+    max_value: 600.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+    initial_value: 300
+
+  # Ramp-down config
+
+  - id: number_rampdown_temp
+    name: "Ramp-down Temperature"
+    unit_of_measurement: °C
+    device_class: temperature
+    platform: template
+    min_value: 0.0
+    max_value: 300.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+    initial_value: 200
+
+  - id: number_rampdown_time
+    name: "Ramp-down Time"
+    unit_of_measurement: s
+    device_class: duration
+    platform: template
+    min_value: 0.0
+    max_value: 600.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+    initial_value: 60
+
+  - id: number_rampdown_timeout
+    name: "Ramp-down Timeout"
+    unit_of_measurement: s
+    device_class: duration
+    platform: template
+    min_value: 0.0
+    max_value: 600.0
+    step: 1.0
+    update_interval: never
+    optimistic: true
+    restore_value: false
+    initial_value: 300
 
 output:
   - id: output_pwm
@@ -429,6 +579,10 @@ script:
   - id: script_s_abort
     mode: single
     then:
+      - logger.log:
+          format: "Aborting"
+          level: WARN
+          tag: program
       # stop the temperature controller
       - number.set:
           id: number_tc_target
@@ -447,6 +601,10 @@ script:
   - id: script_s_prog_complete
     mode: single
     then:
+      - logger.log:
+          format: "Complete"
+          level: INFO
+          tag: program
       # stop the temperature controller
       - number.set:
           id: number_tc_target
@@ -460,6 +618,10 @@ script:
   - id: script_s_prog_run
     mode: single
     then:
+      - logger.log:
+          format: "Starting"
+          level: INFO
+          tag: program
       - script.execute:
           id: script_buzzer
           duration_ms: 500
@@ -481,15 +643,126 @@ script:
   - id: script_s_preheat
     mode: single
     then:
+      - logger.log:
+          format: "Starting"
+          level: INFO
+          tag: preheat
       - number.set:
           id: number_tc_target
           value: !lambda return id(number_preheat_temp)->state;
-      # TODO
-      - delay: 60s
-      - select.set_index:
-          id: select_state
-          index: 5 # Program Complete
+      - delay: !lambda return 1000.0 * id(number_preheat_time)->state;
+      - logger.log:
+          format: "Time elapsed, waiting for matching temperature"
+          level: INFO
+          tag: preheat
+      - wait_until:
+          condition:
+            binary_sensor.is_on: bs_tc_target_reached
+          timeout: !lambda return 1000.0 * std::max(id(number_preheat_timeout)->state - id(number_preheat_time)->state, 0);
+      - if:
+          condition:
+            binary_sensor.is_on: bs_tc_target_reached
+          then:
+            - select.set_index:
+                id: select_state
+                index: 2 # Ramp-up
+          else:
+            - select.set_index:
+                id: select_state
+                index: 6 # Program Aborted
 
+  - id: script_s_rampup
+    mode: single
+    then:
+      - logger.log:
+          format: "Starting"
+          level: INFO
+          tag: rampup
+      - number.set:
+          id: number_tc_target
+          value: !lambda return id(number_rampup_temp)->state;
+      - delay: !lambda return 1000.0 * id(number_rampup_time)->state;
+      - logger.log:
+          format: "Time elapsed, waiting for matching temperature"
+          level: INFO
+          tag: rampup
+      - wait_until:
+          condition:
+            binary_sensor.is_on: bs_tc_target_reached
+          timeout: !lambda return 1000.0 * std::max(id(number_rampup_timeout)->state - id(number_rampup_time)->state, 0);
+      - if:
+          condition:
+            binary_sensor.is_on: bs_tc_target_reached
+          then:
+            - select.set_index:
+                id: select_state
+                index: 3 # Overshoot
+          else:
+            - select.set_index:
+                id: select_state
+                index: 6 # Program Aborted
+
+  - id: script_s_overshoot
+    mode: single
+    then:
+      - logger.log:
+          format: "Starting"
+          level: INFO
+          tag: overshoot
+      - number.set:
+          id: number_tc_target
+          value: !lambda return id(number_overshoot_temp)->state;
+      - delay: !lambda return 1000.0 * id(number_overshoot_time)->state;
+      - logger.log:
+          format: "Time elapsed, waiting for matching temperature"
+          level: INFO
+          tag: overshoot
+      - wait_until:
+          condition:
+            binary_sensor.is_on: bs_tc_target_reached
+          timeout: !lambda return 1000.0 * std::max(id(number_overshoot_timeout)->state - id(number_overshoot_time)->state, 0);
+      - if:
+          condition:
+            binary_sensor.is_on: bs_tc_target_reached
+          then:
+            - select.set_index:
+                id: select_state
+                index: 4 # Ramp-down
+          else:
+            - select.set_index:
+                id: select_state
+                index: 6 # Program Aborted
+
+  - id: script_s_rampdown
+    mode: single
+    then:
+      - logger.log:
+          format: "Starting"
+          level: INFO
+          tag: rampdown
+      - number.set:
+          id: number_tc_target
+          value: !lambda return id(number_rampdown_temp)->state;
+      - delay: !lambda return 1000.0 * id(number_rampdown_time)->state;
+      - logger.log:
+          format: "Time elapsed, waiting for matching temperature"
+          level: INFO
+          tag: rampdown
+      - wait_until:
+          condition:
+            binary_sensor.is_on: bs_tc_target_reached
+          timeout: !lambda return 1000.0 * std::max(id(number_rampdown_timeout)->state - id(number_rampdown_time)->state, 0);
+      - if:
+          condition:
+            binary_sensor.is_on: bs_tc_target_reached
+          then:
+            - select.set_index:
+                id: select_state
+                index: 5 # Program Complete
+          else:
+            - select.set_index:
+                id: select_state
+                index: 6 # Program Aborted
 
 select:
   - id: select_tc_state
@@ -536,14 +809,30 @@ select:
             // stop all currently running state scripts first
             auto all_scripts = {
               id(script_s_abort),
-              id(script_s_prog_run),
+              id(script_s_overshoot),
               id(script_s_preheat),
+              id(script_s_prog_complete),
+              id(script_s_prog_run),
+              id(script_s_rampdown),
+              id(script_s_rampup),
             };
             for (auto script : all_scripts) script->stop();
             // then decide what to do
             switch (i) {
               case 1: // Preheat
                 id(script_s_preheat)->execute();
+                break;
+              case 2: // Ramp-up
+                id(script_s_rampup)->execute();
+                break;
+              case 3: // Overshoot
+                id(script_s_overshoot)->execute();
+                break;
+              case 4: // Ramp-down
+                id(script_s_rampdown)->execute();
+                break;
+              case 5: // Program Completed
+                id(script_s_prog_complete)->execute();
                 break;
               case 6: // Program Aborted
                 id(script_s_abort)->execute();
