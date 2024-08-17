@@ -10,7 +10,7 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: "siku2.reflow-oven"
-    version: "0.2.0"
+    version: "0.3.0"
 
 logger:
   level: INFO
