@@ -34,6 +34,9 @@ binary_sensor:
       - min_length: 20ms
         max_length: ${long_press_min_length}
         then:
+          - logger.log:
+              format: "Switch1: Short Press"
+              level: INFO
           - lambda: |-
               switch (id(select_state).active_index().value_or(0)) {
                 // back to idle when complete
@@ -49,6 +52,9 @@ binary_sensor:
       - min_length: ${long_press_min_length}
         max_length: ${long_press_max_length}
         then:
+          - logger.log:
+              format: "Switch1: Long Press"
+              level: INFO
           - lambda: |-
               switch (id(select_state).active_index().value_or(0)) {
                 // abort running program
@@ -79,6 +85,9 @@ binary_sensor:
       - min_length: 20ms
         max_length: ${long_press_min_length}
         then:
+          - logger.log:
+              format: "Switch0: Short Press"
+              level: INFO
           - lambda: |-
               switch (id(select_state).active_index().value_or(0)) {
                 // enter program select
@@ -106,6 +115,9 @@ binary_sensor:
       - min_length: ${long_press_min_length}
         max_length: ${long_press_max_length}
         then:
+          - logger.log:
+              format: "Switch0: Long Press"
+              level: INFO
           - lambda: |-
               switch (id(select_state).active_index().value_or(0)) {
                 // confirm selected program and move to run
@@ -444,6 +456,7 @@ script:
             id(script_tc_act),
           };
           for (auto script : all_scripts) script->stop();
+
       - climate.control:
           id: climate_pwm
           mode: "OFF"
@@ -472,7 +485,6 @@ script:
                 id: select_tc_state
                 index: 1 # Error
 
-  # TODO: we probably want more than just to turn it on?
   # tc: turns on the triac with various checks, otherwise enters error state
   - id: script_tc_triac_on
     mode: single
@@ -819,6 +831,8 @@ select:
               id(script_s_rampup),
             };
             for (auto script : all_scripts) script->stop();
+
+        - lambda: |-
             // then decide what to do
             switch (i) {
               case 1: // Preheat
