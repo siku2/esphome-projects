@@ -644,21 +644,21 @@ script:
     mode: single
     then:
       - logger.log:
-          format: "Starting"
+          format: "Starting preheat"
           level: INFO
-          tag: preheat
+          tag: program
       - number.set:
           id: number_tc_target
           value: !lambda return id(number_preheat_temp)->state;
       - delay: !lambda return 1000.0 * id(number_preheat_time)->state;
       - logger.log:
-          format: "Time elapsed, waiting for matching temperature"
+          format: "preheat time elapsed, waiting for matching temperature"
           level: INFO
-          tag: preheat
+          tag: program
       - wait_until:
           condition:
             binary_sensor.is_on: bs_tc_target_reached
-          timeout: !lambda return 1000.0 * std::max(id(number_preheat_timeout)->state - id(number_preheat_time)->state, 0);
+          timeout: !lambda return 1000.0 * std::max(id(number_preheat_timeout)->state - id(number_preheat_time)->state, 0.0f);
       - if:
           condition:
             binary_sensor.is_on: bs_tc_target_reached
@@ -675,21 +675,21 @@ script:
     mode: single
     then:
       - logger.log:
-          format: "Starting"
+          format: "Starting rampup"
           level: INFO
-          tag: rampup
+          tag: program
       - number.set:
           id: number_tc_target
           value: !lambda return id(number_rampup_temp)->state;
       - delay: !lambda return 1000.0 * id(number_rampup_time)->state;
       - logger.log:
-          format: "Time elapsed, waiting for matching temperature"
+          format: "rampup time elapsed, waiting for matching temperature"
           level: INFO
-          tag: rampup
+          tag: program
       - wait_until:
           condition:
             binary_sensor.is_on: bs_tc_target_reached
-          timeout: !lambda return 1000.0 * std::max(id(number_rampup_timeout)->state - id(number_rampup_time)->state, 0);
+          timeout: !lambda return 1000.0 * std::max(id(number_rampup_timeout)->state - id(number_rampup_time)->state, 0.0f);
       - if:
           condition:
             binary_sensor.is_on: bs_tc_target_reached
@@ -706,21 +706,21 @@ script:
     mode: single
     then:
       - logger.log:
-          format: "Starting"
+          format: "Starting overshoot"
           level: INFO
-          tag: overshoot
+          tag: program
       - number.set:
           id: number_tc_target
           value: !lambda return id(number_overshoot_temp)->state;
       - delay: !lambda return 1000.0 * id(number_overshoot_time)->state;
       - logger.log:
-          format: "Time elapsed, waiting for matching temperature"
+          format: "overshoot time elapsed, waiting for matching temperature"
           level: INFO
-          tag: overshoot
+          tag: program
       - wait_until:
           condition:
             binary_sensor.is_on: bs_tc_target_reached
-          timeout: !lambda return 1000.0 * std::max(id(number_overshoot_timeout)->state - id(number_overshoot_time)->state, 0);
+          timeout: !lambda return 1000.0 * std::max(id(number_overshoot_timeout)->state - id(number_overshoot_time)->state, 0.0f);
       - if:
           condition:
             binary_sensor.is_on: bs_tc_target_reached
@@ -737,21 +737,21 @@ script:
     mode: single
     then:
       - logger.log:
-          format: "Starting"
+          format: "Starting rampdown"
           level: INFO
-          tag: rampdown
+          tag: program
       - number.set:
           id: number_tc_target
           value: !lambda return id(number_rampdown_temp)->state;
       - delay: !lambda return 1000.0 * id(number_rampdown_time)->state;
       - logger.log:
-          format: "Time elapsed, waiting for matching temperature"
+          format: "rampdown time elapsed, waiting for matching temperature"
           level: INFO
-          tag: rampdown
+          tag: program
       - wait_until:
           condition:
             binary_sensor.is_on: bs_tc_target_reached
-          timeout: !lambda return 1000.0 * std::max(id(number_rampdown_timeout)->state - id(number_rampdown_time)->state, 0);
+          timeout: !lambda return 1000.0 * std::max(id(number_rampdown_timeout)->state - id(number_rampdown_time)->state, 0.0f);
       - if:
           condition:
             binary_sensor.is_on: bs_tc_target_reached
