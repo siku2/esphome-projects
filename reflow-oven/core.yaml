@@ -147,7 +147,9 @@ climate:
     default_target_temperature: 0.0
     heat_output: output_pwm
     control_parameters:
-      kp: 0.0
+      kp: 0.14551
+      ki: 0.00167
+      kd: 3.16484
 
 display:
   - id: display_main
