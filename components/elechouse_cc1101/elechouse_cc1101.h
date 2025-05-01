@@ -1,6 +1,6 @@
 #pragma once
 
-#include <esphome.h>
+#include "esphome/core/component.h"
 
 namespace siku2
 {
@@ -19,6 +19,6 @@ namespace siku2
             InternalGPIOPin *tx_pin_;
             InternalGPIOPin *rx_pin_;
             float frequency_{};
-        }
+        };
     }
 }
