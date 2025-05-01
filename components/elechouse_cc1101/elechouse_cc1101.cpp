@@ -7,7 +7,7 @@ namespace siku2
     {
         void ElechouseCc1101::setup()
         {
-            ELECHOUSE_cc1101.setGDO(this->tx_pin_, this->rx_pin_);
+            ELECHOUSE_cc1101.setGDO(this->tx_pin_->get_pin(), this->rx_pin_->get_pin());
             ELECHOUSE_cc1101.Init();
             if (this->frequency_ > 0)
             {
