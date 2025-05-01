@@ -53,7 +53,20 @@ namespace esphome
     void
     SomfyCover::setup()
     {
+      if (!this->cc1101_ || !this->cover_id_)
+      {
+        ESP_LOGE(TAG, "cc1101_ or cover_id_ not set");
+        this->mark_failed();
+        return;
+      }
+
       this->priv_ = new SomfyCoverPrivate(this->cover_id_, this->cc1101_->get_emitter_pin(), this->remote_code_);
+      if (!this->priv_)
+      {
+        ESP_LOGE(TAG, "Failed to create SomfyCoverPrivate");
+        this->mark_failed();
+        return;
+      }
 
       auto restore = this->restore_state_();
       if (restore.has_value())

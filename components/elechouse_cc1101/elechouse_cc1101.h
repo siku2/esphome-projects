@@ -23,8 +23,8 @@ namespace esphome
       void set_frequency(float frequency) { this->frequency_ = frequency; }
 
     protected:
-      InternalGPIOPin *tx_pin_;
-      InternalGPIOPin *rx_pin_;
+      InternalGPIOPin *tx_pin_{};
+      InternalGPIOPin *rx_pin_{};
       float frequency_{};
     };
   }

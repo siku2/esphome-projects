@@ -27,6 +27,13 @@ namespace esphome
 
     void ElechouseCc1101::setup()
     {
+      if (!this->tx_pin_ || !this->rx_pin_)
+      {
+        ESP_LOGE(TAG, "tx_pin_ or rx_pin_ not set");
+        this->mark_failed();
+        return;
+      }
+
       ELECHOUSE_cc1101.setGDO(this->tx_pin_->get_pin(), this->rx_pin_->get_pin());
       ELECHOUSE_cc1101.Init();
       if (this->frequency_ > 0)

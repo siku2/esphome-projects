@@ -35,8 +35,8 @@ async def to_code(config):
     await cg.register_component(var, config)
     await cover.register_cover(var, config)
 
-    var.set_cover_id(str(config[CONF_ID]))
-    var.set_remote_code(config[CONF_REMOTE_CODE])
+    cg.add(var.set_cover_id(str(config[CONF_ID])))
+    cg.add(var.set_remote_code(config[CONF_REMOTE_CODE]))
     remote = await cg.get_variable(config[CONF_ELECHOUSE_CC1101_ID])
     cg.add(var.set_cc1101(remote))
     cg.add(var.set_open_duration(config[CONF_OPEN_DURATION]))
