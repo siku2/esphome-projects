@@ -11,9 +11,6 @@ from esphome.const import (
 cc1101_ns = cg.global_ns.namespace("siku2").namespace("elechouse_cc1101")
 ElechouseCc1101 = cc1101_ns.class_("ElechouseCc1101", cg.Component)
 
-CONF_CC1101_ID = "cc1101_id"
-
-
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
@@ -27,9 +24,9 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
-    cg.add_library("SmartRC-CC1101-Driver-Lib", "2.5.7")
     # Internal dependency by SmartRC-CC1101-Driver-Lib
     cg.add_library("SPI", None)
+    cg.add_library("SmartRC-CC1101-Driver-Lib", "2.5.7")
 
     var = cg.new_Pvariable(config[CONF_ID])
     tx_pin = await cg.gpio_pin_expression(config[CONF_TX_PIN])
