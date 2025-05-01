@@ -1,14 +1,17 @@
 import esphome.codegen as cg
-from esphome import pins
 import esphome.config_validation as cv
+from esphome import pins
 from esphome.const import (
-    CONF_ID,
-    CONF_TX_PIN,
-    CONF_RX_PIN,
     CONF_FREQUENCY,
+    CONF_ID,
+    CONF_RX_PIN,
+    CONF_TX_PIN,
 )
 
-cc1101_ns = cg.global_ns.namespace("siku2").namespace("elechouse_cc1101")
+# Defined for other components
+CONF_ELECHOUSE_CC1101_ID = "elechouse_cc1101_id"
+
+cc1101_ns = cg.esphome_ns.namespace("elechouse_cc1101")
 ElechouseCc1101 = cc1101_ns.class_("ElechouseCc1101", cg.Component)
 
 CONFIG_SCHEMA = cv.All(
@@ -24,11 +27,13 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
-    # Internal dependency by SmartRC-CC1101-Driver-Lib
+    # Undeclared internal dependency of SmartRC-CC1101-Driver-Lib
     cg.add_library("SPI", None)
     cg.add_library("SmartRC-CC1101-Driver-Lib", "2.5.7")
 
     var = cg.new_Pvariable(config[CONF_ID])
+    await cg.register_component(var, config)
+
     tx_pin = await cg.gpio_pin_expression(config[CONF_TX_PIN])
     cg.add(var.set_tx_pin(tx_pin))
     rx_pin = await cg.gpio_pin_expression(config[CONF_RX_PIN])

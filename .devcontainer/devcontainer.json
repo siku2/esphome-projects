@@ -8,6 +8,7 @@
     "customizations": {
         "vscode": {
             "extensions": [
+                "charliermarsh.ruff",
                 "ESPHome.esphome-vscode",
                 "hediet.vscode-drawio",
                 "ms-python.python",
