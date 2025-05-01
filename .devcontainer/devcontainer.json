@@ -1,18 +1,19 @@
 {
-	"name": "Default Linux Universal",
-	"image": "mcr.microsoft.com/devcontainers/base:bookworm",
-	"runArgs": [
-		"--privileged"
-	],
-	"onCreateCommand": "bash ./.devcontainer/on-create.sh",
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"ESPHome.esphome-vscode",
-				"hediet.vscode-drawio",
-				"ms-vscode.cpptools-extension-pack",
-				"platformio.platformio-ide",
-			]
-		}
-	}
+    "name": "Debian",
+    "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+    "runArgs": [
+        "--privileged"
+    ],
+    "onCreateCommand": "bash ./.devcontainer/on-create.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ESPHome.esphome-vscode",
+                "hediet.vscode-drawio",
+                "ms-python.python",
+                "ms-vscode.cpptools-extension-pack",
+                "platformio.platformio-ide",
+            ]
+        }
+    }
 }
