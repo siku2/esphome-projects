@@ -1,4 +1,5 @@
 #include "somfy_cover.h"
+#include "esphome/core/log.h"
 #include <NVSRollingCodeStorage.h>
 #include <SomfyRemote.h>
 
@@ -6,15 +7,30 @@ namespace esphome
 {
   namespace somfy_cover
   {
-    const char *NVS_NAMESPACE = "somfy";
+    static const char *NVS_NAMESPACE = "somfy";
+    static const char *const TAG = "somfy_cover";
 
     using namespace esphome::cover;
     using namespace esphome::elechouse_cc1101;
 
     struct SomfyCoverPrivate
     {
-      NVSRollingCodeStorage *rolling_code_storage_;
-      SomfyRemote *somfy_remote_;
+      NVSRollingCodeStorage *rolling_code_storage_{};
+      SomfyRemote *somfy_remote_{};
+
+      SomfyCoverPrivate(const char *cover_id, uint8_t emitter_pin, uint32_t remote_code)
+      {
+        this->rolling_code_storage_ = new NVSRollingCodeStorage(NVS_NAMESPACE, cover_id);
+        this->somfy_remote_ = new SomfyRemote(emitter_pin, remote_code, this->rolling_code_storage_);
+      }
+
+      ~SomfyCoverPrivate()
+      {
+        if (this->rolling_code_storage_)
+          delete this->rolling_code_storage_;
+        if (this->somfy_remote_)
+          delete this->somfy_remote_;
+      }
 
       void send_command(ElechouseCc1101 *cc1101, Command command)
       {
@@ -24,13 +40,20 @@ namespace esphome
       }
     };
 
+    void SomfyCover::dump_config()
+    {
+      LOG_COVER("", "Somfy Cover", this);
+      ESP_LOGCONFIG(TAG, "  CC1101: %p", static_cast<void *>(this->cc1101_));
+      ESP_LOGCONFIG(TAG, "  Cover ID: %s", this->cover_id_);
+      ESP_LOGCONFIG(TAG, "  Remote Code: 0x%08X", this->remote_code_);
+      ESP_LOGCONFIG(TAG, "  Open Duration: %.1fs", this->open_duration_ / 1e3f);
+      ESP_LOGCONFIG(TAG, "  Close Duration: %.1fs", this->close_duration_ / 1e3f);
+    }
+
     void
     SomfyCover::setup()
     {
-      SomfyCoverPrivate *priv = new SomfyCoverPrivate();
-      priv->rolling_code_storage_ = new NVSRollingCodeStorage(NVS_NAMESPACE, this->cover_id_);
-      priv->somfy_remote_ = new SomfyRemote(this->cc1101_->get_emitter_pin(), this->remote_code_, priv->rolling_code_storage_);
-      this->priv_ = priv;
+      this->priv_ = new SomfyCoverPrivate(this->cover_id_, this->cc1101_->get_emitter_pin(), this->remote_code_);
 
       auto restore = this->restore_state_();
       if (restore.has_value())

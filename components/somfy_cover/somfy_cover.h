@@ -15,7 +15,9 @@ namespace esphome
     public:
       void setup() override;
       void loop() override;
+      void dump_config() override;
       cover::CoverTraits get_traits() override;
+
       cover::CoverOperation get_last_operation() const { return this->last_operation_; }
 
       void set_cc1101(elechouse_cc1101::ElechouseCc1101 *cc1101) { this->cc1101_ = cc1101; }
