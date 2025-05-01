@@ -19,7 +19,7 @@ namespace esphome
         this->somfy_remote_->sendCommand(command);
         cc1101->set_sidle();
       }
-    }
+    };
 
     void
     SomfyCover::setup()

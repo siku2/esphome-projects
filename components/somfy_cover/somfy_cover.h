@@ -10,7 +10,7 @@ namespace esphome
   {
     struct SomfyCoverPrivate;
 
-    class SomfyCover : public cover::Cover public Component
+    class SomfyCover : public cover::Cover, public Component
     {
     public:
       void setup() override;
