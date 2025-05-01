@@ -1,5 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
+from esphome import automation
 from esphome.components import cover
 from esphome.components.elechouse_cc1101 import (
     CONF_ELECHOUSE_CC1101_ID,
@@ -14,6 +15,9 @@ CONF_REMOTE_CODE = "remote_code"
 somfy_cover_ns = cg.esphome_ns.namespace("somfy_cover")
 
 SomfyCover = somfy_cover_ns.class_("SomfyCover", cover.Cover, cg.Component)
+SomfyCoverProgramAction = somfy_cover_ns.class_(
+    "SomfyCoverProgramAction", automation.Action
+)
 
 CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
     {
@@ -41,3 +45,17 @@ async def to_code(config):
     cg.add(var.set_cc1101(remote))
     cg.add(var.set_open_duration(config[CONF_OPEN_DURATION]))
     cg.add(var.set_close_duration(config[CONF_CLOSE_DURATION]))
+
+
+@automation.register_action(
+    "cover.somfy_cover.program",
+    SomfyCoverProgramAction,
+    automation.maybe_simple_id(
+        {
+            cv.Required(CONF_ID): cv.use_id(SomfyCover),
+        }
+    ),
+)
+async def program_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)

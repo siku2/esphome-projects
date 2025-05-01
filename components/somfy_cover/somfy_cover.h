@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esphome/core/component.h"
+#include "esphome/core/automation.h"
 #include "esphome/components/cover/cover.h"
 #include "esphome/components/elechouse_cc1101/elechouse_cc1101.h"
 
@@ -26,6 +27,8 @@ namespace esphome
       void set_open_duration(uint32_t open_duration) { this->open_duration_ = open_duration; }
       void set_close_duration(uint32_t close_duration) { this->close_duration_ = close_duration; }
 
+      void program();
+
     protected:
       void control(const cover::CoverCall &call) override;
 
@@ -47,6 +50,18 @@ namespace esphome
       uint32_t last_publish_time_{0};
       float target_position_{0};
       cover::CoverOperation last_operation_{cover::COVER_OPERATION_OPENING};
+    };
+
+    template <typename... Ts>
+    class SomfyCoverProgramAction : public Action<Ts...>
+    {
+    public:
+      SomfyCoverProgramAction(SomfyCover *parent) : parent_(parent) {}
+
+      void play(Ts... x) { this->parent_->program(); }
+
+    protected:
+      SomfyCover *parent_;
     };
   }
 }

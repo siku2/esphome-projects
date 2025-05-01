@@ -243,5 +243,10 @@ namespace esphome
 
       this->last_recompute_time_ = now;
     }
+
+    void SomfyCover::program()
+    {
+      this->priv_->send_command(this->cc1101_, Command::Prog);
+    }
   }
 }
