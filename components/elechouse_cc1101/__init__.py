@@ -28,6 +28,8 @@ CONFIG_SCHEMA = cv.All(
 
 async def to_code(config):
     cg.add_library("SmartRC-CC1101-Driver-Lib", "2.5.7")
+    # Internal dependency by SmartRC-CC1101-Driver-Lib
+    cg.add_library("SPI", None)
 
     var = cg.new_Pvariable(config[CONF_ID])
     tx_pin = await cg.gpio_pin_expression(config[CONF_TX_PIN])
