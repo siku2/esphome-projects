@@ -24,10 +24,10 @@ namespace esphome
     void
     SomfyCover::setup()
     {
-      SomfyCoverPrivate *private = new SomfyCoverPrivate();
-      private->rolling_code_storage_ = new NVSRollingCodeStorage(NVS_NAMESPACE, this->cover_id_);
-      priv->somfy_remote_ = new SomfyRemote(this->cc1101_->get_emitter_pin(), this->remote_code_, private->rolling_code_storage_);
-      this->somfy_cover_private_ = private;
+      SomfyCoverPrivate *priv = new SomfyCoverPrivate();
+      priv->rolling_code_storage_ = new NVSRollingCodeStorage(NVS_NAMESPACE, this->cover_id_);
+      priv->somfy_remote_ = new SomfyRemote(this->cc1101_->get_emitter_pin(), this->remote_code_, priv->rolling_code_storage_);
+      this->somfy_cover_private_ = priv;
     }
   }
 }
