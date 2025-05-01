@@ -14,16 +14,14 @@ CONF_ELECHOUSE_CC1101_ID = "elechouse_cc1101_id"
 cc1101_ns = cg.esphome_ns.namespace("elechouse_cc1101")
 ElechouseCc1101 = cc1101_ns.class_("ElechouseCc1101", cg.Component)
 
-CONFIG_SCHEMA = cv.All(
-    cv.Schema(
-        {
-            cv.GenerateID(CONF_ID): cv.declare_id(ElechouseCc1101),
-            cv.Required(CONF_TX_PIN): pins.internal_gpio_output_pin_schema,
-            cv.Required(CONF_RX_PIN): pins.internal_gpio_input_pin_schema,
-            cv.Optional(CONF_FREQUENCY): cv.frequency,
-        },
-    ).extend(cv.COMPONENT_SCHEMA),
-)
+CONFIG_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(CONF_ID): cv.declare_id(ElechouseCc1101),
+        cv.Required(CONF_TX_PIN): pins.internal_gpio_output_pin_schema,
+        cv.Required(CONF_RX_PIN): pins.internal_gpio_input_pin_schema,
+        cv.Optional(CONF_FREQUENCY): cv.frequency,
+    },
+).extend(cv.COMPONENT_SCHEMA)
 
 
 async def to_code(config):

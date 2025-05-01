@@ -1,13 +1,13 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import cover
+from esphome.components.elechouse_cc1101 import (
+    CONF_ELECHOUSE_CC1101_ID,
+    ElechouseCc1101,
+)
 from esphome.const import (
     CONF_ID,
-    CONF_MAX_VALUE,
-    CONF_MIN_VALUE,
-    CONF_RESTORE_MODE,
 )
-from esphome.elechouse_cc1101 import CONF_ELECHOUSE_CC1101_ID, ElechouseCc1101
 
 DEPENDENCIES = ["elechouse_cc1101"]
 
@@ -18,16 +18,14 @@ somfy_cover_ns = cg.esphome_ns.namespace("somfy_cover")
 
 SomfyCover = somfy_cover_ns.class_("SomfyCover", cover.Cover, cg.Component)
 
-CONFIG_SCHEMA = cv.All(
-    cover.COVER_SCHEMA.extend(
-        {
-            cv.GenerateID(CONF_ID): cv.declare_id(SomfyCover),
-            cv.GenerateID(CONF_ELECHOUSE_CC1101_ID): cv.use_id(ElechouseCc1101),
-            cv.Optional(CONF_COVER_ID): cv.string,
-            cv.Required(CONF_REMOTE_CODE): cv.uint32_t,
-        },
-    ).extend(cv.COMPONENT_SCHEMA),
-)
+CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
+    {
+        cv.GenerateID(CONF_ID): cv.declare_id(SomfyCover),
+        cv.GenerateID(CONF_ELECHOUSE_CC1101_ID): cv.use_id(ElechouseCc1101),
+        cv.Optional(CONF_COVER_ID): cv.string,
+        cv.Required(CONF_REMOTE_CODE): cv.uint32_t,
+    },
+).extend(cv.COMPONENT_SCHEMA)
 
 
 async def to_code(config):
