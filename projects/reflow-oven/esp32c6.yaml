@@ -6,7 +6,7 @@ packages:
   core: !include core.yaml
 
 dashboard_import:
-  package_import_url: "github://siku2/esphome-projects/reflow-oven/esp32c6.yaml@main"
+  package_import_url: "github://siku2/esphome-projects/projects/reflow-oven/esp32c6.yaml@main"
 
 esp32:
   board: esp32-c6-devkitc-1
@@ -25,7 +25,7 @@ external_components:
       type: git
       url: "https://github.com/siku2/esphome-projects"
       ref: "main"
-      path: "reflow-oven/components"
+      path: "projects/reflow-oven/components"
     refresh: 10s
     components:
       - adc
