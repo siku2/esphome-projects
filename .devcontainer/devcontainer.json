@@ -11,6 +11,7 @@
                 "charliermarsh.ruff",
                 "ESPHome.esphome-vscode",
                 "hediet.vscode-drawio",
+                "kennylong.kubernetes-yaml-formatter",
                 "ms-python.python",
                 "ms-vscode.cpptools-extension-pack",
                 "platformio.platformio-ide",
