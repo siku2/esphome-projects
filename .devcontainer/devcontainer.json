@@ -9,6 +9,7 @@
         "vscode": {
             "extensions": [
                 "charliermarsh.ruff",
+                "eamodio.gitlens",
                 "ESPHome.esphome-vscode",
                 "hediet.vscode-drawio",
                 "kennylong.kubernetes-yaml-formatter",
