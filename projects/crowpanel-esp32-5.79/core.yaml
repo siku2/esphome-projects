@@ -1,0 +1,135 @@
+esphome:
+  name: "display"
+
+external_components:
+# - source:
+#     type: local
+#     path: /workspaces/esphome-projects/esphome-crowpanel/components
+#   components: [ crowpanel_epaper ]
+- source: github://semvis123/esphome-crowpanel-4.2-epaper
+  components: [ crowpanel_epaper ]
+
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 8MB
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_RODATA: y
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  level: VERBOSE
+  hardware_uart: UART0
+
+# peripherals
+
+binary_sensor:
+- &bs_down
+  id: bs_down
+  name: "Down"
+  entity_category: DIAGNOSTIC
+  platform: gpio
+  pin: GPIO4
+
+- <<: *bs_down
+  id: bs_conf
+  name: "Conf"
+  pin: GPIO5
+
+- <<: *bs_down
+  id: bs_up
+  name: "Up"
+  pin: GPIO6
+
+- <<: *bs_down
+  id: bs_exit
+  name: "Exit"
+  pin: GPIO1
+
+- <<: *bs_down
+  id: bs_menu
+  name: "Menu"
+  pin: GPIO2
+  on_press:
+    then:
+      - display.page.show_next: display_main
+      - component.update: display_main
+
+font:
+  # gfonts://family[@weight]
+- file: "gfonts://Roboto"
+  id: roboto_20
+  size: 30
+
+display:
+- id: display_main
+  platform: crowpanel_epaper
+  model: 5.79in 
+  clk_pin: GPIO12
+  mosi_pin: GPIO11
+  cs_pin:
+    number: GPIO45
+    ignore_strapping_warning: true
+  dc_pin:
+    number: GPIO46
+    ignore_strapping_warning: true
+  reset_pin: GPIO47
+  busy_pin: GPIO48
+  update_interval: never
+  full_update_every: 7
+  rotation: 180
+  pages:
+  - id: pg_1
+    lambda: !lambda |
+      auto w = it.get_width();
+      auto h = it.get_height();
+
+      auto scale_y = [h](int y) {return h * y / 100;};
+
+      // Draw a line from [0,0] to [100,50]
+      it.line(scale_y(0), scale_y(0), scale_y(100), scale_y(50));
+      // Draw the outline of a rectangle with the top left at [5,20], a width of 30 and a height of 42
+      it.rectangle(scale_y(5), scale_y(20), scale_y(30), scale_y(42));
+      // Draw the same rectangle a few pixels apart, but this time filled
+      it.filled_rectangle(scale_y(40), scale_y(40), scale_y(30), scale_y(42));
+
+      // Circles! Let's draw one with the center at [20,40] and a radius of 10
+      it.circle(scale_y(20), scale_y(40), scale_y(10));
+      // ... and the same thing filled again
+      it.filled_circle(scale_y(20), scale_y(75), scale_y(10));
+
+      // Ring and half-ring. First draw the circle with a hole in it
+      // at [75,75] with inner raduis of 20 and outer of 30
+      it.filled_ring(scale_y(90), scale_y(75), scale_y(20), scale_y(10));
+      // and a "gauge": half-ring that is partially filled.
+      // Same position and size but 80% filled left to right
+      it.filled_gauge(700, 150, 50, 30, 80);
+
+      // Triangles... Let's draw the outline of a triangle from the [x,y] coordinates of its three points
+      // [25,5], [100,5], [80,25]
+      it.triangle(scale_y(25), scale_y(5), scale_y(100), scale_y(5), scale_y(80), scale_y(25));
+      // and a filled triangle !
+      it.filled_triangle(scale_y(115), scale_y(5), scale_y(95), scale_y(25), scale_y(125), scale_y(70));
+
+      // Regular Polygons? Let's draw a filled, pointy-topped hexagon inscribed in a circle
+      // centered on [170,45] with a radius of 20
+      it.filled_regular_polygon(scale_y(170), scale_y(45), scale_y(20), EDGES_HEXAGON);
+      // and the outline of flat-topped octagon around it!
+      it.regular_polygon(scale_y(170), scale_y(45), scale_y(40), EDGES_OCTAGON, VARIATION_FLAT_TOP);
+      // Need to rotate the polygon, or retrieve the coordinates of its vertices? Check the API!
+  - id: pg_2
+    lambda: !lambda |
+      it.filled_gauge(700, 100, 60, 35, 50);
+
+switch:
+- platform: gpio
+  pin: GPIO7
+  id: epd_power
+  name: "EPD Power"
+  restore_mode: ALWAYS_ON
