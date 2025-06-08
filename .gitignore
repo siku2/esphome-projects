@@ -1,3 +1,8 @@
 .esphome/
 .venv/
 __pycache__/
+
+# kicad
+**/*-backups/*.zip
+*.kicad_prl
+fp-info-cache
