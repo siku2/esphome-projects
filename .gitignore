@@ -3,6 +3,9 @@
 __pycache__/
 
 # kicad
-**/*-backups/*.zip
+_autosave-*.kicad_*
 *.kicad_prl
+**/*-backups/*.zip
+**/*.kicad_*.lck
+\#auto_saved_files\#
 fp-info-cache
