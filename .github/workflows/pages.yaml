@@ -1,0 +1,41 @@
+# See: <https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions>
+
+name: Pages
+on:
+  push:
+    branches:
+    - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install dependencies
+      run: |
+        add-apt-repository --yes ppa:kicad/kicad-9.0-releases
+        apt-get update
+        apt-get install -y kicad pipx xvfb
+        pipx install --system-site-packages InteractiveHtmlBom
+
+    - uses: actions/checkout@v4
+
+    - name: Build interactive HTML BOM
+      run: |
+        xvfb-run generate_interactive_bom projects/warema-cover/hardware/warema-cover.kicad_pcb
+
+  deploy:
+    needs: build
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+    - id: deployment
+      name: Deploy to GitHub Pages
+      uses: actions/deploy-pages@v4
