@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+
+{% if project.kicad %}
+<script type="module" src="{{ get_asset_url('https://kicanvas.org/kicanvas/kicanvas.js', context='global') }}"></script>
+<kicanvas-embed controls="full">
+    {% for file in project.kicad.files %}
+    <kicanvas-source src="{{ get_asset_url(file) }}"></kicanvas-source>
+    {% endfor %}
+</kicanvas-embed>
+{% endif %}
+
+{% endblock %}

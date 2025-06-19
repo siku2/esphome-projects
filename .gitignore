@@ -1,6 +1,7 @@
 .esphome/
 .venv/
 __pycache__/
+/public/
 
 # kicad
 _autosave-*.kicad_*
