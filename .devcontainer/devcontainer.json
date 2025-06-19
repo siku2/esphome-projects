@@ -1,10 +1,13 @@
 {
     "name": "Debian",
-    "image": "mcr.microsoft.com/devcontainers/base:bookworm",
-    "runArgs": [
-        "--privileged"
-    ],
-    "onCreateCommand": "bash ./.devcontainer/on-create.sh",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "privileged": true,
+    "remoteUser": "root",
+    "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    },
     "customizations": {
         "vscode": {
             "extensions": [
