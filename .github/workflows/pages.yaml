@@ -12,9 +12,9 @@ jobs:
     steps:
     - name: Install dependencies
       run: |
-        add-apt-repository --yes ppa:kicad/kicad-9.0-releases
-        apt-get update
-        apt-get install -y kicad pipx xvfb
+        sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
+        sudo apt-get update
+        sudo apt-get install -y kicad pipx xvfb
         pipx install --system-site-packages InteractiveHtmlBom
 
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
