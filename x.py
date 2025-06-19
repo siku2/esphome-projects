@@ -6,9 +6,32 @@
 
 from pathlib import Path
 import subprocess
+from typing import Protocol, cast
+import argparse
 
 _PROJECT_ROOT = Path(__file__).parent
 _PROJECTS_DIR = _PROJECT_ROOT / "projects"
+
+
+class Args(Protocol):
+    pass
+
+
+def parse_args() -> Args:
+    parser = argparse.ArgumentParser("x.py")
+    _subparsers = parser.add_subparsers()
+
+    args = parser.parse_args()
+    return cast(Args, args)
+
+
+def main() -> None:
+    _args = parse_args()
+
+    generate_interactive_bom(
+        _PROJECTS_DIR / "warema-cover/hardware/warema-cover.kicad_pcb",
+        _PROJECT_ROOT / "public",
+    )
 
 
 def generate_interactive_bom(
@@ -36,13 +59,6 @@ def generate_interactive_bom(
         stdin=subprocess.DEVNULL,
         capture_output=True,
         timeout=60,
-    )
-
-
-def main() -> None:
-    generate_interactive_bom(
-        _PROJECTS_DIR / "warema-cover/hardware/warema-cover.kicad_pcb",
-        _PROJECT_ROOT / "build",
     )
 
 
