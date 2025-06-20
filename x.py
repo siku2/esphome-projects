@@ -183,7 +183,7 @@ def generate_interactive_bom(
         _LOGGER.error(
             "Failed to generate interactive BOM for %s: %s",
             pcb_file,
-            exc.stderr.decode("utf-8", errors="replace"),
+            exc.stdout.decode("utf-8", errors="replace"),
         )
         msg = "Failed to generate interactive BOM"
         raise RuntimeError(msg)
