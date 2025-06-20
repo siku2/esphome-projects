@@ -42,6 +42,8 @@ def parse_args() -> Args:
 def main() -> None:
     _args = parse_args()
 
+    logging.basicConfig(level=logging.INFO)
+
     generate_pages(out_dir=_PROJECT_ROOT / "public")
     generate_interactive_bom(
         _PROJECTS_DIR / "warema-cover/hardware/warema-cover.kicad_pcb",
@@ -117,6 +119,7 @@ def generate_project_page(
                 filename = f"{stem}-{uid}{suffix}"
                 path = asset_out_dir / filename
                 if not path.exists():
+                    _LOGGER.info("Downloading %s to %s", uri, path)
                     with path.open("wb+") as f:
                         for chunk in resp.iter_bytes():
                             f.write(chunk)
@@ -134,6 +137,7 @@ def generate_project_page(
         filename = f"{local_path.stem}-{uid}{local_path.suffix}"
         path = asset_out_dir / filename
         if not path.exists():
+            _LOGGER.info("Copying %s to %s", local_path, path)
             shutil.copy(local_path, path)
 
         return f"{url_prefix}{filename}"
@@ -178,6 +182,9 @@ def generate_interactive_bom(
             stdin=subprocess.DEVNULL,
             capture_output=True,
             timeout=60,
+            env={
+                "INTERACTIVE_HTML_BOM_NO_DISPLAY": "true",
+            },
         )
     except subprocess.CalledProcessError as exc:
         _LOGGER.error(
