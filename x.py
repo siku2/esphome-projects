@@ -171,13 +171,22 @@ def generate_interactive_bom(
         args.append("--dark-mode")
     args.append(str(pcb_file))
     _LOGGER.info("Generating interactive BOM for %s", pcb_file)
-    subprocess.run(
-        args,
-        check=True,
-        stdin=subprocess.DEVNULL,
-        capture_output=True,
-        timeout=60,
-    )
+    try:
+        subprocess.run(
+            args,
+            check=True,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            timeout=60,
+        )
+    except subprocess.CalledProcessError as exc:
+        _LOGGER.error(
+            "Failed to generate interactive BOM for %s: %s",
+            pcb_file,
+            exc.stderr.decode("utf-8", errors="replace"),
+        )
+        msg = "Failed to generate interactive BOM"
+        raise RuntimeError(msg)
 
 
 if __name__ == "__main__":
