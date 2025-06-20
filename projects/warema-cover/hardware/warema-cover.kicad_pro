@@ -726,6 +726,18 @@
     [
       "c36ff35c-53ca-4fbf-8d78-92db2774c79e",
       "Root"
+    ],
+    [
+      "60b733e3-b0a4-4f6f-a123-94f6022b30cb",
+      "MCU"
+    ],
+    [
+      "ec0bbe4c-2542-46de-a900-4d777de8dec3",
+      "Motor Control"
+    ],
+    [
+      "8d61aaed-742d-40b5-9a2b-167f95419192",
+      "Power"
     ]
   ],
   "text_variables": {}
