@@ -10,11 +10,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Install dependencies
+    - name: Add kicad repo
       run: |
         sudo add-apt-repository --yes ppa:kicad/kicad-9.0-releases
-        sudo apt-get update
-        sudo apt-get install -y kicad pipx xvfb
+
+    - name: Install apt packages
+      uses: awalsh128/cache-apt-pkgs-action@v1
+      with:
+        packages: kicad pipx xvfb
+
+    - name: Install pipx packages
+      run: |
         pipx install --system-site-packages InteractiveHtmlBom
 
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
