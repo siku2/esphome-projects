@@ -11,6 +11,7 @@ import argparse
 import dataclasses
 import hashlib
 import logging
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -175,6 +176,10 @@ def generate_interactive_bom(
         args.append("--dark-mode")
     args.append(str(pcb_file))
     _LOGGER.info("Generating interactive BOM for %s", pcb_file)
+    env = {
+        **os.environ,
+        "INTERACTIVE_HTML_BOM_NO_DISPLAY": "true",
+    }
     try:
         subprocess.run(
             args,
@@ -182,9 +187,7 @@ def generate_interactive_bom(
             stdin=subprocess.DEVNULL,
             capture_output=True,
             timeout=60,
-            env={
-                "INTERACTIVE_HTML_BOM_NO_DISPLAY": "true",
-            },
+            env=env,
         )
     except subprocess.CalledProcessError as exc:
         _LOGGER.error(
