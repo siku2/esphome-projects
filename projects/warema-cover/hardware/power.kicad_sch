@@ -4027,6 +4027,16 @@
 	)
 	(wire
 		(pts
+			(xy 50.8 105.41) (xy 78.74 105.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3d565df2-ded7-4edd-8fca-5384cf6d3ee3")
+	)
+	(wire
+		(pts
 			(xy 175.26 82.55) (xy 175.26 83.82)
 		)
 		(stroke
@@ -4237,7 +4247,7 @@
 	)
 	(wire
 		(pts
-			(xy 76.2 107.95) (xy 78.74 107.95)
+			(xy 50.8 107.95) (xy 78.74 107.95)
 		)
 		(stroke
 			(width 0)
@@ -4254,16 +4264,6 @@
 			(type default)
 		)
 		(uuid "a229a24c-88d2-4907-9af7-c28d68aac64d")
-	)
-	(wire
-		(pts
-			(xy 76.2 105.41) (xy 78.74 105.41)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a6fe28bf-a199-474e-988b-c38dfb20aaac")
 	)
 	(wire
 		(pts
@@ -4661,7 +4661,7 @@
 	)
 	(hierarchical_label "CHRG_~{DONE}"
 		(shape output)
-		(at 76.2 107.95 180)
+		(at 50.8 107.95 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4683,7 +4683,7 @@
 	)
 	(hierarchical_label "CHRG_~{CHRG}"
 		(shape output)
-		(at 76.2 105.41 180)
+		(at 50.8 105.41 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4702,7 +4702,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "038de81b-f641-4015-a551-7b33ce4a4c4e")
-		(property "Reference" "C7"
+		(property "Reference" "C9"
 			(at 78.74 88.8999 0)
 			(effects
 				(font
@@ -4882,7 +4882,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "C7")
+					(reference "C9")
 					(unit 1)
 				)
 			)
@@ -4898,7 +4898,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "072e6247-a196-408f-878c-077047286b9b")
-		(property "Reference" "#PWR014"
+		(property "Reference" "#PWR029"
 			(at 119.38 121.92 0)
 			(effects
 				(font
@@ -4949,7 +4949,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR014")
+					(reference "#PWR029")
 					(unit 1)
 				)
 			)
@@ -4965,7 +4965,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "1dbd85b9-88de-49c5-9802-83de70b4cd7f")
-		(property "Reference" "#PWR019"
+		(property "Reference" "#PWR034"
 			(at 190.5 67.31 0)
 			(effects
 				(font
@@ -5015,7 +5015,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR019")
+					(reference "#PWR034")
 					(unit 1)
 				)
 			)
@@ -5031,7 +5031,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "1ed6522f-adc4-47be-a98e-597dac057491")
-		(property "Reference" "R3"
+		(property "Reference" "R8"
 			(at 81.28 118.1099 0)
 			(effects
 				(font
@@ -5238,7 +5238,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "R3")
+					(reference "R8")
 					(unit 1)
 				)
 			)
@@ -5254,7 +5254,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "23ea5e15-4740-4185-af17-ab531c0d7f77")
-		(property "Reference" "#PWR016"
+		(property "Reference" "#PWR031"
 			(at 154.94 105.41 0)
 			(effects
 				(font
@@ -5304,7 +5304,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR016")
+					(reference "#PWR031")
 					(unit 1)
 				)
 			)
@@ -5320,7 +5320,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "2799be87-0136-43fd-8a4b-d7fd32c8801b")
-		(property "Reference" "C11"
+		(property "Reference" "C13"
 			(at 198.12 19.05 90)
 			(effects
 				(font
@@ -5497,7 +5497,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "C11")
+					(reference "C13")
 					(unit 1)
 				)
 			)
@@ -5513,7 +5513,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "2f2f959c-0932-467a-ae8e-8ffe373f3a47")
-		(property "Reference" "#PWR011"
+		(property "Reference" "#PWR026"
 			(at 34.29 105.41 0)
 			(effects
 				(font
@@ -5563,7 +5563,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR011")
+					(reference "#PWR026")
 					(unit 1)
 				)
 			)
@@ -5579,7 +5579,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "34d7ffc8-1025-4630-a248-a96ec3893a8b")
-		(property "Reference" "R6"
+		(property "Reference" "R11"
 			(at 137.16 77.47 90)
 			(effects
 				(font
@@ -5631,7 +5631,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "R6")
+					(reference "R11")
 					(unit 1)
 				)
 			)
@@ -5647,7 +5647,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "3648c9c7-7fc1-497c-a650-46209550d3ea")
-		(property "Reference" "#PWR012"
+		(property "Reference" "#PWR027"
 			(at 69.85 102.87 0)
 			(effects
 				(font
@@ -5698,7 +5698,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR012")
+					(reference "#PWR027")
 					(unit 1)
 				)
 			)
@@ -5782,7 +5782,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "4602c2cb-4623-4f47-9b8e-862bfe119927")
-		(property "Reference" "R5"
+		(property "Reference" "R10"
 			(at 109.22 118.11 90)
 			(effects
 				(font
@@ -5988,7 +5988,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "R5")
+					(reference "R10")
 					(unit 1)
 				)
 			)
@@ -6084,7 +6084,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "4a91e2c2-104f-4ada-a34d-7454e26c7863")
-		(property "Reference" "#PWR017"
+		(property "Reference" "#PWR032"
 			(at 177.8 83.82 0)
 			(effects
 				(font
@@ -6135,7 +6135,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR017")
+					(reference "#PWR032")
 					(unit 1)
 				)
 			)
@@ -6365,7 +6365,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "554feaa4-06b4-4e34-a20c-41292b41e8ee")
-		(property "Reference" "#PWR013"
+		(property "Reference" "#PWR028"
 			(at 78.74 135.89 0)
 			(effects
 				(font
@@ -6415,7 +6415,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR013")
+					(reference "#PWR028")
 					(unit 1)
 				)
 			)
@@ -6431,7 +6431,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "55cbb665-cd44-492f-8f85-33b1a9c26996")
-		(property "Reference" "C10"
+		(property "Reference" "C12"
 			(at 166.37 90.8671 0)
 			(effects
 				(font
@@ -6521,7 +6521,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "C10")
+					(reference "C12")
 					(unit 1)
 				)
 			)
@@ -6537,7 +6537,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "5a34c839-8309-4bfc-8233-6933df456279")
-		(property "Reference" "C9"
+		(property "Reference" "C11"
 			(at 151.13 85.0899 0)
 			(effects
 				(font
@@ -6717,7 +6717,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "C9")
+					(reference "C11")
 					(unit 1)
 				)
 			)
@@ -6801,7 +6801,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "85440c7d-9789-4f4f-bc70-cc257a42fa2a")
-		(property "Reference" "#PWR015"
+		(property "Reference" "#PWR030"
 			(at 114.3 97.79 0)
 			(effects
 				(font
@@ -6851,7 +6851,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR015")
+					(reference "#PWR030")
 					(unit 1)
 				)
 			)
@@ -6867,7 +6867,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "a1cc9f67-0c91-49b7-9757-f841da0d5bf6")
-		(property "Reference" "#PWR024"
+		(property "Reference" "#PWR039"
 			(at 242.57 104.14 0)
 			(effects
 				(font
@@ -6918,7 +6918,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR024")
+					(reference "#PWR039")
 					(unit 1)
 				)
 			)
@@ -6934,7 +6934,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "a320dfdc-629e-464b-9c8f-e89b74feab62")
-		(property "Reference" "#PWR021"
+		(property "Reference" "#PWR036"
 			(at 212.09 27.94 0)
 			(effects
 				(font
@@ -6985,7 +6985,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR021")
+					(reference "#PWR036")
 					(unit 1)
 				)
 			)
@@ -7001,7 +7001,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "a7eb4d30-b02d-4769-aaa6-f80e69334759")
-		(property "Reference" "C5"
+		(property "Reference" "C7"
 			(at 43.18 90.3823 90)
 			(effects
 				(font
@@ -7073,7 +7073,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "C5")
+					(reference "C7")
 					(unit 1)
 				)
 			)
@@ -7089,7 +7089,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "aa1921de-025b-4d29-a9b6-17b45db08a7b")
-		(property "Reference" "U4"
+		(property "Reference" "U5"
 			(at 91.44 92.71 0)
 			(effects
 				(font
@@ -7174,7 +7174,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "U4")
+					(reference "U5")
 					(unit 1)
 				)
 			)
@@ -7190,7 +7190,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "ad4f6e02-5834-4e12-b695-68bc5c6b3000")
-		(property "Reference" "C8"
+		(property "Reference" "C10"
 			(at 81.28 123.1899 0)
 			(effects
 				(font
@@ -7370,7 +7370,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "C8")
+					(reference "C10")
 					(unit 1)
 				)
 			)
@@ -7386,7 +7386,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "aeb94b65-0a55-44bf-b382-b9d8ee514f97")
-		(property "Reference" "#PWR022"
+		(property "Reference" "#PWR037"
 			(at 220.98 104.14 0)
 			(effects
 				(font
@@ -7437,7 +7437,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR022")
+					(reference "#PWR037")
 					(unit 1)
 				)
 			)
@@ -7453,7 +7453,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "cf0f9ada-edc4-42cd-ae7a-a6b194b59c17")
-		(property "Reference" "#PWR018"
+		(property "Reference" "#PWR033"
 			(at 190.5 30.48 0)
 			(effects
 				(font
@@ -7503,7 +7503,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR018")
+					(reference "#PWR033")
 					(unit 1)
 				)
 			)
@@ -7519,7 +7519,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "d28a8626-8d8c-43b1-be84-1e6fc8de270a")
-		(property "Reference" "#PWR023"
+		(property "Reference" "#PWR038"
 			(at 228.6 124.46 0)
 			(effects
 				(font
@@ -7569,7 +7569,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR023")
+					(reference "#PWR038")
 					(unit 1)
 				)
 			)
@@ -7585,7 +7585,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "d6931fcf-4e72-4b7d-a159-5b6af004d06a")
-		(property "Reference" "C6"
+		(property "Reference" "C8"
 			(at 55.88 90.3823 90)
 			(effects
 				(font
@@ -7657,7 +7657,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "C6")
+					(reference "C8")
 					(unit 1)
 				)
 			)
@@ -7807,7 +7807,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "e7e7ff85-2fc7-4064-b601-db5c91954733")
-		(property "Reference" "U6"
+		(property "Reference" "U7"
 			(at 192.6433 30.48 0)
 			(effects
 				(font
@@ -7885,7 +7885,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "U6")
+					(reference "U7")
 					(unit 1)
 				)
 			)
@@ -7901,7 +7901,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "e834a5bc-cb06-4323-9a59-3da2df804db8")
-		(property "Reference" "U7"
+		(property "Reference" "U8"
 			(at 228.6 96.52 0)
 			(effects
 				(font
@@ -7957,7 +7957,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "U7")
+					(reference "U8")
 					(unit 1)
 				)
 			)
@@ -7973,7 +7973,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "eeaf1b44-f034-4858-a181-b79accfdefa6")
-		(property "Reference" "#PWR020"
+		(property "Reference" "#PWR035"
 			(at 199.39 40.64 0)
 			(effects
 				(font
@@ -8024,7 +8024,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "#PWR020")
+					(reference "#PWR035")
 					(unit 1)
 				)
 			)
@@ -8040,7 +8040,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "f0502072-4bec-4201-a192-a40bcfe968a6")
-		(property "Reference" "U5"
+		(property "Reference" "U6"
 			(at 124.46 77.47 0)
 			(effects
 				(font
@@ -8101,7 +8101,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "U5")
+					(reference "U6")
 					(unit 1)
 				)
 			)
@@ -8117,7 +8117,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "f15a3b2b-9953-4fd5-a8c5-9e04a2cd30fb")
-		(property "Reference" "R4"
+		(property "Reference" "R9"
 			(at 101.6 118.11 90)
 			(effects
 				(font
@@ -8323,7 +8323,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/8d61aaed-742d-40b5-9a2b-167f95419192"
-					(reference "R4")
+					(reference "R9")
 					(unit 1)
 				)
 			)
