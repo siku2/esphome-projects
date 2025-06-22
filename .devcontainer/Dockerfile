@@ -1,13 +1,39 @@
-FROM mcr.microsoft.com/devcontainers/base:bookworm@sha256:da67c59f82e057e0ccb81ec7d13fb50464c26f477638018e6de1b2623a008a3a
+FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
+
+SHELL [ "/bin/bash", "-eux", "-c" ]
+
+RUN <<EOF
+# System dependencies
+
+APT_DEPS=(
+    "pipx"
+    "software-properties-common"
+)
+
+apt-get update
+apt-get install -y "${APT_DEPS[@]}"
+
+add-apt-repository --yes ppa:kicad/kicad-9.0-releases
+EOF
 
 RUN <<EOF
 # Install tools
-set -eux
+
+APT_DEPS=(
+    "kicad"
+    "python3"
+    "xvfb"
+)
+PIPX_DEPS=(
+    "esphome"
+    "ruff"
+    "uv"
+)
 
 apt-get update
-apt-get install -y pipx python3
+apt-get install -y "${APT_DEPS[@]}"
 
-for name in "esphome" "ruff" "uv"; do
+for name in "${PIPX_DEPS[@]}"; do
     pipx install --system-site-packages "$name"
 done
 EOF
