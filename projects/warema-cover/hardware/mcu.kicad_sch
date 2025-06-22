@@ -628,7 +628,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "PCM_JLCPCB-Capacitors:0402,100nF"
+		(symbol "PCM_JLCPCB-Capacitors:0402,100nF,(2)"
 			(pin_numbers
 				(hide yes)
 			)
@@ -665,7 +665,7 @@
 					(hide yes)
 				)
 			)
-			(property "Datasheet" "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05B104KO5NNNC_C1525.pdf"
+			(property "Datasheet" "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05B104KB54PNC_C307331.pdf"
 				(at 0 0 0)
 				(effects
 					(font
@@ -674,7 +674,7 @@
 					(hide yes)
 				)
 			)
-			(property "Description" "16V 100nF X7R ±10% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+			(property "Description" "50V 100nF X7R ±10% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
 				(at 0 0 0)
 				(effects
 					(font
@@ -683,7 +683,7 @@
 					(hide yes)
 				)
 			)
-			(property "LCSC" "C1525"
+			(property "LCSC" "C307331"
 				(at 0 0 0)
 				(effects
 					(font
@@ -692,7 +692,7 @@
 					(hide yes)
 				)
 			)
-			(property "Stock" "15178943"
+			(property "Stock" "7716237"
 				(at 0 0 0)
 				(effects
 					(font
@@ -701,7 +701,7 @@
 					(hide yes)
 				)
 			)
-			(property "Price" "0.004USD"
+			(property "Price" "0.008USD"
 				(at 0 0 0)
 				(effects
 					(font
@@ -764,7 +764,7 @@
 					(hide yes)
 				)
 			)
-			(property "Part" "CL05B104KO5NNNC"
+			(property "Part" "CL05B104KB54PNC"
 				(at 0 0 0)
 				(effects
 					(font
@@ -773,7 +773,7 @@
 					(hide yes)
 				)
 			)
-			(property "Voltage Rated" "16V"
+			(property "Voltage Rated" "50V"
 				(at 2.032 -2.0462 0)
 				(effects
 					(font
@@ -818,7 +818,7 @@
 					(hide yes)
 				)
 			)
-			(symbol "0402,100nF_0_1"
+			(symbol "0402,100nF,(2)_0_1"
 				(polyline
 					(pts
 						(xy -1.27 0.635) (xy 1.27 0.635)
@@ -844,7 +844,7 @@
 					)
 				)
 			)
-			(symbol "0402,100nF_1_1"
+			(symbol "0402,100nF,(2)_1_1"
 				(pin passive line
 					(at 0 3.81 270)
 					(length 3.175)
@@ -1112,14 +1112,14 @@
 		)
 	)
 	(junction
-		(at 74.93 60.96)
+		(at 144.78 40.64)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "cd88fe2f-38ab-4aac-8bf3-39fee125ecf9")
 	)
 	(wire
 		(pts
-			(xy 67.31 63.5) (xy 67.31 60.96)
+			(xy 137.16 43.18) (xy 137.16 40.64)
 		)
 		(stroke
 			(width 0)
@@ -1129,7 +1129,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 54.61) (xy 74.93 60.96)
+			(xy 144.78 34.29) (xy 144.78 40.64)
 		)
 		(stroke
 			(width 0)
@@ -1139,7 +1139,7 @@
 	)
 	(wire
 		(pts
-			(xy 41.91 99.06) (xy 46.99 99.06)
+			(xy 111.76 78.74) (xy 116.84 78.74)
 		)
 		(stroke
 			(width 0)
@@ -1149,7 +1149,7 @@
 	)
 	(wire
 		(pts
-			(xy 102.87 99.06) (xy 111.76 99.06)
+			(xy 172.72 78.74) (xy 181.61 78.74)
 		)
 		(stroke
 			(width 0)
@@ -1159,7 +1159,7 @@
 	)
 	(wire
 		(pts
-			(xy 41.91 96.52) (xy 46.99 96.52)
+			(xy 111.76 76.2) (xy 116.84 76.2)
 		)
 		(stroke
 			(width 0)
@@ -1169,7 +1169,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 60.96) (xy 74.93 68.58)
+			(xy 144.78 40.64) (xy 144.78 48.26)
 		)
 		(stroke
 			(width 0)
@@ -1179,7 +1179,7 @@
 	)
 	(wire
 		(pts
-			(xy 102.87 101.6) (xy 111.76 101.6)
+			(xy 172.72 81.28) (xy 181.61 81.28)
 		)
 		(stroke
 			(width 0)
@@ -1189,7 +1189,7 @@
 	)
 	(hierarchical_label "I2C_SDA"
 		(shape bidirectional)
-		(at 41.91 99.06 180)
+		(at 111.76 78.74 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -1200,7 +1200,7 @@
 	)
 	(hierarchical_label "MOTOR_IN2"
 		(shape output)
-		(at 111.76 101.6 0)
+		(at 181.61 81.28 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -1211,7 +1211,7 @@
 	)
 	(hierarchical_label "I2C_SCL"
 		(shape output)
-		(at 41.91 96.52 180)
+		(at 111.76 76.2 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -1222,7 +1222,7 @@
 	)
 	(hierarchical_label "MOTOR_IN1"
 		(shape output)
-		(at 111.76 99.06 0)
+		(at 181.61 78.74 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -1233,7 +1233,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 74.93 134.62 0)
+		(at 144.78 114.3 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -1242,7 +1242,7 @@
 		(fields_autoplaced yes)
 		(uuid "57aeece5-24db-4e94-a71a-565b61351eec")
 		(property "Reference" "#PWR03"
-			(at 74.93 140.97 0)
+			(at 144.78 120.65 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1251,7 +1251,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 74.93 139.7 0)
+			(at 144.78 119.38 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1259,7 +1259,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 74.93 134.62 0)
+			(at 144.78 114.3 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1268,7 +1268,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 74.93 134.62 0)
+			(at 144.78 114.3 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1277,7 +1277,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 74.93 134.62 0)
+			(at 144.78 114.3 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1298,8 +1298,8 @@
 		)
 	)
 	(symbol
-		(lib_id "PCM_JLCPCB-Capacitors:0402,100nF")
-		(at 71.12 60.96 90)
+		(lib_id "PCM_JLCPCB-Capacitors:0402,100nF,(2)")
+		(at 140.97 40.64 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -1308,7 +1308,7 @@
 		(fields_autoplaced yes)
 		(uuid "87001e6b-6dc9-4d04-bd5a-de2f379c8b40")
 		(property "Reference" "C1"
-			(at 71.12 52.07 90)
+			(at 140.97 31.75 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1316,7 +1316,7 @@
 			)
 		)
 		(property "Value" "100nF"
-			(at 71.12 54.61 90)
+			(at 140.97 34.29 90)
 			(effects
 				(font
 					(size 0.8 0.8)
@@ -1324,7 +1324,7 @@
 			)
 		)
 		(property "Footprint" "PCM_JLCPCB:C_0402"
-			(at 71.12 62.738 90)
+			(at 140.97 42.418 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1332,8 +1332,8 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05B104KO5NNNC_C1525.pdf"
-			(at 71.12 60.96 0)
+		(property "Datasheet" "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05B104KB54PNC_C307331.pdf"
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1341,8 +1341,8 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "16V 100nF X7R ±10% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
-			(at 71.12 60.96 0)
+		(property "Description" "50V 100nF X7R ±10% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1350,8 +1350,8 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C1525"
-			(at 71.12 60.96 0)
+		(property "LCSC" "C307331"
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1359,8 +1359,8 @@
 				(hide yes)
 			)
 		)
-		(property "Stock" "15178943"
-			(at 71.12 60.96 0)
+		(property "Stock" "7716237"
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1368,8 +1368,8 @@
 				(hide yes)
 			)
 		)
-		(property "Price" "0.004USD"
-			(at 71.12 60.96 0)
+		(property "Price" "0.008USD"
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1378,7 +1378,7 @@
 			)
 		)
 		(property "Process" "SMT"
-			(at 71.12 60.96 0)
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1387,7 +1387,7 @@
 			)
 		)
 		(property "Minimum Qty" "20"
-			(at 71.12 60.96 0)
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1396,7 +1396,7 @@
 			)
 		)
 		(property "Attrition Qty" "10"
-			(at 71.12 60.96 0)
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1405,7 +1405,7 @@
 			)
 		)
 		(property "Class" "Basic Component"
-			(at 71.12 60.96 0)
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1414,7 +1414,7 @@
 			)
 		)
 		(property "Category" "Capacitors,Multilayer Ceramic Capacitors MLCC - SMD/SMT"
-			(at 71.12 60.96 0)
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1423,7 +1423,7 @@
 			)
 		)
 		(property "Manufacturer" "Samsung Electro-Mechanics"
-			(at 71.12 60.96 0)
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1431,8 +1431,8 @@
 				(hide yes)
 			)
 		)
-		(property "Part" "CL05B104KO5NNNC"
-			(at 71.12 60.96 0)
+		(property "Part" "CL05B104KB54PNC"
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1440,8 +1440,8 @@
 				(hide yes)
 			)
 		)
-		(property "Voltage Rated" "16V"
-			(at 71.12 57.15 90)
+		(property "Voltage Rated" "50V"
+			(at 140.97 36.83 90)
 			(effects
 				(font
 					(size 0.8 0.8)
@@ -1449,7 +1449,7 @@
 			)
 		)
 		(property "Tolerance" "±10%"
-			(at 71.12 60.96 0)
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1458,7 +1458,7 @@
 			)
 		)
 		(property "Capacitance" "100nF"
-			(at 71.12 60.96 0)
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1467,7 +1467,7 @@
 			)
 		)
 		(property "Temperature Coefficient" "X7R"
-			(at 71.12 60.96 0)
+			(at 140.97 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1492,7 +1492,7 @@
 	)
 	(symbol
 		(lib_id "PCM_Espressif:ESP32-C6-WROOM-1")
-		(at 74.93 101.6 0)
+		(at 144.78 81.28 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -1500,8 +1500,8 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "b244efb0-eaec-4cb0-8177-120529fcef3d")
-		(property "Reference" "U5"
-			(at 77.0733 66.04 0)
+		(property "Reference" "U1"
+			(at 146.9233 45.72 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1510,7 +1510,7 @@
 			)
 		)
 		(property "Value" "ESP32-C6-WROOM-1"
-			(at 77.0733 68.58 0)
+			(at 146.9233 48.26 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1519,7 +1519,7 @@
 			)
 		)
 		(property "Footprint" "PCM_Espressif:ESP32-C6-WROOM-1"
-			(at 74.93 146.685 0)
+			(at 144.78 126.365 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1528,7 +1528,7 @@
 			)
 		)
 		(property "Datasheet" "https://www.espressif.com/sites/default/files/documentation/esp32-c6-wroom-1_wroom-1u_datasheet_en.pdf"
-			(at 74.93 149.86 0)
+			(at 144.78 129.54 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1537,7 +1537,7 @@
 			)
 		)
 		(property "Description" "ESP32-C6-WROOM-1/U is a module that supports 2.4 GHz Wi-Fi 6 (802.11 ax), Bluetooth® 5 (LE), Zigbee and Thread (802.15.4)"
-			(at 74.93 101.6 0)
+			(at 144.78 81.28 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1635,7 +1635,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/60b733e3-b0a4-4f6f-a123-94f6022b30cb"
-					(reference "U5")
+					(reference "U1")
 					(unit 1)
 				)
 			)
@@ -1643,7 +1643,7 @@
 	)
 	(symbol
 		(lib_id "power:+3.3V")
-		(at 74.93 54.61 0)
+		(at 144.78 34.29 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -1652,7 +1652,7 @@
 		(fields_autoplaced yes)
 		(uuid "dadff4de-e854-4126-b975-98af6e95df7e")
 		(property "Reference" "#PWR02"
-			(at 74.93 58.42 0)
+			(at 144.78 38.1 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1661,7 +1661,7 @@
 			)
 		)
 		(property "Value" "+3.3V"
-			(at 74.93 49.53 0)
+			(at 144.78 29.21 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1669,7 +1669,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 74.93 54.61 0)
+			(at 144.78 34.29 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1678,7 +1678,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 74.93 54.61 0)
+			(at 144.78 34.29 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1687,7 +1687,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
-			(at 74.93 54.61 0)
+			(at 144.78 34.29 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1709,7 +1709,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 67.31 63.5 0)
+		(at 137.16 43.18 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -1718,7 +1718,7 @@
 		(fields_autoplaced yes)
 		(uuid "fe0e4d92-da07-4d05-b891-9a36a1dd43fb")
 		(property "Reference" "#PWR01"
-			(at 67.31 69.85 0)
+			(at 137.16 49.53 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1727,7 +1727,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 67.31 68.58 0)
+			(at 137.16 48.26 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1735,7 +1735,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 67.31 63.5 0)
+			(at 137.16 43.18 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1744,7 +1744,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 67.31 63.5 0)
+			(at 137.16 43.18 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1753,7 +1753,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 67.31 63.5 0)
+			(at 137.16 43.18 0)
 			(effects
 				(font
 					(size 1.27 1.27)

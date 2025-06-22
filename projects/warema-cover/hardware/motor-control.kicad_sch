@@ -9,6 +9,132 @@
 		(date "2025-06-09")
 	)
 	(lib_symbols
+		(symbol "Device:NetTie_2"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom no)
+			(on_board yes)
+			(property "Reference" "NT"
+				(at 0 1.27 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "NetTie_2"
+				(at 0 -1.27 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Net tie, 2 pins"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "net tie short"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_fp_filters" "Net*Tie*"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "NetTie_2_0_1"
+				(polyline
+					(pts
+						(xy -1.27 0) (xy 1.27 0)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "NetTie_2_1_1"
+				(pin passive line
+					(at -2.54 0 0)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 2.54 0 180)
+					(length 2.54)
+					(name "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Device:R"
 			(pin_numbers
 				(hide yes)
@@ -379,7 +505,7 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "PCM_JLCPCB-Capacitors:0402,100nF"
+		(symbol "PCM_JLCPCB-Capacitors:0402,100nF,(2)"
 			(pin_numbers
 				(hide yes)
 			)
@@ -416,7 +542,7 @@
 					(hide yes)
 				)
 			)
-			(property "Datasheet" "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05B104KO5NNNC_C1525.pdf"
+			(property "Datasheet" "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05B104KB54PNC_C307331.pdf"
 				(at 0 0 0)
 				(effects
 					(font
@@ -425,7 +551,7 @@
 					(hide yes)
 				)
 			)
-			(property "Description" "16V 100nF X7R ±10% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+			(property "Description" "50V 100nF X7R ±10% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
 				(at 0 0 0)
 				(effects
 					(font
@@ -434,7 +560,7 @@
 					(hide yes)
 				)
 			)
-			(property "LCSC" "C1525"
+			(property "LCSC" "C307331"
 				(at 0 0 0)
 				(effects
 					(font
@@ -443,7 +569,7 @@
 					(hide yes)
 				)
 			)
-			(property "Stock" "15178943"
+			(property "Stock" "7716237"
 				(at 0 0 0)
 				(effects
 					(font
@@ -452,7 +578,7 @@
 					(hide yes)
 				)
 			)
-			(property "Price" "0.004USD"
+			(property "Price" "0.008USD"
 				(at 0 0 0)
 				(effects
 					(font
@@ -515,7 +641,7 @@
 					(hide yes)
 				)
 			)
-			(property "Part" "CL05B104KO5NNNC"
+			(property "Part" "CL05B104KB54PNC"
 				(at 0 0 0)
 				(effects
 					(font
@@ -524,7 +650,7 @@
 					(hide yes)
 				)
 			)
-			(property "Voltage Rated" "16V"
+			(property "Voltage Rated" "50V"
 				(at 2.032 -2.0462 0)
 				(effects
 					(font
@@ -569,7 +695,7 @@
 					(hide yes)
 				)
 			)
-			(symbol "0402,100nF_0_1"
+			(symbol "0402,100nF,(2)_0_1"
 				(polyline
 					(pts
 						(xy -1.27 0.635) (xy 1.27 0.635)
@@ -595,7 +721,7 @@
 					)
 				)
 			)
-			(symbol "0402,100nF_1_1"
+			(symbol "0402,100nF,(2)_1_1"
 				(pin passive line
 					(at 0 3.81 270)
 					(length 3.175)
@@ -1179,7 +1305,7 @@
 					)
 				)
 			)
-			(property "Value" "RVT47UF50V67RV0029"
+			(property "Value" "47uF"
 				(at 0 -5.08 0)
 				(effects
 					(font
@@ -1196,8 +1322,8 @@
 					(hide yes)
 				)
 			)
-			(property "Datasheet" ""
-				(at 0 0 0)
+			(property "Datasheet" "https://lcsc.com/datasheet/lcsc_datasheet_2410121613_KNSCHA-RVT47UF50V67RV0029_C2887275.pdf"
+				(at 0 -13.462 0)
 				(effects
 					(font
 						(size 1.27 1.27)
@@ -1205,8 +1331,8 @@
 					(hide yes)
 				)
 			)
-			(property "Description" ""
-				(at 0 0 0)
+			(property "Description" "47uF 50V 66mA@120Hz ±20% SMD,D6.3xL7.7mm Aluminum Electrolytic Capacitors - SMD ROHS"
+				(at 0.254 -16.256 0)
 				(effects
 					(font
 						(size 1.27 1.27)
@@ -1216,6 +1342,33 @@
 			)
 			(property "LCSC Part" "C2887275"
 				(at 0 -10.16 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Modified" "yes"
+				(at 9.652 4.064 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Voltage Rating" "50V"
+				(at 4.318 -5.08 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Tolerance" "±20%"
+				(at -5.334 -5.08 0)
 				(effects
 					(font
 						(size 1.27 1.27)
@@ -1687,15 +1840,33 @@
 			(embedded_fonts no)
 		)
 	)
-	(text "I_{TRIP} = 64kV / 24kOhm = 2.667 A"
+	(text "I_{TRIP} = 2.667 A"
 		(exclude_from_sim no)
-		(at 196.85 107.95 0)
+		(at 180.34 108.458 0)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
+			(justify left)
 		)
 		(uuid "570e3e0e-a54b-4556-af46-08d4556858c0")
+	)
+	(text "Address: 0x80"
+		(exclude_from_sim no)
+		(at 95.504 85.344 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "bb4a9b8e-e43d-4804-8329-e980621765f3")
+	)
+	(junction
+		(at 57.15 90.17)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "0a4bca50-4b7c-4e4b-9e5c-ce11246846eb")
 	)
 	(junction
 		(at 167.64 109.22)
@@ -1710,28 +1881,16 @@
 		(uuid "42e11ba2-1b85-4ae2-b53c-76720a46ec82")
 	)
 	(junction
-		(at 57.15 83.82)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "6737b5d2-63dd-4873-83ec-0b046d6cfbbb")
-	)
-	(junction
 		(at 167.64 82.55)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "759a86b1-acb8-4cde-885b-00ff61840ddc")
 	)
 	(junction
-		(at 57.15 96.52)
+		(at 57.15 74.93)
 		(diameter 0)
 		(color 0 0 0 0)
-		(uuid "87246cf3-dc32-45c7-9d4b-7471b438c35d")
-	)
-	(junction
-		(at 67.31 83.82)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "966ad13d-b599-4834-9d8f-a5d150740e95")
+		(uuid "7875af56-cd5a-4777-8691-52326ac43b93")
 	)
 	(junction
 		(at 93.98 72.39)
@@ -1740,10 +1899,16 @@
 		(uuid "c610c482-7a6a-4797-8ba8-3fb84a376ee5")
 	)
 	(junction
-		(at 57.15 77.47)
+		(at 57.15 97.79)
 		(diameter 0)
 		(color 0 0 0 0)
-		(uuid "d5db7716-02b0-4d5c-8f27-917c117e2d54")
+		(uuid "d0d68661-17ff-41e0-8573-c349d8533f87")
+	)
+	(junction
+		(at 57.15 83.82)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "f149d5b7-e5f2-4ee4-897d-b9af7bf617a1")
 	)
 	(junction
 		(at 93.98 83.82)
@@ -1777,16 +1942,6 @@
 	)
 	(wire
 		(pts
-			(xy 52.07 77.47) (xy 57.15 77.47)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "0cbfff3d-0717-42c9-94ee-40a74d5aa8b1")
-	)
-	(wire
-		(pts
 			(xy 80.01 71.12) (xy 80.01 72.39)
 		)
 		(stroke
@@ -1807,6 +1962,26 @@
 	)
 	(wire
 		(pts
+			(xy 57.15 97.79) (xy 57.15 111.76)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "16c425ea-a725-4123-afdc-22f2c8153e10")
+	)
+	(wire
+		(pts
+			(xy 41.91 74.93) (xy 38.1 74.93)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "1f977192-26a5-42cc-9d5b-f06fc54985f0")
+	)
+	(wire
+		(pts
 			(xy 93.98 72.39) (xy 91.44 72.39)
 		)
 		(stroke
@@ -1814,16 +1989,6 @@
 			(type default)
 		)
 		(uuid "236d88ca-1a12-41e0-a4eb-5c36196a3977")
-	)
-	(wire
-		(pts
-			(xy 41.91 77.47) (xy 41.91 81.28)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "2ade368e-08c9-4733-a2fd-34a4cb47f58e")
 	)
 	(wire
 		(pts
@@ -1847,13 +2012,23 @@
 	)
 	(wire
 		(pts
-			(xy 67.31 83.82) (xy 67.31 93.98)
+			(xy 67.31 90.17) (xy 67.31 93.98)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "3c786460-8f97-475d-968b-b9551b7d29c8")
+		(uuid "3e06ce91-6d93-4aa4-bace-0f7fd50ccad9")
+	)
+	(wire
+		(pts
+			(xy 67.31 97.79) (xy 67.31 96.52)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "40bf2cee-f8d7-46c7-9391-7771dfca6a17")
 	)
 	(wire
 		(pts
@@ -1877,13 +2052,13 @@
 	)
 	(wire
 		(pts
-			(xy 57.15 93.98) (xy 57.15 96.52)
+			(xy 57.15 74.93) (xy 57.15 83.82)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "53510223-cd9d-4dfb-a99a-eddcfe99dc0f")
+		(uuid "488f798f-2e92-4b62-a754-28dfa57dfc86")
 	)
 	(wire
 		(pts
@@ -1907,6 +2082,26 @@
 	)
 	(wire
 		(pts
+			(xy 59.69 90.17) (xy 57.15 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5795ebd3-6fcc-4bc9-8cb8-2396d835c495")
+	)
+	(wire
+		(pts
+			(xy 38.1 74.93) (xy 38.1 81.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5e0240c7-7dac-420e-b800-4786fad59c12")
+	)
+	(wire
+		(pts
 			(xy 167.64 109.22) (xy 177.8 109.22)
 		)
 		(stroke
@@ -1917,23 +2112,43 @@
 	)
 	(wire
 		(pts
-			(xy 67.31 93.98) (xy 69.85 93.98)
+			(xy 64.77 83.82) (xy 69.85 83.82)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "6d85069d-62a3-44cb-b983-e76681e5ff9c")
+		(uuid "5e9833ce-9fda-41d3-9c88-7f22afb96b9e")
 	)
 	(wire
 		(pts
-			(xy 57.15 83.82) (xy 57.15 86.36)
+			(xy 57.15 83.82) (xy 57.15 90.17)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "6f660102-c120-40b3-98fe-e6350bea553b")
+		(uuid "5ebdd22a-28c2-4f06-aebe-e1d613ac7b83")
+	)
+	(wire
+		(pts
+			(xy 69.85 93.98) (xy 67.31 93.98)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6c3fe54d-69ce-4667-8de9-ea905e81dddc")
+	)
+	(wire
+		(pts
+			(xy 59.69 97.79) (xy 57.15 97.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "74d8b872-8a94-498e-933c-b2241f04ba85")
 	)
 	(wire
 		(pts
@@ -1954,16 +2169,6 @@
 			(type default)
 		)
 		(uuid "83f0e59d-ad5c-44f3-8710-5fdbfa34bcb1")
-	)
-	(wire
-		(pts
-			(xy 57.15 96.52) (xy 69.85 96.52)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8835b2ad-6270-47bd-8ad9-3de2938582d3")
 	)
 	(wire
 		(pts
@@ -1997,6 +2202,16 @@
 	)
 	(wire
 		(pts
+			(xy 57.15 83.82) (xy 59.69 83.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "92f81412-9d59-45e2-bb2d-cd4928b7c84d")
+	)
+	(wire
+		(pts
 			(xy 177.8 93.98) (xy 184.15 93.98)
 		)
 		(stroke
@@ -2007,7 +2222,7 @@
 	)
 	(wire
 		(pts
-			(xy 57.15 72.39) (xy 57.15 77.47)
+			(xy 57.15 72.39) (xy 57.15 74.93)
 		)
 		(stroke
 			(width 0)
@@ -2047,26 +2262,6 @@
 	)
 	(wire
 		(pts
-			(xy 57.15 77.47) (xy 57.15 83.82)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "d390f7ea-a06e-4f06-be71-baf7b27fd3d0")
-	)
-	(wire
-		(pts
-			(xy 69.85 83.82) (xy 67.31 83.82)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "d5f0bb12-cab5-4ceb-a63b-352d78ac32b0")
-	)
-	(wire
-		(pts
 			(xy 177.8 96.52) (xy 184.15 96.52)
 		)
 		(stroke
@@ -2074,6 +2269,36 @@
 			(type default)
 		)
 		(uuid "df1690c9-4898-430c-88cd-48389cd2adfc")
+	)
+	(wire
+		(pts
+			(xy 64.77 97.79) (xy 67.31 97.79)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "dfe8112e-a71d-43f8-8810-da76c38b4dfd")
+	)
+	(wire
+		(pts
+			(xy 64.77 90.17) (xy 67.31 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e029d409-e348-4658-905e-b21a4763daf0")
+	)
+	(wire
+		(pts
+			(xy 67.31 96.52) (xy 69.85 96.52)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e79c6090-612d-477c-8b68-1ebb7e7552d5")
 	)
 	(wire
 		(pts
@@ -2087,26 +2312,16 @@
 	)
 	(wire
 		(pts
-			(xy 57.15 83.82) (xy 67.31 83.82)
+			(xy 52.07 74.93) (xy 57.15 74.93)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "fe62f305-9d38-4395-b47b-e3a75663a5ae")
-	)
-	(wire
-		(pts
-			(xy 57.15 96.52) (xy 57.15 100.33)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "fe73c49b-48bd-413f-a46e-7de5cec6fc8b")
+		(uuid "ffc99bd5-7bf7-4a4c-bfa9-7208131d80f9")
 	)
 	(label "VM"
-		(at 57.15 100.33 270)
+		(at 57.15 111.76 270)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -2193,24 +2408,23 @@
 	)
 	(symbol
 		(lib_id "easyeda2kicad:RVT47UF50V67RV0029")
-		(at 46.99 77.47 0)
+		(at 46.99 74.93 180)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "0ded6cc3-e3d4-4c04-9e64-3b2194c41be4")
-		(property "Reference" "C6"
-			(at 48.4724 69.85 0)
+		(property "Reference" "C2"
+			(at 45.5076 67.31 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Value" "RVT47UF50V67RV0029"
-			(at 48.4724 72.39 0)
+		(property "Value" "47uF"
+			(at 46.99 69.85 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2218,7 +2432,7 @@
 			)
 		)
 		(property "Footprint" "easyeda2kicad:CAP-SMD_BD6.3-L6.6-W6.6-LS7.6-FD"
-			(at 46.99 85.09 0)
+			(at 46.99 67.31 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2226,8 +2440,8 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" ""
-			(at 46.99 77.47 0)
+		(property "Datasheet" "https://lcsc.com/datasheet/lcsc_datasheet_2410121613_KNSCHA-RVT47UF50V67RV0029_C2887275.pdf"
+			(at 46.99 61.468 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2235,8 +2449,8 @@
 				(hide yes)
 			)
 		)
-		(property "Description" ""
-			(at 46.99 77.47 0)
+		(property "Description" "47uF 50V 66mA@120Hz ±20% SMD,D6.3xL7.7mm Aluminum Electrolytic Capacitors - SMD ROHS"
+			(at 46.736 58.674 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2245,7 +2459,34 @@
 			)
 		)
 		(property "LCSC Part" "C2887275"
-			(at 46.99 87.63 0)
+			(at 46.99 64.77 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Modified" "yes"
+			(at 37.338 78.994 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Voltage Rating" "50V"
+			(at 42.672 69.85 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Tolerance" "±20%"
+			(at 52.324 69.85 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2262,7 +2503,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "C6")
+					(reference "C2")
 					(unit 1)
 				)
 			)
@@ -2270,7 +2511,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 41.91 81.28 0)
+		(at 38.1 81.28 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -2278,8 +2519,8 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "0f9072bd-6dbd-4e72-af15-21d982836159")
-		(property "Reference" "#PWR015"
-			(at 41.91 87.63 0)
+		(property "Reference" "#PWR04"
+			(at 38.1 87.63 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2288,7 +2529,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 41.91 86.36 0)
+			(at 38.1 86.36 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2296,7 +2537,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 41.91 81.28 0)
+			(at 38.1 81.28 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2305,7 +2546,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 41.91 81.28 0)
+			(at 38.1 81.28 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2314,7 +2555,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 41.91 81.28 0)
+			(at 38.1 81.28 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2328,7 +2569,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "#PWR015")
+					(reference "#PWR04")
 					(unit 1)
 				)
 			)
@@ -2344,7 +2585,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "1df917ee-7f5f-4b6b-a789-9b10a68a6c11")
-		(property "Reference" "#PWR06"
+		(property "Reference" "#PWR07"
 			(at 80.01 113.03 0)
 			(effects
 				(font
@@ -2394,7 +2635,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "#PWR06")
+					(reference "#PWR07")
 					(unit 1)
 				)
 			)
@@ -2410,7 +2651,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "31bcbeb3-5686-4b68-9b0d-df4026237bc8")
-		(property "Reference" "#PWR07"
+		(property "Reference" "#PWR08"
 			(at 97.79 78.74 0)
 			(effects
 				(font
@@ -2460,14 +2701,14 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "#PWR07")
+					(reference "#PWR08")
 					(unit 1)
 				)
 			)
 		)
 	)
 	(symbol
-		(lib_id "PCM_JLCPCB-Capacitors:0402,100nF")
+		(lib_id "PCM_JLCPCB-Capacitors:0402,100nF,(2)")
 		(at 87.63 72.39 90)
 		(unit 1)
 		(exclude_from_sim no)
@@ -2476,7 +2717,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "49ad264c-b8d8-43ce-928f-b306152db03a")
-		(property "Reference" "C2"
+		(property "Reference" "C3"
 			(at 87.63 63.5 90)
 			(effects
 				(font
@@ -2501,7 +2742,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05B104KO5NNNC_C1525.pdf"
+		(property "Datasheet" "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05B104KB54PNC_C307331.pdf"
 			(at 87.63 72.39 0)
 			(effects
 				(font
@@ -2510,7 +2751,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "16V 100nF X7R ±10% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+		(property "Description" "50V 100nF X7R ±10% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
 			(at 87.63 72.39 0)
 			(effects
 				(font
@@ -2519,7 +2760,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C1525"
+		(property "LCSC" "C307331"
 			(at 87.63 72.39 0)
 			(effects
 				(font
@@ -2528,7 +2769,7 @@
 				(hide yes)
 			)
 		)
-		(property "Stock" "15178943"
+		(property "Stock" "7716237"
 			(at 87.63 72.39 0)
 			(effects
 				(font
@@ -2537,7 +2778,7 @@
 				(hide yes)
 			)
 		)
-		(property "Price" "0.004USD"
+		(property "Price" "0.008USD"
 			(at 87.63 72.39 0)
 			(effects
 				(font
@@ -2600,7 +2841,7 @@
 				(hide yes)
 			)
 		)
-		(property "Part" "CL05B104KO5NNNC"
+		(property "Part" "CL05B104KB54PNC"
 			(at 87.63 72.39 0)
 			(effects
 				(font
@@ -2609,7 +2850,7 @@
 				(hide yes)
 			)
 		)
-		(property "Voltage Rated" "16V"
+		(property "Voltage Rated" "50V"
 			(at 87.63 68.58 90)
 			(effects
 				(font
@@ -2653,14 +2894,14 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "C2")
+					(reference "C3")
 					(unit 1)
 				)
 			)
 		)
 	)
 	(symbol
-		(lib_id "PCM_JLCPCB-Capacitors:0402,100nF")
+		(lib_id "PCM_JLCPCB-Capacitors:0402,100nF,(2)")
 		(at 160.02 82.55 90)
 		(unit 1)
 		(exclude_from_sim no)
@@ -2694,7 +2935,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05B104KO5NNNC_C1525.pdf"
+		(property "Datasheet" "https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05B104KB54PNC_C307331.pdf"
 			(at 160.02 82.55 0)
 			(effects
 				(font
@@ -2703,7 +2944,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "16V 100nF X7R ±10% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
+		(property "Description" "50V 100nF X7R ±10% 0402 Multilayer Ceramic Capacitors MLCC - SMD/SMT ROHS"
 			(at 160.02 82.55 0)
 			(effects
 				(font
@@ -2712,7 +2953,7 @@
 				(hide yes)
 			)
 		)
-		(property "LCSC" "C1525"
+		(property "LCSC" "C307331"
 			(at 160.02 82.55 0)
 			(effects
 				(font
@@ -2721,7 +2962,7 @@
 				(hide yes)
 			)
 		)
-		(property "Stock" "15178943"
+		(property "Stock" "7716237"
 			(at 160.02 82.55 0)
 			(effects
 				(font
@@ -2730,7 +2971,7 @@
 				(hide yes)
 			)
 		)
-		(property "Price" "0.004USD"
+		(property "Price" "0.008USD"
 			(at 160.02 82.55 0)
 			(effects
 				(font
@@ -2793,7 +3034,7 @@
 				(hide yes)
 			)
 		)
-		(property "Part" "CL05B104KO5NNNC"
+		(property "Part" "CL05B104KB54PNC"
 			(at 160.02 82.55 0)
 			(effects
 				(font
@@ -2802,7 +3043,7 @@
 				(hide yes)
 			)
 		)
-		(property "Voltage Rated" "16V"
+		(property "Voltage Rated" "50V"
 			(at 160.02 78.74 90)
 			(effects
 				(font
@@ -2862,7 +3103,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "52ba933f-0395-4857-b172-d25cdbe63c41")
-		(property "Reference" "U7"
+		(property "Reference" "U2"
 			(at 82.1533 76.2 0)
 			(effects
 				(font
@@ -2940,7 +3181,143 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "U7")
+					(reference "U2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:NetTie_2")
+		(at 62.23 83.82 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(dnp no)
+		(uuid "6f4097c9-1080-424e-894e-9b5eaa7d03b8")
+		(property "Reference" "NT1"
+			(at 62.23 82.804 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "NetTie_2"
+			(at 62.23 81.28 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" "NetTie:NetTie-2_SMD_Pad0.5mm"
+			(at 62.23 83.82 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 62.23 83.82 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Net tie, 2 pins"
+			(at 62.23 83.82 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "511cca3b-c7e5-4ea1-9f55-ef91a301a701")
+		)
+		(pin "2"
+			(uuid "f7acb13d-ea60-488a-9d31-fbd491017bc1")
+		)
+		(instances
+			(project ""
+				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
+					(reference "NT1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:NetTie_2")
+		(at 62.23 90.17 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(dnp no)
+		(uuid "88d4261c-828a-4f00-a699-58e49d008f9c")
+		(property "Reference" "NT2"
+			(at 62.23 89.154 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "NetTie_2"
+			(at 62.23 87.63 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" "NetTie:NetTie-2_SMD_Pad0.5mm"
+			(at 62.23 90.17 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 62.23 90.17 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Net tie, 2 pins"
+			(at 62.23 90.17 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "fe6d513c-8197-4fe7-8804-508405e5a7d4")
+		)
+		(pin "1"
+			(uuid "d3555566-1c7a-48dc-b98c-e0bb900419dc")
+		)
+		(instances
+			(project ""
+				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
+					(reference "NT2")
 					(unit 1)
 				)
 			)
@@ -2956,7 +3333,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "b7374114-ece3-4ebd-91d7-87e2b5260475")
-		(property "Reference" "#PWR04"
+		(property "Reference" "#PWR010"
 			(at 167.64 118.11 0)
 			(effects
 				(font
@@ -3006,7 +3383,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "#PWR04")
+					(reference "#PWR010")
 					(unit 1)
 				)
 			)
@@ -3022,7 +3399,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "cec003b8-f8f5-4805-ae57-8c803b30df77")
-		(property "Reference" "#PWR05"
+		(property "Reference" "#PWR06"
 			(at 80.01 74.93 0)
 			(effects
 				(font
@@ -3072,7 +3449,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "#PWR05")
+					(reference "#PWR06")
 					(unit 1)
 				)
 			)
@@ -3088,7 +3465,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "d1b0b97c-583b-4e19-b459-d2499f9a74db")
-		(property "Reference" "#PWR014"
+		(property "Reference" "#PWR09"
 			(at 156.21 90.17 0)
 			(effects
 				(font
@@ -3138,7 +3515,76 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "#PWR014")
+					(reference "#PWR09")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:NetTie_2")
+		(at 62.23 97.79 0)
+		(mirror x)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(dnp no)
+		(uuid "d2916832-a9be-4835-8c55-f62ab1250d6a")
+		(property "Reference" "NT3"
+			(at 62.23 99.06 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "NetTie_2"
+			(at 62.23 100.33 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Footprint" "NetTie:NetTie-2_SMD_Pad0.5mm"
+			(at 62.23 97.79 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 62.23 97.79 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Net tie, 2 pins"
+			(at 62.23 97.79 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "9a2251df-c343-474c-b6ba-965865793402")
+		)
+		(pin "1"
+			(uuid "aef2a9d1-c1a7-4c10-8d78-cc9716bbfdf8")
+		)
+		(instances
+			(project "warema-cover"
+				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
+					(reference "NT3")
 					(unit 1)
 				)
 			)
@@ -3154,7 +3600,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "e14b5b0c-b1b7-4465-812b-3f7dd2d6528f")
-		(property "Reference" "R1"
+		(property "Reference" "R2"
 			(at 180.34 105.4099 0)
 			(effects
 				(font
@@ -3361,7 +3807,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "R1")
+					(reference "R2")
 					(unit 1)
 				)
 			)
@@ -3369,7 +3815,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 57.15 90.17 0)
+		(at 57.15 93.98 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -3377,8 +3823,8 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "e7aa97c8-61a4-4d5f-a933-be53933561a6")
-		(property "Reference" "R2"
-			(at 59.69 88.8999 0)
+		(property "Reference" "R1"
+			(at 59.69 92.7099 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3387,7 +3833,7 @@
 			)
 		)
 		(property "Value" "15mΩ"
-			(at 59.69 91.4399 0)
+			(at 59.69 95.2499 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3396,7 +3842,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_2512_6332Metric"
-			(at 55.372 90.17 90)
+			(at 55.372 93.98 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3404,8 +3850,8 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/6285/HoJLR2512-6mR-1%25.pdf"
-			(at 57.15 90.17 0)
+		(property "Datasheet" "~"
+			(at 57.15 93.98 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3413,8 +3859,8 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "Milliohm HoLLR2512-2W-15mR-1%"
-			(at 57.15 90.17 0)
+		(property "Description" "Resistor"
+			(at 57.15 93.98 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3423,7 +3869,7 @@
 			)
 		)
 		(property "LCSC Part" "C2994624"
-			(at 57.15 90.17 0)
+			(at 57.15 93.98 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3440,7 +3886,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "R2")
+					(reference "R1")
 					(unit 1)
 				)
 			)
@@ -3456,7 +3902,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "ee8c044b-1a17-4d35-9adb-419fc866b225")
-		(property "Reference" "#PWR013"
+		(property "Reference" "#PWR05"
 			(at 57.15 76.2 0)
 			(effects
 				(font
@@ -3506,7 +3952,7 @@
 		(instances
 			(project ""
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "#PWR013")
+					(reference "#PWR05")
 					(unit 1)
 				)
 			)
@@ -3522,7 +3968,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "f93762dc-2cac-40b4-8abb-27a73a38052d")
-		(property "Reference" "U6"
+		(property "Reference" "U3"
 			(at 169.7833 86.36 0)
 			(effects
 				(font
@@ -3597,7 +4043,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e/ec0bbe4c-2542-46de-a900-4d777de8dec3"
-					(reference "U6")
+					(reference "U3")
 					(unit 1)
 				)
 			)

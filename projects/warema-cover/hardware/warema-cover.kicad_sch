@@ -190,17 +190,6 @@
 			(embedded_fonts no)
 		)
 	)
-	(text "Motor"
-		(exclude_from_sim no)
-		(at 224.79 66.04 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "32daeda1-0d12-4b09-9753-3469cd344a35")
-	)
 	(text "Solar Panel: 5 W (peak), 0 - 20 V (OCV), 17 V nominal\nBattery:\n  Cycle: 14.4 - 15.0 V\n  Standby: 13.5 - 13.8 V\n  Initial: 0.63 A MAX\nMotor: 12 VDC, 2.2 A or 2.5 A"
 		(exclude_from_sim no)
 		(at 30.988 157.988 0)
@@ -212,38 +201,87 @@
 		)
 		(uuid "40d422dc-f48e-40a7-8635-f578418d80af")
 	)
-	(text "Battery"
-		(exclude_from_sim no)
-		(at 72.39 20.32 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "71343e2d-a1a9-4fc3-b833-a4f14b8177a5")
+	(junction
+		(at 130.81 99.06)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "a7751b6a-ed1b-464f-a2ba-5ea4f6091a7f")
 	)
-	(text "Solar Panel"
-		(exclude_from_sim no)
-		(at 123.19 20.32 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "c43140df-a5c8-4da8-aeb5-36cb2699d230")
+	(junction
+		(at 133.35 101.6)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "d2860602-95fe-4a5a-b32d-45d7238babb1")
 	)
-	(text "Power Supply"
-		(exclude_from_sim no)
-		(at 22.86 20.32 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
+	(wire
+		(pts
+			(xy 175.26 57.15) (xy 175.26 81.28)
 		)
-		(uuid "d5f29c13-21f1-43eb-994a-85f06c2c376e")
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "04fe9ea3-d5c5-4d9c-8642-b09f9c13b9f6")
+	)
+	(wire
+		(pts
+			(xy 152.4 57.15) (xy 175.26 57.15)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0c21e48b-22d7-4112-bbf5-6634508a0f4e")
+	)
+	(wire
+		(pts
+			(xy 130.81 82.55) (xy 130.81 99.06)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "186f8cae-16c8-4727-9e4b-e1d4d1cff355")
+	)
+	(wire
+		(pts
+			(xy 74.93 101.6) (xy 133.35 101.6)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2d5222e1-5fe5-411e-8bff-eb1fa3c3b6b5")
+	)
+	(wire
+		(pts
+			(xy 172.72 83.82) (xy 172.72 59.69)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "34142024-18fd-4fed-8394-be398c008c24")
+	)
+	(wire
+		(pts
+			(xy 133.35 82.55) (xy 133.35 101.6)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "75bd5875-51f4-4f5b-97d7-77ca350d9631")
+	)
+	(wire
+		(pts
+			(xy 133.35 101.6) (xy 191.77 101.6)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "85239f37-8512-4f71-a62b-8582ab477cf6")
 	)
 	(wire
 		(pts
@@ -254,6 +292,86 @@
 			(type default)
 		)
 		(uuid "8c4d3f7e-932b-4b50-bf93-cd7032e03bff")
+	)
+	(wire
+		(pts
+			(xy 26.67 67.31) (xy 26.67 74.93)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9244465f-cb67-4b8d-99b2-bc2511c0f79b")
+	)
+	(wire
+		(pts
+			(xy 71.12 67.31) (xy 71.12 74.93)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a3a879f4-b088-4f23-bfc1-e7ef5c9d63cf")
+	)
+	(wire
+		(pts
+			(xy 130.81 99.06) (xy 191.77 99.06)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "adb1b857-68a4-4500-a888-45de9caefd21")
+	)
+	(wire
+		(pts
+			(xy 74.93 99.06) (xy 130.81 99.06)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b58e0662-434d-43c3-b319-49edc7a8e7d0")
+	)
+	(wire
+		(pts
+			(xy 191.77 83.82) (xy 172.72 83.82)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bc61e602-2e69-4942-b4c2-aa54106b2d87")
+	)
+	(wire
+		(pts
+			(xy 175.26 81.28) (xy 191.77 81.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f231f0b6-6c98-4d94-8edd-e52363b54305")
+	)
+	(wire
+		(pts
+			(xy 49.53 67.31) (xy 49.53 74.93)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f63c8a0b-fe01-4a8a-90af-f8edead9b73a")
+	)
+	(wire
+		(pts
+			(xy 172.72 59.69) (xy 152.4 59.69)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f683b71a-0940-40f9-b79a-8931d524a85a")
 	)
 	(wire
 		(pts
@@ -331,7 +449,7 @@
 	)
 	(symbol
 		(lib_id "easyeda2kicad:MX15EDGR-3.81-GN01-02P-CU-A")
-		(at 17.78 16.51 90)
+		(at 27.94 62.23 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -340,7 +458,7 @@
 		(fields_autoplaced yes)
 		(uuid "3d13a77c-ea5b-4a69-b780-e64b595b87c6")
 		(property "Reference" "J1"
-			(at 22.86 15.2399 90)
+			(at 33.02 60.9599 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -348,8 +466,8 @@
 				(justify right)
 			)
 		)
-		(property "Value" "MX15EDGR-3.81-GN01-02P-CU-A"
-			(at 22.86 17.7799 90)
+		(property "Value" "Power Supply"
+			(at 33.02 63.4999 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -358,7 +476,7 @@
 			)
 		)
 		(property "Footprint" "easyeda2kicad:CONN-TH_2P-P3.81_MAX_MX15EDGR-3.81-GN01-02P-CU-A"
-			(at 26.67 16.51 0)
+			(at 36.83 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -367,7 +485,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 17.78 16.51 0)
+			(at 27.94 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -376,7 +494,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 17.78 16.51 0)
+			(at 27.94 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -385,7 +503,7 @@
 			)
 		)
 		(property "LCSC Part" "C5188157"
-			(at 29.21 16.51 0)
+			(at 39.37 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -410,7 +528,7 @@
 	)
 	(symbol
 		(lib_id "easyeda2kicad:MX15EDGR-3.81-GN01-02P-CU-A")
-		(at 67.31 16.51 90)
+		(at 72.39 62.23 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -418,8 +536,8 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "6b381386-695b-4e5f-8c32-cc38aa121614")
-		(property "Reference" "J2"
-			(at 72.39 15.2399 90)
+		(property "Reference" "J3"
+			(at 77.47 60.9599 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -427,8 +545,8 @@
 				(justify right)
 			)
 		)
-		(property "Value" "MX15EDGR-3.81-GN01-02P-CU-A"
-			(at 72.39 17.7799 90)
+		(property "Value" "Battery"
+			(at 77.47 63.4999 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -437,7 +555,7 @@
 			)
 		)
 		(property "Footprint" "easyeda2kicad:CONN-TH_2P-P3.81_MAX_MX15EDGR-3.81-GN01-02P-CU-A"
-			(at 76.2 16.51 0)
+			(at 81.28 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -446,7 +564,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 67.31 16.51 0)
+			(at 72.39 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -455,7 +573,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 67.31 16.51 0)
+			(at 72.39 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -464,7 +582,7 @@
 			)
 		)
 		(property "LCSC Part" "C5188157"
-			(at 78.74 16.51 0)
+			(at 83.82 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -481,7 +599,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e"
-					(reference "J2")
+					(reference "J3")
 					(unit 1)
 				)
 			)
@@ -506,7 +624,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "MX15EDGR-3.81-GN01-02P-CU-A"
+		(property "Value" "Motor"
 			(at 224.79 63.4999 90)
 			(effects
 				(font
@@ -568,7 +686,7 @@
 	)
 	(symbol
 		(lib_id "easyeda2kicad:MX15EDGR-3.81-GN01-02P-CU-A")
-		(at 118.11 16.51 90)
+		(at 50.8 62.23 90)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -576,8 +694,8 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "c54be031-df1a-477f-8f39-30dbbd040222")
-		(property "Reference" "J3"
-			(at 123.19 15.2399 90)
+		(property "Reference" "J2"
+			(at 55.88 60.9599 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -585,8 +703,8 @@
 				(justify right)
 			)
 		)
-		(property "Value" "MX15EDGR-3.81-GN01-02P-CU-A"
-			(at 123.19 17.7799 90)
+		(property "Value" "Solar Panel"
+			(at 55.88 63.4999 90)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -595,7 +713,7 @@
 			)
 		)
 		(property "Footprint" "easyeda2kicad:CONN-TH_2P-P3.81_MAX_MX15EDGR-3.81-GN01-02P-CU-A"
-			(at 127 16.51 0)
+			(at 59.69 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -604,7 +722,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 118.11 16.51 0)
+			(at 50.8 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -613,7 +731,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 118.11 16.51 0)
+			(at 50.8 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -622,7 +740,7 @@
 			)
 		)
 		(property "LCSC Part" "C5188157"
-			(at 129.54 16.51 0)
+			(at 62.23 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -639,7 +757,7 @@
 		(instances
 			(project "warema-cover"
 				(path "/c36ff35c-53ca-4fbf-8d78-92db2774c79e"
-					(reference "J3")
+					(reference "J2")
 					(unit 1)
 				)
 			)
@@ -728,8 +846,8 @@
 		)
 	)
 	(sheet
-		(at 28.575 48.895)
-		(size 31.115 32.385)
+		(at 19.05 74.93)
+		(size 55.88 33.02)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
@@ -744,7 +862,7 @@
 		)
 		(uuid "8d61aaed-742d-40b5-9a2b-167f95419192")
 		(property "Sheetname" "Power"
-			(at 28.575 48.1834 0)
+			(at 19.05 74.2184 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -753,7 +871,7 @@
 			)
 		)
 		(property "Sheetfile" "power.kicad_sch"
-			(at 28.575 81.8646 0)
+			(at 19.05 107.8996 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -762,7 +880,7 @@
 			)
 		)
 		(pin "I2C_SCL" input
-			(at 59.69 71.12 0)
+			(at 74.93 99.06 0)
 			(uuid "2c67238b-ce66-4162-a67b-67f03216b1ef")
 			(effects
 				(font
@@ -772,8 +890,58 @@
 			)
 		)
 		(pin "I2C_SDA" bidirectional
-			(at 59.69 73.66 0)
+			(at 74.93 101.6 0)
 			(uuid "589f2313-3ae7-4ea7-929c-9f46ecc687e9")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "V_{SUPP}" input
+			(at 26.67 74.93 90)
+			(uuid "1c65b2cf-a77d-4a89-80d0-edfdfeb36b87")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "CHRG_~{DONE}" output
+			(at 74.93 90.17 0)
+			(uuid "c7c1c461-4a86-407d-99c2-590d353fa51a")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "V_{SOLAR}" input
+			(at 49.53 74.93 90)
+			(uuid "c891f75d-8cf7-471d-9172-ae3e7ff3b8b2")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "CHRG_~{CHRG}" output
+			(at 74.93 87.63 0)
+			(uuid "bd3ce9b6-c051-4437-9fff-c5d514108b83")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(pin "V_{BATT}" output
+			(at 71.12 74.93 90)
+			(uuid "c738cb89-b5da-4e57-86b8-cbcb93704e7e")
 			(effects
 				(font
 					(size 1.27 1.27)
