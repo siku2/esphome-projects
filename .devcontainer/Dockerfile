@@ -26,6 +26,7 @@ APT_DEPS=(
 )
 PIPX_DEPS=(
     "esphome"
+    "interactivehtmlbom"
     "ruff"
     "uv"
 )

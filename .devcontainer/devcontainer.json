@@ -18,6 +18,7 @@
                 "kennylong.kubernetes-yaml-formatter",
                 "ms-python.python",
                 "ms-vscode.cpptools-extension-pack",
+                "ms-vscode.live-server",
                 "platformio.platformio-ide",
             ]
         }

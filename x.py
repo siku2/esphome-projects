@@ -14,6 +14,7 @@ import logging
 import os
 import shutil
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, Literal, Protocol, cast
 
@@ -91,7 +92,10 @@ def generate_project_page(
             project.kicad = ProjectContext.Kicad(files=files)
 
     def get_asset_url(
-        uri: Path | str, *, context: Literal["local", "global"] = "local"
+        uri: Path | str,
+        *,
+        context: Literal["local", "global"] = "local",
+        preserve_file_name: bool = False,
     ) -> str:
         assert context in ("local", "global"), "context must be 'local' or 'global'"
 
@@ -104,44 +108,47 @@ def generate_project_page(
 
         asset_out_dir.mkdir(parents=True, exist_ok=True)
 
+        def get_asset_path(orig_filename: str, uid_parts: Iterable[str | bytes]) -> tuple[Path, str]:
+            uid_builder = hashlib.sha256(usedforsecurity=False)
+            for part in uid_parts:
+                if isinstance(part, str):
+                    part = part.encode("utf-8")
+                uid_builder.update(part)
+            uid = uid_builder.hexdigest()[:8]
+
+            if preserve_file_name:
+                local_asset_dir = asset_out_dir / uid
+                local_asset_dir.mkdir(exist_ok=True)
+                return (local_asset_dir / orig_filename, f"{url_prefix}{uid}/{orig_filename}")
+
+            stem, _, suffix = orig_filename.partition(".")
+            return (asset_out_dir / f"{stem}-{uid}.{suffix}", f"{url_prefix}{stem}-{uid}.{suffix}")
+
         if isinstance(uri, str) and (
             uri.startswith("http://") or uri.startswith("https://")
         ):
             with httpx.stream("GET", uri) as resp:
                 etag = resp.headers.get("ETag")
-                url_path = Path(resp.url.path)
-                stem = url_path.name or resp.url.host.replace(".", "_")
-                suffix = url_path.suffix
-                uid_builder = hashlib.sha256(usedforsecurity=False)
-                uid_builder.update(str(resp.url).encode("utf-8"))
-                uid_builder.update(etag.encode("utf-8") if etag else b"")
-                uid = uid_builder.hexdigest()[:8]
-
-                filename = f"{stem}-{uid}{suffix}"
-                path = asset_out_dir / filename
-                if not path.exists():
-                    _LOGGER.info("Downloading %s to %s", uri, path)
-                    with path.open("wb+") as f:
+                (asset_path, asset_url) = get_asset_path(Path(resp.url.path).name or resp.url.host.replace(".", "_"), [str(resp.url), etag])
+                if not asset_path.exists():
+                    _LOGGER.info("Downloading %s to %s", uri, asset_path)
+                    with asset_path.open("wb+") as f:
                         for chunk in resp.iter_bytes():
                             f.write(chunk)
 
-                return f"{url_prefix}{filename}"
+                return asset_url
 
         local_path = Path(uri)
         if local_path.is_absolute():
             local_path = local_path.relative_to(_PROJECT_ROOT)
 
-        uid = hashlib.sha256(
-            local_path.read_bytes(), usedforsecurity=False
-        ).hexdigest()[:8]
+        (asset_path, asset_url) = get_asset_path(local_path.name, [local_path.read_bytes()])
 
-        filename = f"{local_path.stem}-{uid}{local_path.suffix}"
-        path = asset_out_dir / filename
-        if not path.exists():
-            _LOGGER.info("Copying %s to %s", local_path, path)
-            shutil.copy(local_path, path)
+        if not asset_path.exists():
+            _LOGGER.info("Copying %s to %s", local_path, asset_path)
+            shutil.copy(local_path, asset_path)
 
-        return f"{url_prefix}{filename}"
+        return asset_url
 
     render_ctx: dict[str, Any] = {"project": project, "get_asset_url": get_asset_url}
 

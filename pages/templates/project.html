@@ -4,9 +4,9 @@
 
 {% if project.kicad %}
 <script type="module" src="{{ get_asset_url('https://kicanvas.org/kicanvas/kicanvas.js', context='global') }}"></script>
-<kicanvas-embed controls="full">
+<kicanvas-embed controls="full" theme="kicad">
     {% for file in project.kicad.files %}
-    <kicanvas-source src="{{ get_asset_url(file) }}"></kicanvas-source>
+    <kicanvas-source src="{{ get_asset_url(file, preserve_file_name=True) }}"></kicanvas-source>
     {% endfor %}
 </kicanvas-embed>
 {% endif %}
