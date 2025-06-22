@@ -49,7 +49,7 @@ def main() -> None:
     generate_pages(out_dir=_PROJECT_ROOT / "public")
     generate_interactive_bom(
         _PROJECTS_DIR / "warema-cover/hardware/warema-cover.kicad_pcb",
-        _PROJECT_ROOT / "public",
+        _PROJECT_ROOT / "public/warema-cover",
     )
 
 
