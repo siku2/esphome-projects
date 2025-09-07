@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04@sha256:601ef3f088ffd5ca63aee990a46712478d14dbf8927076d3118775a7b3fd813d
+FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04@sha256:ad92cae7c25cafb1e7bb5aa7520b81be85fac022ea92e404b94a11127631fae3
 
 SHELL [ "/bin/bash", "-eux", "-c" ]
 
