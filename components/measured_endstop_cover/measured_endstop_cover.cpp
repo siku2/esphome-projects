@@ -1,5 +1,6 @@
 #include "measured_endstop_cover.h"
 
+#include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
@@ -45,7 +46,7 @@ namespace esphome
 
         void MeasuredEndstopCover::loop()
         {
-            const uint32_t now = millis();
+            const uint32_t now = App.get_loop_component_start_time();
 
             switch (this->state_)
             {
@@ -81,23 +82,19 @@ namespace esphome
 
             case STATE_MOVING:
                 // Update position.
-                if (this->movement_start_time_ > this->last_position_compute_time_)
-                {
-                    this->last_position_compute_time_ = this->movement_start_time_;
-                }
                 switch (this->current_operation)
                 {
                 case COVER_OPERATION_OPENING:
-                    this->position += (now - this->last_position_compute_time_) / this->open_duration_;
+                    this->position += (now - this->last_position_compute_time_) / (float)this->open_duration_;
                     break;
                 case COVER_OPERATION_CLOSING:
-                    this->position -= (now - this->last_position_compute_time_) / this->close_duration_;
+                    this->position -= (now - this->last_position_compute_time_) / (float)this->close_duration_;
                     break;
                 }
                 this->position = std::clamp(this->position, 0.0f, 1.0f);
                 this->last_position_compute_time_ = now;
 
-                if (now - this->last_publish_time_ > this->update_interval_)
+                if ((now - this->last_publish_time_) > this->update_interval_)
                 {
                     this->publish_state(false);
                     this->last_publish_time_ = now;
