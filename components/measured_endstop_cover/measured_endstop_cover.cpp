@@ -72,9 +72,9 @@ namespace esphome
                     // We are now moving.
                     this->enter_state(STATE_MOVING);
                 }
-                else if (now - this->movement_start_time_ > this->moving_change_timeout_)
+                else if ((now - this->movement_start_time_) > this->moving_change_timeout_)
                 {
-                    // We have been waiting for the configured timeout, but no change. Assume we are moving anyway.
+                    ESP_LOGW(TAG, "Timeout waiting for moving_covers sensor to change.");
                     this->enter_state(STATE_IDLE);
                 }
                 break;
@@ -147,8 +147,9 @@ namespace esphome
                         // We are close to the target position, assume we have reached it.
                         || (std::abs(this->target_position_ - this->position) < 0.05f))
                     {
-                        // Go directly to idle since we're not moving anymore.
+                        ESP_LOGI(TAG, "Cover stopped moving, assuming we have reached the target position.");
                         this->position = this->target_position_;
+                        // Go directly to idle since we're not moving anymore.
                         this->enter_state(STATE_IDLE);
                     }
                 }
@@ -164,6 +165,7 @@ namespace esphome
                            // We are closing and have reached or passed the target position.
                            || (this->current_operation == COVER_OPERATION_CLOSING && this->position <= this->target_position_)))
                 {
+                    ESP_LOGI(TAG, "Reached target position.");
                     this->enter_state(STATE_STOPPING);
                 }
 
@@ -175,9 +177,9 @@ namespace esphome
                     // We have stopped moving.
                     this->enter_state(STATE_IDLE);
                 }
-                else if (now - this->movement_start_time_ > this->moving_change_timeout_)
+                else if ((now - this->movement_start_time_) > this->moving_change_timeout_)
                 {
-                    // We have been waiting for the configured timeout, but no change. Assume we are moving anyway.
+                    ESP_LOGW(TAG, "Timeout waiting for moving_covers sensor to change.");
                     this->enter_state(STATE_IDLE);
                 }
 
@@ -226,6 +228,7 @@ namespace esphome
                 break;
 
             case STATE_MOVING:
+                this->movement_start_time_ = millis();
                 break;
 
             case STATE_STOPPING:
