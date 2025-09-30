@@ -7,12 +7,10 @@ from esphome.components import cover, sensor
 from esphome.const import (
     CONF_CLOSE_ACTION,
     CONF_CLOSE_DURATION,
-    CONF_ID,
     CONF_OPEN_ACTION,
     CONF_OPEN_DURATION,
     CONF_STOP_ACTION,
 )
-from esphome.core import ID
 
 DEPENDENCIES = []
 
@@ -25,19 +23,23 @@ MeasuredEndstopCover = measured_endstop_cover_ns.class_(
     "MeasuredEndstopCover", cover.Cover, cg.Component
 )
 
-CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
-    {
-        cv.Required(CONF_OPEN_DURATION): cv.positive_time_period_milliseconds,
-        cv.Required(CONF_OPEN_ACTION): automation.validate_automation(single=True),
-        cv.Required(CONF_CLOSE_DURATION): cv.positive_time_period_milliseconds,
-        cv.Required(CONF_CLOSE_ACTION): automation.validate_automation(single=True),
-        cv.Required(CONF_STOP_ACTION): automation.validate_automation(single=True),
-        cv.Required(CONF_MOVING_COVERS): cv.use_id(sensor.Sensor),
-        cv.Optional(
-            CONF_MOVING_CHANGE_TIMEOUT, default=1000
-        ): cv.positive_time_period_milliseconds,
-    },
-).extend(cv.COMPONENT_SCHEMA)
+CONFIG_SCHEMA = (
+    cover.cover_schema(MeasuredEndstopCover)
+    .extend(
+        {
+            cv.Required(CONF_OPEN_DURATION): cv.positive_time_period_milliseconds,
+            cv.Required(CONF_OPEN_ACTION): automation.validate_automation(single=True),
+            cv.Required(CONF_CLOSE_DURATION): cv.positive_time_period_milliseconds,
+            cv.Required(CONF_CLOSE_ACTION): automation.validate_automation(single=True),
+            cv.Required(CONF_STOP_ACTION): automation.validate_automation(single=True),
+            cv.Required(CONF_MOVING_COVERS): cv.use_id(sensor.Sensor),
+            cv.Required(
+                CONF_MOVING_CHANGE_TIMEOUT
+            ): cv.positive_time_period_milliseconds,
+        },
+    )
+    .extend(cv.COMPONENT_SCHEMA)
+)
 
 
 async def to_code(config):
