@@ -189,7 +189,7 @@ script:
     duty: "int"
   then:
   - lambda: !lambda |
-      auto speed_component;
+      esphome::number::Number *speed_component;
       switch (index) {
         case 0:
           speed_component = id(m54em_motor1_speed);
@@ -232,7 +232,7 @@ number:
     - script.execute:
         id: "m54em_set_speed"
         index: 0
-        duty: !lambda 'return value;'
+        duty: !lambda 'return x;'
   optimistic: true
   restore_value: false
   initial_value: 0.0
@@ -245,7 +245,7 @@ number:
     - script.execute:
         id: "m54em_set_speed"
         index: 1
-        duty: !lambda 'return value;'
+        duty: !lambda 'return x;'
 
 - <<: *m54em_motor1_speed
   id: "m54em_motor3_speed"
@@ -255,7 +255,7 @@ number:
     - script.execute:
         id: "m54em_set_speed"
         index: 2
-        duty: !lambda 'return value;'
+        duty: !lambda 'return x;'
 
 - <<: *m54em_motor1_speed
   id: "m54em_motor4_speed"
@@ -265,4 +265,4 @@ number:
     - script.execute:
         id: "m54em_set_speed"
         index: 3
-        duty: !lambda 'return value;'
+        duty: !lambda 'return x;'

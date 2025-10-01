@@ -46,7 +46,7 @@ output:
       } else {
         value &= ~(1 << bit);
       }
-      auto err = id(axp2101_i2cdev)->write_register(addr, &value, sizeof value);
+      err = id(axp2101_i2cdev)->write_register(addr, &value, sizeof value);
       if (err != ERROR_OK) {
         ESP_LOGE("axp2101", "Failed to write LDOS ON/OFF control 0");
         return;
