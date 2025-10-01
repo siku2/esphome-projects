@@ -21,6 +21,11 @@
 packages:
   axp2101: !include axp2101.yaml
 
+
+external_components:
+- source: "github://jenscski/esphome-components@efb4437416376488b0ce841309b21583acd61fa7"
+  components: [ "aw9523" ]
+
 esp32:
   board: "esp32-s3-devkitc-1"
   flash_size: "16MB"
@@ -31,6 +36,8 @@ esp32:
 psram:
   mode: "octal"
   speed: "80MHz"
+
+aw9523:
 
 i2c:
   sda: "GPIO12"
@@ -55,6 +62,9 @@ display:
   dc_pin:
     number: "GPIO35"
     allow_other_uses: true
+  reset_pin:
+    aw9523:
+      number: 9
   cs_pin:
     number: "GPIO3"
     ignore_strapping_warning: true
