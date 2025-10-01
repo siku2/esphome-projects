@@ -21,7 +21,6 @@
 packages:
   axp2101: !include axp2101.yaml
 
-
 external_components:
 - source: "github://jenscski/esphome-components@efb4437416376488b0ce841309b21583acd61fa7"
   components: [ "aw9523" ]

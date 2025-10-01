@@ -12,6 +12,11 @@
 #
 # ## Components
 #
+# ### Binary Sensor
+#
+# - `axp2101_current_limit_state`: Current limit state indicator.
+# - `axp2101_vbus_bad`: VBUS bad indicator.
+#
 # ### I2C Device
 #
 # - `axp2101_i2cdev`: The I2C device.
@@ -51,3 +56,37 @@ output:
         ESP_LOGE("axp2101", "Failed to write LDOS ON/OFF control 0");
         return;
       }
+
+script:
+- id: "axp2101_read_pmu_status1"
+  mode: "restart"
+  then:
+  - lambda: !lambda |
+      uint8_t addr = 0x00; // PMU status1
+      uint8_t value;
+      auto err = id(axp2101_i2cdev)->read_register(addr, &value, sizeof value);
+      if (err != ERROR_OK) {
+        ESP_LOGE("axp2101", "Failed to read PMU status 1");
+        return;
+      }
+      // Bit 0: Current Limit State (1 = in current limit)
+      id(axp2101_current_limit_state)->publish_state((value & 0x01) != 0);
+      // Bit 5: VBUS good indication (1 = good)
+      id(axp2101_vbus_bad)->publish_state((value & 0x20) == 0);
+
+binary_sensor:
+- &axp2101_current_limit_state
+  id: "axp2101_current_limit_state"
+  name: "Current Limit State"
+  device_class: "problem"
+  entity_category: "diagnostic"
+  platform: "template"
+
+- <<: *axp2101_current_limit_state
+  id: "axp2101_vbus_bad"
+  name: "VBUS Bad"
+
+interval:
+- interval: "30s"
+  then:
+  - script.execute: "axp2101_read_pmu_status1"
