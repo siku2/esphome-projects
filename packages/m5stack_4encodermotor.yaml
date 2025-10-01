@@ -84,6 +84,7 @@ sensor:
       window_size: 10
       send_every: 10
       send_first_at: 10
+  - round: 3
   - delta: "10%"
   platform: "template"
   update_interval: "50ms" # We end up emitting a new value every 500 ms.
@@ -100,6 +101,7 @@ sensor:
   device_class: "voltage"
   accuracy_decimals: 3
   filters:
+  - round: 3
   - delta: 0.1 # 100 mV
   update_interval: "1s"
   lambda: !lambda |
