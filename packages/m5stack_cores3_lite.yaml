@@ -42,6 +42,9 @@ spi:
   clk_pin: "GPIO36"
   interface: "hardware"
   mosi_pin: "GPIO37"
+  miso_pin:
+    number: "GPIO35"
+    allow_other_uses: true
 
 display:
 # - id: "m5s3l_lcd"
@@ -58,7 +61,9 @@ display:
   show_test_card: true
   platform: "ili9xxx"
   model: "ILI9342"
-  dc_pin: "GPIO35"
+  dc_pin:
+    number: "GPIO35"
+    allow_other_uses: true
   cs_pin:
     number: "GPIO3"
     ignore_strapping_warning: true
@@ -69,7 +74,7 @@ touchscreen:
 - display: "m5s3l_lcd"
   platform: "ft63x6"
   # TODO: we technically have an interrupt pin, but it goes through the io expander.
-  interrupt_pin: "GPIO21"
+  # interrupt_pin: "GPIO21"
 
 switch:
 - id: "m5s3l_lcd_backlight"
