@@ -10,27 +10,27 @@
 #
 # `m54em`
 #
-# ### Components
+# ## Components
 #
-# #### I2C Device
+# ### I2C Device
 #
 # - `m54em_i2cdev`: The I2C device.
 #
-# #### Number
+# ### Number
 #
 # - `m54em_motor1_speed`: Motor 1 speed control.
 # - `m54em_motor2_speed`: Motor 2 speed control.
 # - `m54em_motor3_speed`: Motor 3 speed control.
 # - `m54em_motor4_speed`: Motor 4 speed control.
 #
-# #### Script
+# ### Script
 #
 # - `m54em_init`: Initialize all 4 motors. (Uses `m54em_set_mode` and `m54em_set_soft_start_stop`)
 # - `m54em_set_mode`: Set mode of a motor.
 # - `m54em_set_soft_start_stop`: Enable/disable soft start/stop for each motor.
 # - `m54em_set_speed`: Set speed of a motor.
 #
-# #### Sensor
+# ### Sensor
 #
 # - `m54em_fw_version`: Firmware version.
 # - `m54em_bl_version`: Bootloader version.
@@ -215,7 +215,6 @@ script:
         ESP_LOGE("m54em", "Failed to set motor %d speed to %d", index, duty);
         return;
       }
-
       ESP_LOGI("m54em", "Set motor %d speed to %d", index, duty);
       speed_component->publish_state(duty);
 

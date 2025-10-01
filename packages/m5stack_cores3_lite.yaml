@@ -1,0 +1,52 @@
+# M5Stack Cores3 Lite
+#
+# See: <https://docs.m5stack.com/en/core/CoreS3-Lite>
+#
+# ## Variables
+#
+# ## Namespace
+#
+# `m5s3l`
+#
+# ## Components
+#
+# - `m5s3l_lcd`: The built-in LCD display.
+
+packages:
+  axp2101: !include axp2101.yaml
+
+esp32:
+  board: "esp32-s3-devkitc-1"
+  flash_size: "16MB"
+  cpu_frequency: "240MHz"
+  framework:
+    type: "esp-idf"
+
+psram:
+  mode: "octal"
+  speed: "80MHz"
+
+i2c:
+  sda: "GPIO12"
+  scl: "GPIO11"
+  scan: false
+  frequency: "100kHz"
+
+spi:
+  clk_pin: "GPIO36"
+  interface: "hardware"
+  mosi_pin: "GPIO37"
+
+display:
+- id: "m5s3l_lcd"
+  update_interval: "30s"
+  show_test_card: true
+  platform: "mipi_spi"
+  model: "ILI9341"
+  dc_pin: "GPIO35"
+  cs_pin: "GPIO3"
+  dimensions: "320x240"
+
+# touchscreen:
+# - display: "m5s3l_lcd"
+#   platform: "ft63x6"
