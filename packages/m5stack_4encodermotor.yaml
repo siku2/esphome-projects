@@ -222,7 +222,6 @@ number:
 - &m54em_motor1_speed
   id: "m54em_motor1_speed"
   name: "Motor 1 speed"
-  entity_category: "DIAGNOSTIC"
   platform: "template"
   min_value: -127.0
   max_value: 127.0
@@ -233,7 +232,7 @@ number:
         id: "m54em_set_speed"
         index: 0
         duty: !lambda 'return x;'
-  optimistic: true
+  optimistic: false
   restore_value: false
   initial_value: 0.0
 
