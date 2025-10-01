@@ -53,7 +53,7 @@ spi:
   mosi_pin: "GPIO37"
   miso_pin:
     number: "GPIO35"
-    # allow_other_uses: true
+    allow_other_uses: true
 
 display:
 - id: "m5s3l_lcd"
