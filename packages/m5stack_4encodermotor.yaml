@@ -123,24 +123,24 @@ script:
     motor4_mode: "int" # 0 - 3 (NORMAL, POSITION LOCK, SPEED LOCK)
     motor4_soft_start: "bool"
   then:
-  - script.execute: "m54em_set_mode"
-    parameters:
+  - script.execute:
+      id: "m54em_set_mode"
       index: 0
       mode: !lambda 'return motor1_mode;'
-  - script.execute: "m54em_set_mode"
-    parameters:
+  - script.execute:
+      id: "m54em_set_mode"
       index: 1
       mode: !lambda 'return motor2_mode;'
-  - script.execute: "m54em_set_mode"
-    parameters:
+  - script.execute:
+      id: "m54em_set_mode"
       index: 2
       mode: !lambda 'return motor3_mode;'
-  - script.execute: "m54em_set_mode"
-    parameters:
+  - script.execute:
+      id: "m54em_set_mode"
       index: 3
       mode: !lambda 'return motor4_mode;'
-  - script.execute: "m54em_set_soft_start_stop"
-    parameters:
+  - script.execute:
+      id: "m54em_set_soft_start_stop"
       motor1: !lambda 'return motor1_soft_start;'
       motor2: !lambda 'return motor2_soft_start;'
       motor3: !lambda 'return motor3_soft_start;'
