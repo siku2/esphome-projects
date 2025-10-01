@@ -55,23 +55,23 @@ spi:
     number: "GPIO35"
     # allow_other_uses: true
 
-# display:
-# - id: "m5s3l_lcd"
-#   update_interval: "1s"
-#   show_test_card: true
-#   platform: "mipi_spi"
-#   model: "ILI9341"
-#   dc_pin:
-#     number: "GPIO35"
-#     allow_other_uses: true
-#   reset_pin:
-#     aw9523: "m5s3l_aw9523"
-#     number: 9
-#   cs_pin:
-#     number: "GPIO3"
-#     ignore_strapping_warning: true
-#   dimensions: "320x240"
-#   invert_colors: true
+display:
+- id: "m5s3l_lcd"
+  update_interval: "never"
+  auto_clear_enabled: false
+  platform: "mipi_spi"
+  model: "ILI9341"
+  dc_pin:
+    number: "GPIO35"
+    allow_other_uses: true
+  # reset_pin:
+  #   aw9523: "m5s3l_aw9523"
+  #   number: 9
+  cs_pin:
+    number: "GPIO3"
+    ignore_strapping_warning: true
+  dimensions: "320x240"
+  invert_colors: true
 
 # touchscreen:
 # - display: "m5s3l_lcd"
@@ -87,3 +87,5 @@ switch:
   device_class: "switch"
   platform: "output"
   output: "axp2101_dldo1"
+
+lvgl:
