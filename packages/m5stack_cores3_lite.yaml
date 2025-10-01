@@ -44,7 +44,9 @@ display:
   platform: "mipi_spi"
   model: "ILI9341"
   dc_pin: "GPIO35"
-  cs_pin: "GPIO3"
+  cs_pin:
+    pin: "GPIO3"
+    ignore_strapping_warning: true
   dimensions: "320x240"
 
 # touchscreen:
