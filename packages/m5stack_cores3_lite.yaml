@@ -37,8 +37,9 @@ psram:
   mode: "octal"
   speed: "80MHz"
 
-aw9523:
-  id: "m5s3l_aw9523"
+# aw9523:
+#   id: "m5s3l_aw9523"
+#   latch_inputs: false
 
 i2c:
   sda: "GPIO12"
