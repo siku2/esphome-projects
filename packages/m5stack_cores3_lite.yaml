@@ -38,6 +38,7 @@ psram:
   speed: "80MHz"
 
 aw9523:
+  id: "m5s3l_aw9523"
 
 i2c:
   sda: "GPIO12"
