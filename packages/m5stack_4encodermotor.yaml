@@ -231,9 +231,8 @@ number:
     then:
     - script.execute:
         id: "m54em_set_speed"
-        parameters:
-          index: 0
-          duty: !lambda 'return value;'
+        index: 0
+        duty: !lambda 'return value;'
   optimistic: true
   restore_value: false
   initial_value: 0.0
@@ -245,9 +244,8 @@ number:
     then:
     - script.execute:
         id: "m54em_set_speed"
-        parameters:
-          index: 1
-          duty: !lambda 'return value;'
+        index: 1
+        duty: !lambda 'return value;'
 
 - <<: *m54em_motor1_speed
   id: "m54em_motor3_speed"
@@ -256,9 +254,8 @@ number:
     then:
     - script.execute:
         id: "m54em_set_speed"
-        parameters:
-          index: 2
-          duty: !lambda 'return value;'
+        index: 2
+        duty: !lambda 'return value;'
 
 - <<: *m54em_motor1_speed
   id: "m54em_motor4_speed"
@@ -267,6 +264,5 @@ number:
     then:
     - script.execute:
         id: "m54em_set_speed"
-        parameters:
-          index: 3
-          duty: !lambda 'return value;'
+        index: 3
+        duty: !lambda 'return value;'
