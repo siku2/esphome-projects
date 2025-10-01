@@ -45,7 +45,7 @@ display:
   model: "ILI9341"
   dc_pin: "GPIO35"
   cs_pin:
-    pin: "GPIO3"
+    number: "GPIO3"
     ignore_strapping_warning: true
   dimensions: "320x240"
 
