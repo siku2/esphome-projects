@@ -64,8 +64,8 @@ display:
     number: "GPIO35"
     allow_other_uses: true
   reset_pin:
-    aw9523:
-      number: 9
+    aw9523: "m5s3l_aw9523"
+    number: 9
   cs_pin:
     number: "GPIO3"
     ignore_strapping_warning: true
