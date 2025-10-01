@@ -52,3 +52,12 @@ display:
 # touchscreen:
 # - display: "m5s3l_lcd"
 #   platform: "ft63x6"
+
+switch:
+- id: "m5s3l_lcd_backlight"
+  name: "LCD Backlight"
+  restore_mode: "RESTORE_DEFAULT_ON"
+  entity_category: "CONFIG"
+  device_class: "switch"
+  platform: "output"
+  output: "axp2101_dldo1"
