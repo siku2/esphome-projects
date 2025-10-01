@@ -103,7 +103,7 @@ sensor:
   filters:
   - round: 3
   - delta: 0.1 # 100 mV
-  update_interval: "1s"
+  update_interval: "5s"
   lambda: !lambda |
     uint8_t data[2];
     auto err = id(m54em_i2cdev)->read_register(0xB0, data, sizeof data);
