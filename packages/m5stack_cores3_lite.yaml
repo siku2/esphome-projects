@@ -47,20 +47,11 @@ spi:
     allow_other_uses: true
 
 display:
-# - id: "m5s3l_lcd"
-#   show_test_card: true
-#   platform: "mipi_spi"
-#   model: "ILI9341"
-#   dc_pin: "GPIO35"
-#   cs_pin:
-#     number: "GPIO3"
-#     ignore_strapping_warning: true
-#   dimensions: "320x240"
-#   invert_colors: true
 - id: "m5s3l_lcd"
+  update_interval: "1s"
   show_test_card: true
-  platform: "ili9xxx"
-  model: "ILI9342"
+  platform: "mipi_spi"
+  model: "ILI9341"
   dc_pin:
     number: "GPIO35"
     allow_other_uses: true
