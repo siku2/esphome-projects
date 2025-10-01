@@ -10,7 +10,13 @@
 #
 # ## Components
 #
+# ### Display
+#
 # - `m5s3l_lcd`: The built-in LCD display.
+#
+# ### Switch
+#
+# - `m5s3l_lcd_backlight`: The LCD backlight control.
 
 packages:
   axp2101: !include axp2101.yaml
@@ -38,11 +44,20 @@ spi:
   mosi_pin: "GPIO37"
 
 display:
+# - id: "m5s3l_lcd"
+#   show_test_card: true
+#   platform: "mipi_spi"
+#   model: "ILI9341"
+#   dc_pin: "GPIO35"
+#   cs_pin:
+#     number: "GPIO3"
+#     ignore_strapping_warning: true
+#   dimensions: "320x240"
+#   invert_colors: true
 - id: "m5s3l_lcd"
-  update_interval: "30s"
   show_test_card: true
-  platform: "mipi_spi"
-  model: "ILI9341"
+  platform: "ili9xxx"
+  model: "ILI9342"
   dc_pin: "GPIO35"
   cs_pin:
     number: "GPIO3"
