@@ -39,6 +39,7 @@ namespace esphome
             uint8_t get_divider();
 
             void set_latch_inputs(bool latch_inputs) { this->latch_inputs_ = latch_inputs; }
+            void set_p0_push_pull(bool p0_push_pull) { this->p0_push_pull_ = p0_push_pull; }
 
             float get_max_current();
 
@@ -53,6 +54,7 @@ namespace esphome
             uint16_t value_{};
             uint8_t divider_{};
             bool latch_inputs_{};
+            bool p0_push_pull_{};
         };
 
     } // namespace aw9523

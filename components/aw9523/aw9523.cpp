@@ -32,21 +32,13 @@ namespace esphome
             // reset
             this->reg(AW9523_REG_SOFTRESET) = 0x00;
 
-            // all inputs
-            this->reg(AW9523_REG_CONFIG0) = 0xff;
-            this->reg(AW9523_REG_CONFIG1) = 0xff;
-
-            // all GPIO mode
-            this->reg(AW9523_REG_LEDMODE0) = 0xff;
-            this->reg(AW9523_REG_LEDMODE1) = 0xff;
-
-            // push pull
-            this->reg(AW9523_REG_GCR) |= 0b00010000;
-
             // set divider
-            this->reg(AW9523_REG_GCR) |= (this->divider_ & 0x03);
+            uint8_t gcr = (this->divider_ & 0x03);
+            // push pull
+            if (this->p0_push_pull_) gcr |= 0b00010000;
+            this->reg(AW9523_REG_GCR) = gcr;
 
-            // no interupt
+            // no interrupt
             this->reg(AW9523_REG_INTENABLE0) = 0xff;
             this->reg(AW9523_REG_INTENABLE1) = 0xff;
         }
@@ -77,7 +69,7 @@ namespace esphome
             ESP_LOGCONFIG(TAG, "  Divider: %d", this->divider_);
             ESP_LOGCONFIG(TAG, "  Max current: %.2f", this->get_max_current());
 
-            ESP_LOGCONFIG(TAG, "GCR  %s", format_binary((uint8_t)this->reg(AW9523_REG_GCR)).c_str());
+            ESP_LOGCONFIG(TAG, "GCR %s", format_binary((uint8_t)this->reg(AW9523_REG_GCR)).c_str());
 
             ESP_LOGCONFIG(TAG, "CFG %s%s",
                           format_binary((uint8_t)this->reg(AW9523_REG_CONFIG1)).c_str(),
