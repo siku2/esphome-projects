@@ -55,6 +55,66 @@ spi:
     number: "GPIO35"
     allow_other_uses: true
 
+binary_sensor:
+- &m5s3l_es_int
+  id: "m5s3l_es_int"
+  name: "AW9523: ES Interrupt"
+  entity_category: "DIAGNOSTIC"
+  platform: "gpio"
+  pin:
+    aw9523: "m5s3l_aw9523"
+    number: 3
+    inverted: true # External pull-up
+
+- <<: *m5s3l_es_int
+  id: "m5s3l_tf_sw"
+  name: "MicroSD Detected"
+  pin:
+    aw9523: "m5s3l_aw9523"
+    number: 4
+    inverted: true # External pull-up
+
+- <<: *m5s3l_es_int
+  id: "m5s3l_lcd_touch_int"
+  name: "LCD Touch Interrupt"
+  pin:
+    aw9523: "m5s3l_aw9523"
+    number: 10
+    inverted: true # External pull-up
+    # Forward the interrupt to GPIO21 so the touch screen works.
+    forward_interrupt: true
+
+- <<: *m5s3l_es_int
+  id: "m5s3l_aw_int"
+  name: "AW9523: AW Interrupt"
+  pin:
+    aw9523: "m5s3l_aw9523"
+    number: 11
+    inverted: true # External pull-up
+
+number:
+- id: "m5s3l_lcd_backlight"
+  name: "LCD Backlight"
+  entity_category: "CONFIG"
+  unit_of_measurement: "%"
+  platform: "template"
+  min_value: 0.0
+  max_value: 100.0
+  step: 5.0
+  set_action:
+  # actual responsive range 0.6 -> 1.0
+  - output.set_level:
+      id: "axp2101_dldo1"
+      level: !lambda |
+        if (x == 0.0) return 0.0;
+        float min = 0.6;
+        float max = 1.0;
+        return (x / 100.0) * (max - min) + min;
+  update_interval: "never"
+  optimistic: true
+  restore_value: true
+  initial_value: 0.0
+
 display:
 - id: "m5s3l_lcd"
   update_interval: "never"
@@ -64,28 +124,41 @@ display:
   dc_pin:
     number: "GPIO35"
     allow_other_uses: true
-  # reset_pin:
-  #   aw9523: "m5s3l_aw9523"
-  #   number: 9
+  reset_pin:
+    aw9523: "m5s3l_aw9523"
+    number: 9
   cs_pin:
     number: "GPIO3"
     ignore_strapping_warning: true
   dimensions: "320x240"
   invert_colors: true
+  transform:
+    swap_xy: false
+    mirror_x: true
+    mirror_y: true
 
-# touchscreen:
-# - display: "m5s3l_lcd"
-#   platform: "ft63x6"
-#   # TODO: we technically have an interrupt pin, but it goes through the io expander.
-#   interrupt_pin: "GPIO21"
-
-switch:
-- id: "m5s3l_lcd_backlight"
-  name: "LCD Backlight"
-  restore_mode: "RESTORE_DEFAULT_ON"
-  entity_category: "CONFIG"
-  device_class: "switch"
-  platform: "output"
-  output: "axp2101_dldo1"
+touchscreen:
+- id: "m5s3l_touchscreen"
+  display: "m5s3l_lcd"
+  transform:
+    mirror_x: true
+    mirror_y: true
+    swap_xy: false
+  update_interval: never
+  calibration:
+    x_min: 0
+    x_max: 319
+    y_min: 0
+    y_max: 239
+  platform: "ft63x6"
+  reset_pin:
+    aw9523: "m5s3l_aw9523"
+    number: 0
+  interrupt_pin:
+    number: "GPIO21"
+    mode: "INPUT_PULLUP"
 
 lvgl:
+  displays: [ "m5s3l_lcd" ]
+  touchscreens:
+  - touchscreen_id: "m5s3l_touchscreen"
