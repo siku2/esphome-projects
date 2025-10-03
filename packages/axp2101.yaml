@@ -1,6 +1,7 @@
 # AXP2101 Power Management IC
 #
 # See: <https://github.com/protoconcept/axp2101>
+# See: <https://www.lcsc.com/datasheet/C3036461.pdf>
 #
 # ## Variables
 #
@@ -35,29 +36,63 @@ i2c_device:
 output:
 - id: "axp2101_dldo1"
   platform: "template"
-  type: "binary"
+  type: "float"
   write_action:
+  - logger.log:
+      tag: "axp2101"
+      format: "Setting DLDO1 to %f"
+      args: [ 'state' ]
+  - script.execute:
+      id: "axp2101_set_ldo"
+      index: 7
+      turn_on: !lambda 'return state != 0.0;'
+      step: !lambda 'return (int)(state * 28.5);'
+
+script:
+- id: "axp2101_set_ldo"
+  mode: "queued"
+  parameters:
+    # aldo1, aldo2, aldo3, aldo4, bld01, bldo2, cpusldo, dldo1, dldo2
+    index: "int"
+    turn_on: "bool"
+    step: "int" # Depends on the LDO, -1 to ignore
+  then:
   - lambda: !lambda |
-      uint8_t bit = 7; // dldo1 enable
-      uint8_t addr = 0x90; // LDOS ON/OFF control 0
-      uint8_t value;
-      auto err = id(axp2101_i2cdev)->read_register(addr, &value, sizeof value);
-      if (err != ERROR_OK) {
-        ESP_LOGE("axp2101", "Failed to read LDOS ON/OFF control 0");
-        return;
-      }
-      if (state) {
-        value |= (1 << bit);
-      } else {
-        value &= ~(1 << bit);
-      }
-      err = id(axp2101_i2cdev)->write_register(addr, &value, sizeof value);
-      if (err != ERROR_OK) {
-        ESP_LOGE("axp2101", "Failed to write LDOS ON/OFF control 0");
+      if (index > 8) {
+        ESP_LOGE("axp2101", "Invalid LDO index: %d", index);
         return;
       }
 
-script:
+      uint8_t control_bit = index % 8;
+      uint8_t control_addr = 0x90 + (index / 8);
+      uint8_t voltage_addr = 0x92 + index;
+
+      uint8_t value;
+      auto err = id(axp2101_i2cdev)->read_register(control_addr, &value, sizeof value);
+      if (err != ERROR_OK) {
+        ESP_LOGE("axp2101", "Failed to read control register %d", control_addr);
+        return;
+      }
+      if (turn_on) {
+        value |= (1 << control_bit);
+      } else {
+        value &= ~(1 << control_bit);
+      }
+      err = id(axp2101_i2cdev)->write_register(control_addr, &value, sizeof value);
+      if (err != ERROR_OK) {
+        ESP_LOGE("axp2101", "Failed to write control register %d", control_addr);
+        return;
+      }
+
+      if (step == -1) return;
+
+      value = step;
+      err = id(axp2101_i2cdev)->write_register(voltage_addr, &value, sizeof value);
+      if (err != ERROR_OK) {
+        ESP_LOGE("axp2101", "Failed to write voltage register %d", voltage_addr);
+        return;
+      }
+
 - id: "axp2101_read_pmu_status1"
   mode: "restart"
   then:
