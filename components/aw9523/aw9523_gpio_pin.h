@@ -14,6 +14,7 @@ namespace esphome
         public:
             void setup() override;
             void pin_mode(gpio::Flags flags) override;
+            void forward_interrupt(bool enable);
             gpio::Flags get_flags() const override;
             bool digital_read() override;
             void digital_write(bool value) override;
@@ -22,6 +23,7 @@ namespace esphome
             void set_pin(uint8_t pin) { pin_ = pin; }
             void set_inverted(bool inverted) { inverted_ = inverted; }
             void set_flags(gpio::Flags flags) { flags_ = flags; }
+            void set_forward_interrupt(bool forward_interrupt) { forward_interrupt_ = forward_interrupt; }
 
             std::string dump_summary() const override;
 
@@ -30,6 +32,7 @@ namespace esphome
             uint8_t pin_;
             bool inverted_;
             gpio::Flags flags_;
+            bool forward_interrupt_;
         };
 
     } // namespace aw9523

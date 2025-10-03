@@ -14,6 +14,7 @@ from esphome.const import (
 CONF_AW9523 = "aw9523"
 CONF_LATCH_INPUTS = "latch_inputs"
 CONF_P0_PUSH_PULL = "p0_push_pull"
+CONF_FORWARD_INTERRUPT = "forward_interrupt"
 
 DEPENDENCIES = ["i2c"]
 MULTI_CONF = True
@@ -66,6 +67,7 @@ AW9523_PIN_SCHEMA = cv.All(
             validate_mode,
         ),
         cv.Optional(CONF_INVERTED, default=False): cv.boolean,
+        cv.Optional(CONF_FORWARD_INTERRUPT, default=False): cv.boolean,
     }
 )
 
@@ -80,4 +82,5 @@ async def aw9523_pin_to_code(config):
     cg.add(var.set_pin(num))
     cg.add(var.set_inverted(config[CONF_INVERTED]))
     cg.add(var.set_flags(pins.gpio_flags_expr(config[CONF_MODE])))
+    cg.add(var.set_forward_interrupt(config[CONF_FORWARD_INTERRUPT]))
     return var

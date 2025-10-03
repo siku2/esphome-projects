@@ -35,7 +35,8 @@ namespace esphome
             // set divider
             uint8_t gcr = (this->divider_ & 0x03);
             // push pull
-            if (this->p0_push_pull_) gcr |= 0b00010000;
+            if (this->p0_push_pull_)
+                gcr |= 0b00010000;
             this->reg(AW9523_REG_GCR) = gcr;
 
             // no interrupt
@@ -51,11 +52,7 @@ namespace esphome
             auto input0 = this->reg(AW9523_REG_INPUT0).get();
             auto input1 = this->reg(AW9523_REG_INPUT1).get();
 
-            // uint16_t old = this->value_;
             this->value_ = input0 | (input1 << 8);
-
-            // if (old != this->value_)
-            //     ESP_LOGD(TAG, "Loop, value %s", format_binary(value_).c_str());
         }
 
         void AW9523Component::dump_config()
@@ -167,6 +164,36 @@ namespace esphome
             }
         }
 
+        void AW9523Component::forward_interrupt(uint8_t pin, bool enable)
+        {
+            if (this->is_failed())
+                return;
+            uint8_t addr;
+            if (pin < 8)
+            {
+                addr = AW9523_REG_INTENABLE0;
+            }
+            else if (pin < 16)
+            {
+                addr = AW9523_REG_INTENABLE1;
+                pin -= 8;
+            }
+            else
+                return;
+
+            // 0-enable; 1-disable
+            if (enable)
+            {
+                // Clear bit
+                this->reg(addr) &= ~(1 << pin);
+            }
+            else
+            {
+                // Set bit
+                this->reg(addr) |= (1 << pin);
+            }
+        }
+
         void AW9523Component::digital_write(uint8_t pin, bool bit_value)
         {
             if (this->is_failed())
@@ -192,11 +219,15 @@ namespace esphome
 
         bool AW9523Component::digital_read(uint8_t pin)
         {
-            if (this->latch_inputs_) {
+            if (this->latch_inputs_)
+            {
                 uint16_t value = (1 << pin);
                 return this->value_ & value;
-            } else {
-                if (!this->is_failed()) {
+            }
+            else
+            {
+                if (!this->is_failed())
+                {
                     if (pin < 8)
                     {
                         uint8_t value = (1 << pin);

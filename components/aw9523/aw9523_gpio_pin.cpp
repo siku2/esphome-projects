@@ -9,10 +9,20 @@ namespace esphome
 
         static const char *const TAG = "aw9523_gpio_pin";
 
-        void AW9523GPIOPin::setup() { pin_mode(flags_); }
-        void AW9523GPIOPin::pin_mode(gpio::Flags flags) {
+        void AW9523GPIOPin::setup()
+        {
+            pin_mode(flags_);
+            forward_interrupt(forward_interrupt_);
+        }
+        void AW9523GPIOPin::pin_mode(gpio::Flags flags)
+        {
             this->flags_ = flags;
             this->parent_->pin_mode(this->pin_, flags);
+        }
+        void AW9523GPIOPin::forward_interrupt(bool enable)
+        {
+            this->forward_interrupt_ = enable;
+            this->parent_->forward_interrupt(this->pin_, enable);
         }
         gpio::Flags AW9523GPIOPin::get_flags() const { return this->flags_; }
         bool AW9523GPIOPin::digital_read() { return this->parent_->digital_read(this->pin_) != this->inverted_; }

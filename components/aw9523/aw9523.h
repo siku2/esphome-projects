@@ -47,6 +47,7 @@ namespace esphome
             void set_pin_value(uint8_t pin, uint8_t val);
 
             void pin_mode(uint8_t pin, gpio::Flags flags);
+            void forward_interrupt(uint8_t pin, bool enable);
             void digital_write(uint8_t pin, bool bit_value);
             bool digital_read(uint8_t pin);
 
