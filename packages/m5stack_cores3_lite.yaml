@@ -22,7 +22,7 @@ packages:
   axp2101: !include axp2101.yaml
 
 external_components:
-- source: "github://jenscski/esphome-components@efb4437416376488b0ce841309b21583acd61fa7"
+- source: "../components"
   components: [ "aw9523" ]
 
 esp32:
@@ -36,9 +36,10 @@ psram:
   mode: "octal"
   speed: "80MHz"
 
-# aw9523:
-#   id: "m5s3l_aw9523"
-#   latch_inputs: false
+aw9523:
+  id: "m5s3l_aw9523"
+  latch_inputs: true
+  p0_push_pull: true
 
 i2c:
   sda: "GPIO12"
