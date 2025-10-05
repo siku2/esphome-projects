@@ -10,10 +10,10 @@ namespace esphome
   {
     enum Motor
     {
-      MOTOR_1 = 0,
-      MOTOR_2 = 1,
-      MOTOR_3 = 2,
-      MOTOR_4 = 3,
+      M1 = 0,
+      M2 = 1,
+      M3 = 2,
+      M4 = 3,
     };
 
     enum Mode
@@ -37,6 +37,8 @@ namespace esphome
       void set_motor_mode(Motor motor, Mode mode);
       void set_motor_speed(Motor motor, int8_t speed);
       void set_motor_soft_start_stop(Motor motor, bool enable);
+
+      float get_current();
 
     protected:
       uint8_t fw_version_;

@@ -22,6 +22,15 @@ M5Stack4EncoderMotor = m5stack_4encodermotor_ns.class_(
     "M5Stack4EncoderMotor", cg.PollingComponent, i2c.I2CDevice
 )
 
+Motor = m5stack_4encodermotor_ns.enum("Motor")
+
+MOTOR_OPTIONS = {
+    "M1": Motor.M1,
+    "M2": Motor.M2,
+    "M3": Motor.M3,
+    "M4": Motor.M4,
+}
+
 CONFIG_SCHEMA = (
     cv.Schema(
         {

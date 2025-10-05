@@ -88,6 +88,15 @@ namespace esphome
       }
     }
 
+    float M5Stack4EncoderMotor::get_current()
+    {
+      if (this->current_sensor_ != nullptr && this->current_sensor_->has_state())
+      {
+        return this->current_sensor_->get_state();
+      }
+      return this->read_current().value_or(NAN);
+    }
+
     optional<float> M5Stack4EncoderMotor::read_current()
     {
       float current;
