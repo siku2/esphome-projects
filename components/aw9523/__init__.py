@@ -5,9 +5,9 @@ from esphome.components import i2c
 from esphome.const import (
     CONF_ID,
     CONF_INPUT,
-    CONF_NUMBER,
-    CONF_MODE,
     CONF_INVERTED,
+    CONF_MODE,
+    CONF_NUMBER,
     CONF_OUTPUT,
 )
 
