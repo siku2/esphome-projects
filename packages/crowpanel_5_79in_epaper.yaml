@@ -1,0 +1,161 @@
+# CrowPanel ESP32 5.79inch E-paper HMI Display
+#
+# See: <https://www.elecrow.com/crowpanel-esp32-5-79-e-paper-hmi-display-with-272-792-resolution-black-white-color-driven-by-spi-interface.html>
+#
+# ## Namespace
+#
+# `cp579epd`
+#
+# ## Components
+#
+# ### Binary Sensor
+#
+# - `cp579epd_menu`: Menu button (top).
+# - `cp579epd_rotary_up`: Rotary up.
+# - `cp579epd_rotary_down`: Rotary down.
+# - `cp579epd_rotary_press`: Rotary press.
+# - `cp579epd_exit`: Exit button (bottom).
+#
+# ### Button
+#
+# - `cp579epd_run_full_update`: Button to trigger a full display update.
+#
+# ### Display
+#
+# - `cp579epd_display`: The 5.79in e-paper display.
+#
+# ### Switch
+#
+# - `cp579epd_epd_power`: EPD power control.
+# - `cp579epd_display_full_update`: Switch to control full/partial updates (Defaults to partial update).
+
+external_components:
+- source: "github://siku2/esphome-crowpanel@d953202ad93176f7159df530837637170adaf33b"
+  components: [ "crowpanel_epaper" ]
+
+esp32:
+  board: "esp32-s3-devkitc-1"
+  flash_size: "8MB"
+  cpu_frequency: "240MHz"
+  framework:
+    type: "esp-idf"
+    sdkconfig_options:
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+      CONFIG_SPIRAM_RODATA: "y"
+      # See: <https://docs.espressif.com/projects/esp-adf/en/latest/design-guide/design-considerations.html#optimization-of-internal-ram-and-use-of-psram>
+      CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST: "y"
+      CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY: "y"
+      CONFIG_WIFI_LWIP_ALLOCATION_FROM_SPIRAM_FIRST: "y"
+      CONFIG_WL_SECTOR_SIZE: "512"
+      # See: <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#using-psram>
+      # Using: Memory saving
+      CONFIG_WIFI_STATIC_RX_BUFFER_NUM: "4"
+      CONFIG_WIFI_DYNAMIC_RX_BUFFER_NUM: "128"
+      CONFIG_WIFI_STATIC_TX_BUFFER_NUM: "4"
+      CONFIG_WIFI_RX_BA_WIN: "8"
+      CONFIG_TCP_SND_BUF_DEFAULT: "65"
+      CONFIG_TCP_WND_DEFAULT: "65"
+      CONFIG_WIFI_IRAM_OPT: "y"
+      CONFIG_WIFI_RX_IRAM_OPT: "n"
+      CONFIG_LWIP_IRAM_OPTIMIZATION: "n"
+      # More tweaks to use spiram
+      CONFIG_MDNS_TASK_CREATE_FROM_SPIRAM: "y"
+      CONFIG_MDNS_MEMORY_ALLOC_SPIRAM: "y"
+
+psram:
+  mode: "octal"
+  speed: "80MHz"
+
+binary_sensor:
+- &cp579epd_rotary_down
+  id: "cp579epd_rotary_down"
+  name: "Rotary down"
+  entity_category: "DIAGNOSTIC"
+  platform: "gpio"
+  pin:
+    number: "GPIO4"
+    inverted: true
+
+- <<: *cp579epd_rotary_down
+  id: "cp579epd_rotary_press"
+  name: "Rotary press"
+  pin:
+    number: "GPIO5"
+    inverted: true
+
+- <<: *cp579epd_rotary_down
+  id: "cp579epd_rotary_up"
+  name: "Rotary up"
+  pin:
+    number: "GPIO6"
+    inverted: true
+
+- <<: *cp579epd_rotary_down
+  id: "cp579epd_exit"
+  name: "Button exit"
+  pin:
+    number: "GPIO1"
+    inverted: true
+
+- <<: *cp579epd_rotary_down
+  id: "cp579epd_menu"
+  name: "Button menu"
+  pin:
+    number: "GPIO2"
+    inverted: true
+
+display:
+- id: "cp579epd_display"
+  platform: "crowpanel_epaper"
+  model: "5.79in"
+  clk_pin: "GPIO12"
+  mosi_pin: "GPIO11"
+  cs_pin:
+    number: "GPIO45"
+    ignore_strapping_warning: true
+  dc_pin:
+    number: "GPIO46"
+    ignore_strapping_warning: true
+  reset_pin: "GPIO47"
+  busy_pin: "GPIO48"
+  update_interval: "never"
+  auto_clear_enabled: false
+
+switch:
+- id: "cp579epd_epd_power"
+  name: "EPD Power"
+  entity_category: "CONFIG"
+  platform: "gpio"
+  pin: "GPIO7"
+  restore_mode: "ALWAYS_ON"
+
+- id: "cp579epd_display_full_update"
+  name: "Display Full Update"
+  entity_category: "CONFIG"
+  restore_mode: "ALWAYS_OFF"
+  platform: "template"
+  optimistic: true
+  turn_on_action:
+  - lambda: !lambda |
+      ESP_LOGI("main", "Enabling full display update");
+      id(display_main)->set_update_mode(crowpanel_epaper::UpdateMode::FULL);
+  turn_off_action:
+  - lambda: !lambda |
+      ESP_LOGI("main", "Enabling partial display update");
+      id(display_main)->set_update_mode(crowpanel_epaper::UpdateMode::PARTIAL);
+
+button:
+- id: "cp579epd_run_full_update"
+  name: "Display full update"
+  entity_category: "CONFIG"
+  on_press:
+  - logger.log:
+      tag: "cp579epd"
+      level: "INFO"
+      format: "Triggering full display update"
+  - switch.turn_on: "cp579epd_display_full_update"
+  - component.update: "display_main"
+  # It can take a while to update the display, so we wait a bit
+  - delay: "500ms"
+  - switch.turn_off: "cp579epd_display_full_update"
+  platform: "template"
