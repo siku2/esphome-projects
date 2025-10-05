@@ -69,11 +69,13 @@ namespace esphome
     void M5Stack4EncoderMotor::set_motor_mode(Motor motor, Mode mode)
     {
       this->reg(REG_MOTOR1_MODE + (motor * 0x10)) = mode;
+      ESP_LOGD(TAG, "Set motor %d mode to %d", motor + 1, mode);
     }
 
     void M5Stack4EncoderMotor::set_motor_speed(Motor motor, int8_t speed)
     {
       this->reg(REG_MOTOR_SPEED + motor) = speed;
+      ESP_LOGD(TAG, "Set motor %d speed to %d", motor + 1, speed);
     }
 
     void M5Stack4EncoderMotor::set_motor_soft_start_stop(Motor motor, bool enable)
@@ -86,6 +88,7 @@ namespace esphome
       {
         this->reg(REG_SOFT_START_STOP) &= ~(1 << motor);
       }
+      ESP_LOGD(TAG, "Set motor %d soft start/stop to %s", motor + 1, enable ? "enabled" : "disabled");
     }
 
     float M5Stack4EncoderMotor::get_current()
