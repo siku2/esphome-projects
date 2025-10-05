@@ -10,13 +10,50 @@
 #
 # ## Components
 #
+# ### AW9523
+#
+# - `m5s3l_aw9523`: The AW9523 I/O expander.
+#
+# ### Binary Sensor
+#
+# The following binary sensors are internal only:
+#
+# - `m5s3l_es_int`: AW9523 ES interrupt.
+# - `m5s3l_tf_sw`: MicroSD card detection switch.
+# - `m5s3l_lcd_touch_int`: LCD touch interrupt.
+# - `m5s3l_aw_int`: AW9523 interrupt.
+#
 # ### Display
 #
 # - `m5s3l_lcd`: The built-in LCD display.
 #
+# ### I2C
+#
+# - `m5s3l_i2c`: The I2C bus.
+#
+# ### I2S Audio
+#
+# - `m5s3l_i2s_audio`: The I2S audio bus.
+#
+# ### Light
+#
+# - `m5s3l_lcd_backlight`: The LCD backlight control.
+#
+# ### Speaker
+#
+# - `m5s3l_speaker`: The built-in speaker.
+#
+# ### SPI
+#
+# - `m5s3l_spi`: The SPI bus.
+#
 # ### Switch
 #
 # - `m5s3l_lcd_backlight`: The LCD backlight control.
+#
+# ### Touchscreen
+#
+# - `m5s3l_touchscreen`: The built-in touchscreen.
 
 packages:
   axp2101: !include axp2101.yaml
@@ -37,17 +74,19 @@ psram:
   speed: "80MHz"
 
 aw9523:
-  id: "m5s3l_aw9523"
+- id: "m5s3l_aw9523"
   latch_inputs: true
   p0_push_pull: true
 
 i2c:
+- id: "m5s3l_i2c"
   sda: "GPIO12"
   scl: "GPIO11"
   scan: false
   frequency: "100kHz"
 
 spi:
+- id: "m5s3l_spi"
   clk_pin: "GPIO36"
   interface: "hardware"
   mosi_pin: "GPIO37"
@@ -58,6 +97,7 @@ spi:
 binary_sensor:
 - &m5s3l_es_int
   id: "m5s3l_es_int"
+  internal: true
   name: "AW9523: ES Interrupt"
   entity_category: "DIAGNOSTIC"
   platform: "gpio"
@@ -68,6 +108,7 @@ binary_sensor:
 
 - <<: *m5s3l_es_int
   id: "m5s3l_tf_sw"
+  internal: true
   name: "MicroSD Detected"
   pin:
     aw9523: "m5s3l_aw9523"
@@ -76,6 +117,7 @@ binary_sensor:
 
 - <<: *m5s3l_es_int
   id: "m5s3l_lcd_touch_int"
+  internal: true
   name: "LCD Touch Interrupt"
   pin:
     aw9523: "m5s3l_aw9523"
@@ -86,6 +128,7 @@ binary_sensor:
 
 - <<: *m5s3l_es_int
   id: "m5s3l_aw_int"
+  internal: true
   name: "AW9523: AW Interrupt"
   pin:
     aw9523: "m5s3l_aw9523"
@@ -105,28 +148,20 @@ binary_sensor:
 #   update_interval: "60s"
 #   ambient_light: "Ambient Light"
 
-number:
+output:
+# Actual responsive range of backlight is 60% to 100%
+- id: !extend axp2101_dldo1
+  min_power: "60%"
+  zero_means_zero: true
+
+light:
 - id: "m5s3l_lcd_backlight"
   name: "LCD Backlight"
+  default_transition_length: "0.25s"
+  restore_mode: "RESTORE_DEFAULT_ON"
   entity_category: "CONFIG"
-  unit_of_measurement: "%"
-  platform: "template"
-  min_value: 0.0
-  max_value: 100.0
-  step: 5.0
-  set_action:
-  # actual responsive range 0.6 -> 1.0
-  - output.set_level:
-      id: "axp2101_dldo1"
-      level: !lambda |
-        if (x == 0.0) return 0.0;
-        float min = 0.6;
-        float max = 1.0;
-        return (x / 100.0) * (max - min) + min;
-  update_interval: "never"
-  optimistic: true
-  restore_value: false
-  initial_value: 0.0
+  platform: "monochromatic"
+  output: "axp2101_dldo1"
 
 i2s_audio:
 - id: "m5s3l_i2s_audio"
