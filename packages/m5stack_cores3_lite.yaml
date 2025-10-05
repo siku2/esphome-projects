@@ -59,7 +59,7 @@ packages:
   axp2101: !include axp2101.yaml
 
 external_components:
-- source: "../components"
+- source: "github://siku2/esphome-projects@581beaecbea589caa5c336f5e7e3803f39e4303c"
   components: [ "aw9523" ]
 
 esp32:
