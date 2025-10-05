@@ -92,6 +92,19 @@ binary_sensor:
     number: 11
     inverted: true # External pull-up
 
+# TODO: does this even exist? It's not in the schematic.
+# sensor:
+# - id: "m5s3l_proximity"
+#   platform: "ltr_als_ps"
+#   address: 0x23
+#   type: "ALS_PS"
+#   auto_mode: true
+#   gain: "1x"
+#   integration_time: "100ms"
+#   ps_cooldown: "5s"
+#   update_interval: "60s"
+#   ambient_light: "Ambient Light"
+
 number:
 - id: "m5s3l_lcd_backlight"
   name: "LCD Backlight"
