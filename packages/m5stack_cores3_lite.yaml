@@ -125,9 +125,8 @@ number:
         return (x / 100.0) * (max - min) + min;
   update_interval: "never"
   optimistic: true
-  restore_value: true
+  restore_value: false
   initial_value: 0.0
-  # TODO: restore_value doesn't work!
 
 i2s_audio:
 - id: "m5s3l_i2s_audio"
