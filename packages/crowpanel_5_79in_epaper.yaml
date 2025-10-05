@@ -138,11 +138,11 @@ switch:
   turn_on_action:
   - lambda: !lambda |
       ESP_LOGI("main", "Enabling full display update");
-      id(display_main)->set_update_mode(crowpanel_epaper::UpdateMode::FULL);
+      id(cp579epd_display)->set_update_mode(crowpanel_epaper::UpdateMode::FULL);
   turn_off_action:
   - lambda: !lambda |
       ESP_LOGI("main", "Enabling partial display update");
-      id(display_main)->set_update_mode(crowpanel_epaper::UpdateMode::PARTIAL);
+      id(cp579epd_display)->set_update_mode(crowpanel_epaper::UpdateMode::PARTIAL);
 
 button:
 - id: "cp579epd_run_full_update"
@@ -154,7 +154,7 @@ button:
       level: "INFO"
       format: "Triggering full display update"
   - switch.turn_on: "cp579epd_display_full_update"
-  - component.update: "display_main"
+  - component.update: "cp579epd_display"
   # It can take a while to update the display, so we wait a bit
   - delay: "500ms"
   - switch.turn_off: "cp579epd_display_full_update"
