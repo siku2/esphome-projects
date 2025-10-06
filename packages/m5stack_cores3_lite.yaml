@@ -150,7 +150,7 @@ binary_sensor:
 
 output:
 # Actual responsive range of backlight is 60% to 100%
-- id: !extend axp2101_dldo1
+- id: !extend "axp2101_dldo1"
   min_power: "60%"
   zero_means_zero: true
 
