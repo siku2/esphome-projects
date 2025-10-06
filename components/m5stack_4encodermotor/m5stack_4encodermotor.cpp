@@ -2,8 +2,8 @@
 
 #include "esphome/core/log.h"
 
-#define REG_MOTOR_SPEED 0x40
-#define REG_MOTOR1_MODE 0x50
+#define REG_MOTOR_SPEED(motor) (0x40 + (motor))
+#define REG_MOTOR_MODE(motor) (0x50 + (motor) * 0x10)
 #define REG_SOFT_START_STOP 0xD1
 #define REG_CURRENT 0x90
 #define REG_VOLTAGE 0xB0
@@ -39,6 +39,15 @@ namespace esphome
       LOG_SENSOR("  ", "Current", this->current_sensor_);
       LOG_SENSOR("  ", "Voltage", this->voltage_sensor_);
       LOG_UPDATE_INTERVAL(this);
+
+      uint8_t soft_start_stop = this->reg(REG_SOFT_START_STOP).get();
+      for (Motor motor = M1; motor <= M4; motor = static_cast<Motor>(motor + 1))
+      {
+        ESP_LOGCONFIG(TAG, "  Motor %d:", motor + 1);
+        ESP_LOGCONFIG(TAG, "    Mode: %d", this->reg(REG_MOTOR_MODE(motor)).get());
+        ESP_LOGCONFIG(TAG, "    Speed: %d", this->reg(REG_MOTOR_SPEED(motor)).get());
+        ESP_LOGCONFIG(TAG, "    Soft Start/Stop: %s", (soft_start_stop & (1 << motor)) ? "ENABLED" : "DISABLED");
+      }
     }
 
     void M5Stack4EncoderMotor::update()
@@ -68,13 +77,13 @@ namespace esphome
 
     void M5Stack4EncoderMotor::set_motor_mode(Motor motor, Mode mode)
     {
-      this->reg(REG_MOTOR1_MODE + (motor * 0x10)) = mode;
+      this->reg(REG_MOTOR_MODE(motor)) = mode;
       ESP_LOGD(TAG, "Set motor %d mode to %d", motor + 1, mode);
     }
 
     void M5Stack4EncoderMotor::set_motor_speed(Motor motor, int8_t speed)
     {
-      this->reg(REG_MOTOR_SPEED + motor) = speed;
+      this->reg(REG_MOTOR_SPEED(motor)) = speed;
       ESP_LOGD(TAG, "Set motor %d speed to %d", motor + 1, speed);
     }
 
