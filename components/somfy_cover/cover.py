@@ -20,7 +20,8 @@ SomfyCoverProgramAction = somfy_cover_ns.class_(
 )
 
 CONFIG_SCHEMA = cv.All(
-    cover.COVER_SCHEMA.extend(
+    cover.cover_schema(SomfyCover)
+    .extend(
         {
             cv.GenerateID(CONF_ID): cv.declare_id(SomfyCover),
             cv.GenerateID(CONF_ELECHOUSE_CC1101_ID): cv.use_id(ElechouseCc1101),
@@ -28,7 +29,8 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_OPEN_DURATION): cv.positive_time_period_milliseconds,
             cv.Required(CONF_CLOSE_DURATION): cv.positive_time_period_milliseconds,
         },
-    ).extend(cv.COMPONENT_SCHEMA),
+    )
+    .extend(cv.COMPONENT_SCHEMA),
     cv.only_with_arduino,
 )
 
@@ -38,9 +40,8 @@ async def to_code(config):
     cg.add_library("EEPROM", None)
     cg.add_library("Somfy_Remote_Lib", "0.4.1")
 
-    var = cg.new_Pvariable(config[CONF_ID])
+    var = await cover.new_cover(config)
     await cg.register_component(var, config)
-    await cover.register_cover(var, config)
 
     cg.add(var.set_cover_id(str(config[CONF_ID])))
     cg.add(var.set_remote_code(config[CONF_REMOTE_CODE]))
