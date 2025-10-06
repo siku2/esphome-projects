@@ -19,15 +19,18 @@ SomfyCoverProgramAction = somfy_cover_ns.class_(
     "SomfyCoverProgramAction", automation.Action
 )
 
-CONFIG_SCHEMA = cover.COVER_SCHEMA.extend(
-    {
-        cv.GenerateID(CONF_ID): cv.declare_id(SomfyCover),
-        cv.GenerateID(CONF_ELECHOUSE_CC1101_ID): cv.use_id(ElechouseCc1101),
-        cv.Required(CONF_REMOTE_CODE): cv.uint32_t,
-        cv.Required(CONF_OPEN_DURATION): cv.positive_time_period_milliseconds,
-        cv.Required(CONF_CLOSE_DURATION): cv.positive_time_period_milliseconds,
-    },
-).extend(cv.COMPONENT_SCHEMA)
+CONFIG_SCHEMA = cv.All(
+    cover.COVER_SCHEMA.extend(
+        {
+            cv.GenerateID(CONF_ID): cv.declare_id(SomfyCover),
+            cv.GenerateID(CONF_ELECHOUSE_CC1101_ID): cv.use_id(ElechouseCc1101),
+            cv.Required(CONF_REMOTE_CODE): cv.uint32_t,
+            cv.Required(CONF_OPEN_DURATION): cv.positive_time_period_milliseconds,
+            cv.Required(CONF_CLOSE_DURATION): cv.positive_time_period_milliseconds,
+        },
+    ).extend(cv.COMPONENT_SCHEMA),
+    cv.only_with_arduino,
+)
 
 
 async def to_code(config):
