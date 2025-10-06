@@ -31,7 +31,7 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_MOTOR): cv.enum(MOTOR_OPTIONS),
             cv.Required(CONF_MIN_CURRENT): cv.current,
             cv.Optional(CONF_SOFT_START_STOP, default=False): cv.boolean,
-            cv.Optional(CONF_POSITIVE_IS_UP, default=False): cv.boolean,
+            cv.Optional(CONF_POSITIVE_IS_UP, default=True): cv.boolean,
             cv.Required(CONF_OPEN_DURATION): cv.positive_time_period_milliseconds,
             cv.Required(CONF_CLOSE_DURATION): cv.positive_time_period_milliseconds,
             cv.Optional(
