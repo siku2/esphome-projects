@@ -25,9 +25,7 @@ CONFIG_SCHEMA = cv.Schema(
 
 
 async def to_code(config):
-    # Undeclared internal dependency of SmartRC-CC1101-Driver-Lib
     cg.add_library("SPI", None)
-    cg.add_library("SmartRC-CC1101-Driver-Lib", "2.5.7")
 
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)

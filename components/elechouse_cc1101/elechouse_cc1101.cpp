@@ -1,6 +1,8 @@
 #include "elechouse_cc1101.h"
+
 #include "esphome/core/log.h"
-#include <ELECHOUSE_CC1101_SRC_DRV.h>
+
+#include "elechouse_cc1101_drv.h"
 
 namespace esphome
 {
