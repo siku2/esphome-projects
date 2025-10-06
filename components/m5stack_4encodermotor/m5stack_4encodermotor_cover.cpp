@@ -33,7 +33,7 @@ namespace esphome
 
             this->parent_->set_motor_mode(this->motor_, MODE_NORMAL);
             this->parent_->set_motor_soft_start_stop(this->motor_, this->soft_start_stop_);
-            this->parent_->set_motor_speed(this->motor_, 0);
+            this->parent_->set_motor_pwm_duty(this->motor_, 0);
         }
 
         void M5Stack4EncoderMotorCover::dump_config()
@@ -121,13 +121,13 @@ namespace esphome
             switch (dir)
             {
             case COVER_OPERATION_IDLE:
-                this->parent_->set_motor_speed(this->motor_, 0);
+                this->parent_->set_motor_pwm_duty(this->motor_, 0);
                 break;
             case COVER_OPERATION_OPENING:
-                this->parent_->set_motor_speed(this->motor_, mul * 127);
+                this->parent_->set_motor_pwm_duty(this->motor_, mul * 127);
                 break;
             case COVER_OPERATION_CLOSING:
-                this->parent_->set_motor_speed(this->motor_, mul * -127);
+                this->parent_->set_motor_pwm_duty(this->motor_, mul * -127);
                 break;
             default:
                 return;

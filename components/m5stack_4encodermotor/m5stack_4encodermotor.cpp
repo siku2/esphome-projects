@@ -2,7 +2,7 @@
 
 #include "esphome/core/log.h"
 
-#define REG_MOTOR_SPEED(motor) (0x40 + (motor))
+#define REG_MOTOR_PWM_DUTY(motor) (0x20 + (motor))
 #define REG_MOTOR_MODE(motor) (0x50 + (motor) * 0x10)
 #define REG_SOFT_START_STOP 0xD1
 #define REG_CURRENT 0x90
@@ -34,18 +34,20 @@ namespace esphome
 
     void M5Stack4EncoderMotor::dump_config()
     {
-      LOG_I2C_DEVICE(this);
       ESP_LOGCONFIG(TAG, "M5Stack 4 Encoder Motor:");
+      LOG_I2C_DEVICE(this);
       LOG_SENSOR("  ", "Current", this->current_sensor_);
       LOG_SENSOR("  ", "Voltage", this->voltage_sensor_);
       LOG_UPDATE_INTERVAL(this);
+
+      ESP_LOGCONFIG(TAG, "  Firmware Version: %u", this->fw_version_);
+      ESP_LOGCONFIG(TAG, "  Bootloader Version: %u", this->bootloader_version_);
 
       uint8_t soft_start_stop = this->reg(REG_SOFT_START_STOP).get();
       for (Motor motor = M1; motor <= M4; motor = static_cast<Motor>(motor + 1))
       {
         ESP_LOGCONFIG(TAG, "  Motor %d:", motor + 1);
         ESP_LOGCONFIG(TAG, "    Mode: %d", this->reg(REG_MOTOR_MODE(motor)).get());
-        ESP_LOGCONFIG(TAG, "    Speed: %d", this->reg(REG_MOTOR_SPEED(motor)).get());
         ESP_LOGCONFIG(TAG, "    Soft Start/Stop: %s", (soft_start_stop & (1 << motor)) ? "ENABLED" : "DISABLED");
       }
     }
@@ -81,10 +83,9 @@ namespace esphome
       ESP_LOGD(TAG, "Set motor %d mode to %d", motor + 1, mode);
     }
 
-    void M5Stack4EncoderMotor::set_motor_speed(Motor motor, int8_t speed)
+    void M5Stack4EncoderMotor::set_motor_pwm_duty(Motor motor, int8_t duty)
     {
-      this->reg(REG_MOTOR_SPEED(motor)) = speed;
-      ESP_LOGD(TAG, "Set motor %d speed to %d", motor + 1, speed);
+      this->reg(REG_MOTOR_PWM_DUTY(motor)) = duty;
     }
 
     void M5Stack4EncoderMotor::set_motor_soft_start_stop(Motor motor, bool enable)

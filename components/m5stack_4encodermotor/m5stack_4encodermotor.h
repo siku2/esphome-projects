@@ -35,7 +35,7 @@ namespace esphome
       void set_voltage_sensor(sensor::Sensor *sensor) { this->voltage_sensor_ = sensor; }
 
       void set_motor_mode(Motor motor, Mode mode);
-      void set_motor_speed(Motor motor, int8_t speed);
+      void set_motor_pwm_duty(Motor motor, int8_t speed);
       void set_motor_soft_start_stop(Motor motor, bool enable);
 
       float get_current();
