@@ -2,6 +2,8 @@
 
 #include "esphome/core/log.h"
 
+// See: <https://github.com/LSatan/SmartRC-CC1101-Driver-Lib>
+
 //***************************************CC1101 define**************************************************//
 // CC1101 CONFIG REGSITER
 #define CC1101_IOCFG2 0x00   // GDO2 output pin configuration
@@ -163,7 +165,12 @@ namespace esphome
     {
       this->spi_setup();
 
-      // Perform SW reset.
+      this->reset_();
+      this->write_config_();
+    }
+
+    void Cc1101::reset_()
+    {
       this->enable();
       delay(1);
       this->cs_->digital_write(true);
@@ -178,8 +185,6 @@ namespace esphome
       delay(1);
       this->cs_->digital_write(true);
       this->disable();
-
-      this->write_config_();
     }
 
     void Cc1101::dump_config()
@@ -194,7 +199,7 @@ namespace esphome
     void Cc1101::enable_tx()
     {
       this->command_strobe_(CC1101_SIDLE);
-      this->command_strobe_(CC1101_STX); // start send
+      this->command_strobe_(CC1101_STX);
     }
 
     void Cc1101::enable_sidle()

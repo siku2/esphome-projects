@@ -45,15 +45,15 @@ namespace esphome
       uint8_t m2_man_ch_{0};
       uint8_t m2_sync_m_{0};
 
+      void reset_();
       void calibrate_();
       void command_strobe_(uint8_t strobe);
 
-      uint8_t read_reg_(uint8_t addr);
-
-      void read_mdmcfg2_();
-
+      uint8_t read_reg_(uint8_t addr);      
       void write_reg_(uint8_t addr, uint8_t value);
       void write_burst_reg_(uint8_t addr, uint8_t *data, size_t length);
+      
+      void read_mdmcfg2_();
 
       void write_config_();
       void write_frequency_mhz_();

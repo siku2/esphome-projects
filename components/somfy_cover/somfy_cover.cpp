@@ -2,6 +2,8 @@
 
 #include "esphome/core/log.h"
 
+// See: <https://github.com/Legion2/Somfy_Remote_Lib>
+
 #define SYMBOL 640
 
 namespace esphome
@@ -238,12 +240,13 @@ namespace esphome
       {
         frame[i] ^= frame[i - 1];
       }
+      ESP_LOGD(TAG, "Built Frame command=%d rolling_code=%d: %02X %02X %02X %02X %02X %02X %02X",
+               command, rolling_code,
+               frame[0], frame[1], frame[2], frame[3], frame[4], frame[5], frame[6]);
     }
 
     void SomfyCover::send_frame_(const std::array<uint8_t, 7> &frame, uint8_t sync)
     {
-      ESP_LOGD(TAG, "Sending frame: %02X %02X %02X %02X %02X %02X %02X",
-               frame[0], frame[1], frame[2], frame[3], frame[4], frame[5], frame[6]);
       if (sync == 2)
       { // Only with the first frame.
         // Wake-up pulse & Silence
