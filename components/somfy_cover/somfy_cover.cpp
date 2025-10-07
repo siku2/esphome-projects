@@ -1,5 +1,7 @@
 #include "somfy_cover.h"
+
 #include "esphome/core/log.h"
+
 #include <NVSRollingCodeStorage.h>
 #include <SomfyRemote.h>
 
@@ -11,7 +13,7 @@ namespace esphome
     static const char *const TAG = "somfy_cover";
 
     using namespace esphome::cover;
-    using namespace esphome::elechouse_cc1101;
+    using namespace esphome::cc1101;
 
     struct SomfyCoverPrivate
     {
@@ -32,7 +34,7 @@ namespace esphome
           delete this->somfy_remote_;
       }
 
-      void send_command(ElechouseCc1101 *cc1101, Command command)
+      void send_command(Cc1101 *cc1101, Command command)
       {
         cc1101->enable_tx();
         this->somfy_remote_->sendCommand(command);

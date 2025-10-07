@@ -14,16 +14,16 @@ DEPENDENCIES = ["spi"]
 MULTI_CONF = True
 
 # Defined for other components
-CONF_ELECHOUSE_CC1101_ID = "elechouse_cc1101_id"
+CONF_CC1101_ID = "cc1101_id"
 CONF_CC_MODE = "cc_mode"
 
-cc1101_ns = cg.esphome_ns.namespace("elechouse_cc1101")
-ElechouseCc1101 = cc1101_ns.class_("ElechouseCc1101", cg.Component, spi.SPIDevice)
+cc1101_ns = cg.esphome_ns.namespace("cc1101")
+Cc1101 = cc1101_ns.class_("Cc1101", cg.Component, spi.SPIDevice)
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(CONF_ID): cv.declare_id(ElechouseCc1101),
+            cv.GenerateID(CONF_ID): cv.declare_id(Cc1101),
             cv.Required(CONF_TX_PIN): pins.internal_gpio_output_pin_schema,
             cv.Required(CONF_RX_PIN): pins.internal_gpio_input_pin_schema,
             cv.Optional(CONF_FREQUENCY, default="433.92 Mhz"): cv.frequency,

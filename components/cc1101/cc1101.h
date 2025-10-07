@@ -6,9 +6,9 @@
 
 namespace esphome
 {
-  namespace elechouse_cc1101
+  namespace cc1101
   {
-    class ElechouseCc1101 : public Component, public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING, spi::DATA_RATE_1MHZ>
+    class Cc1101 : public Component, public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING, spi::DATA_RATE_1MHZ>
     {
     public:
       void setup() override;

@@ -3,7 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 #include "esphome/components/cover/cover.h"
-#include "esphome/components/elechouse_cc1101/elechouse_cc1101.h"
+#include "esphome/components/cc1101/cc1101.h"
 
 namespace esphome
 {
@@ -21,7 +21,7 @@ namespace esphome
 
       cover::CoverOperation get_last_operation() const { return this->last_operation_; }
 
-      void set_cc1101(elechouse_cc1101::ElechouseCc1101 *cc1101) { this->cc1101_ = cc1101; }
+      void set_cc1101(cc1101::Cc1101 *cc1101) { this->cc1101_ = cc1101; }
       void set_cover_id(const char *cover_id) { this->cover_id_ = cover_id; }
       void set_remote_code(uint32_t remote_code) { this->remote_code_ = remote_code; }
       void set_open_duration(uint32_t open_duration) { this->open_duration_ = open_duration; }
@@ -39,7 +39,7 @@ namespace esphome
 
       SomfyCoverPrivate *priv_;
 
-      elechouse_cc1101::ElechouseCc1101 *cc1101_;
+      cc1101::Cc1101 *cc1101_;
       const char *cover_id_;
       uint32_t remote_code_;
       uint32_t open_duration_;

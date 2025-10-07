@@ -1,4 +1,4 @@
-#include "elechouse_cc1101.h"
+#include "cc1101.h"
 
 #include "esphome/core/log.h"
 
@@ -101,9 +101,9 @@
 
 namespace esphome
 {
-  namespace elechouse_cc1101
+  namespace cc1101
   {
-    static const char *const TAG = "elechouse_cc1101";
+    static const char *const TAG = "cc1101";
 
     static uint8_t PA_TABLE[8]{0x00, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     //                       -30  -20  -15  -10   0    5    7    10
@@ -159,7 +159,7 @@ namespace esphome
       return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
     }
 
-    void ElechouseCc1101::setup()
+    void Cc1101::setup()
     {
       this->spi_setup();
 
@@ -182,27 +182,27 @@ namespace esphome
       this->write_config_();
     }
 
-    void ElechouseCc1101::dump_config()
+    void Cc1101::dump_config()
     {
-      ESP_LOGCONFIG(TAG, "ELECHOUSE CC1101:");
+      ESP_LOGCONFIG(TAG, "CC1101:");
       ESP_LOGCONFIG(TAG, "  TX Pin: %d", this->tx_pin_->get_pin());
       ESP_LOGCONFIG(TAG, "  RX Pin: %d", this->rx_pin_->get_pin());
       ESP_LOGCONFIG(TAG, "  Frequency: %.1f MHz", this->frequency_ / 1000000);
       LOG_PIN("  CS Pin:", this->cs_);
     }
 
-    void ElechouseCc1101::enable_tx()
+    void Cc1101::enable_tx()
     {
       this->command_strobe_(CC1101_SIDLE);
       this->command_strobe_(CC1101_STX); // start send
     }
 
-    void ElechouseCc1101::enable_sidle()
+    void Cc1101::enable_sidle()
     {
       this->command_strobe_(CC1101_SIDLE);
     }
 
-    void ElechouseCc1101::command_strobe_(uint8_t strobe)
+    void Cc1101::command_strobe_(uint8_t strobe)
     {
       this->enable();
       // TODO: We should wait for MISO to go low, but we have no access to it.
@@ -212,7 +212,7 @@ namespace esphome
       this->disable();
     }
 
-    void ElechouseCc1101::write_reg_(uint8_t addr, uint8_t value)
+    void Cc1101::write_reg_(uint8_t addr, uint8_t value)
     {
       this->enable();
       // TODO: We should wait for MISO to go low, but we have no access to it.
@@ -223,7 +223,7 @@ namespace esphome
       this->disable();
     }
 
-    void ElechouseCc1101::write_burst_reg_(uint8_t addr, uint8_t *data, size_t length)
+    void Cc1101::write_burst_reg_(uint8_t addr, uint8_t *data, size_t length)
     {
       this->enable();
       // TODO: We should wait for MISO to go low, but we have no access to it.
@@ -234,7 +234,7 @@ namespace esphome
       this->disable();
     }
 
-    uint8_t ElechouseCc1101::read_reg_(uint8_t addr)
+    uint8_t Cc1101::read_reg_(uint8_t addr)
     {
       this->enable();
       // TODO: We should wait for MISO to go low, but we have no access to it.
@@ -247,7 +247,7 @@ namespace esphome
       return value;
     }
 
-    void ElechouseCc1101::read_mdmcfg2_()
+    void Cc1101::read_mdmcfg2_()
     {
       int calc = this->read_reg_(CC1101_MDMCFG2);
       this->m2_dc_off_ = 0;
@@ -279,7 +279,7 @@ namespace esphome
       }
     }
 
-    void ElechouseCc1101::write_config_()
+    void Cc1101::write_config_()
     {
       this->write_reg_(CC1101_FSCTRL1, 0x06);
 
@@ -310,7 +310,7 @@ namespace esphome
       this->write_reg_(CC1101_PKTLEN, 0x00);
     }
 
-    void ElechouseCc1101::write_frequency_mhz_()
+    void Cc1101::write_frequency_mhz_()
     {
       float mhz = this->frequency_ / 1000000;
       uint8_t freq2 = 0;
@@ -351,7 +351,7 @@ namespace esphome
       this->calibrate_();
     }
 
-    void ElechouseCc1101::write_cc_mode_()
+    void Cc1101::write_cc_mode_()
     {
       if (this->cc_mode_)
       {
@@ -372,7 +372,7 @@ namespace esphome
       this->write_modulation_();
     }
 
-    void ElechouseCc1101::calibrate_()
+    void Cc1101::calibrate_()
     {
       float mhz = this->frequency_ / 1000000;
       if (mhz >= 300 && mhz <= 348)
@@ -454,7 +454,7 @@ namespace esphome
       }
     }
 
-    void ElechouseCc1101::write_modulation_()
+    void Cc1101::write_modulation_()
     {
       this->read_mdmcfg2_();
       uint8_t frend0;
@@ -489,7 +489,7 @@ namespace esphome
       this->write_pa_();
     }
 
-    void ElechouseCc1101::write_pa_()
+    void Cc1101::write_pa_()
     {
       int a;
       float mhz = this->frequency_ / 1000000;
