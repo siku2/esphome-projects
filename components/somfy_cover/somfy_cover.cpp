@@ -2,45 +2,18 @@
 
 #include "esphome/core/log.h"
 
-#include <NVSRollingCodeStorage.h>
-#include <SomfyRemote.h>
+#define SYMBOL 640
 
 namespace esphome
 {
   namespace somfy_cover
   {
-    static const char *NVS_NAMESPACE = "somfy";
-    static const char *const TAG = "somfy_cover";
-
     using namespace esphome::cover;
     using namespace esphome::cc1101;
 
-    struct SomfyCoverPrivate
-    {
-      NVSRollingCodeStorage *rolling_code_storage_{};
-      SomfyRemote *somfy_remote_{};
+    static const char *const TAG = "somfy_cover";
 
-      SomfyCoverPrivate(const char *cover_id, uint8_t emitter_pin, uint32_t remote_code)
-      {
-        this->rolling_code_storage_ = new NVSRollingCodeStorage(NVS_NAMESPACE, cover_id);
-        this->somfy_remote_ = new SomfyRemote(emitter_pin, remote_code, this->rolling_code_storage_);
-      }
-
-      ~SomfyCoverPrivate()
-      {
-        if (this->rolling_code_storage_)
-          delete this->rolling_code_storage_;
-        if (this->somfy_remote_)
-          delete this->somfy_remote_;
-      }
-
-      void send_command(Cc1101 *cc1101, Command command)
-      {
-        cc1101->enable_tx();
-        this->somfy_remote_->sendCommand(command);
-        cc1101->enable_sidle();
-      }
-    };
+    static const uint32_t RESTORE_STATE_VERSION = 0xB2D7C9D7UL;
 
     void SomfyCover::dump_config()
     {
@@ -55,20 +28,7 @@ namespace esphome
     void
     SomfyCover::setup()
     {
-      if (!this->cc1101_ || !this->cover_id_)
-      {
-        ESP_LOGE(TAG, "cc1101_ or cover_id_ not set");
-        this->mark_failed();
-        return;
-      }
-
-      this->priv_ = new SomfyCoverPrivate(this->cover_id_, this->cc1101_->get_emitter_pin(), this->remote_code_);
-      if (!this->priv_)
-      {
-        ESP_LOGE(TAG, "Failed to create SomfyCoverPrivate");
-        this->mark_failed();
-        return;
-      }
+      this->rolling_code_pref_ = global_preferences->make_preference<uint16_t>(this->get_preference_hash() ^ RESTORE_STATE_VERSION);
 
       auto restore = this->restore_state_();
       if (restore.has_value())
@@ -197,15 +157,15 @@ namespace esphome
       switch (dir)
       {
       case COVER_OPERATION_IDLE:
-        this->priv_->send_command(this->cc1101_, Command::My);
+        this->send_command_(SomfyCommand::My);
         break;
       case COVER_OPERATION_OPENING:
         this->last_operation_ = dir;
-        this->priv_->send_command(this->cc1101_, Command::Up);
+        this->send_command_(SomfyCommand::Up);
         break;
       case COVER_OPERATION_CLOSING:
         this->last_operation_ = dir;
-        this->priv_->send_command(this->cc1101_, Command::Down);
+        this->send_command_(SomfyCommand::Down);
         break;
       default:
         return;
@@ -248,7 +208,110 @@ namespace esphome
 
     void SomfyCover::program()
     {
-      this->priv_->send_command(this->cc1101_, Command::Prog);
+      this->send_command_(SomfyCommand::Prog);
     }
+
+    void SomfyCover::build_frame_(SomfyCommand command, uint16_t rolling_code, std::array<uint8_t, 7> &frame)
+    {
+
+      frame[0] = 0xA7;                               // Encryption key. Doesn't matter much
+      frame[1] = static_cast<uint8_t>(command) << 4; // Which button did  you press? The 4 LSB will be the checksum
+      frame[2] = rolling_code >> 8;                  // Rolling code (big endian)
+      frame[3] = rolling_code;                       // Rolling code
+      frame[4] = this->remote_code_ >> 16;           // Remote address
+      frame[5] = this->remote_code_ >> 8;            // Remote address
+      frame[6] = this->remote_code_;                 // Remote address
+
+      // Checksum calculation: a XOR of all the nibbles
+      uint8_t checksum = 0;
+      for (uint8_t i = 0; i < frame.size(); i++)
+      {
+        checksum = checksum ^ frame[i] ^ (frame[i] >> 4);
+      }
+      checksum &= 0b1111; // We keep the last 4 bits only
+
+      // Checksum integration
+      frame[1] |= checksum;
+
+      // Obfuscation: a XOR of all the bytes
+      for (uint8_t i = 1; i < frame.size(); i++)
+      {
+        frame[i] ^= frame[i - 1];
+      }
+    }
+
+    void SomfyCover::send_frame_(const std::array<uint8_t, 7> &frame, uint8_t sync)
+    {
+      ESP_LOGD(TAG, "Sending frame: %02X %02X %02X %02X %02X %02X %02X",
+               frame[0], frame[1], frame[2], frame[3], frame[4], frame[5], frame[6]);
+      if (sync == 2)
+      { // Only with the first frame.
+        // Wake-up pulse & Silence
+        this->send_value_(true, 9415);
+        this->send_value_(false, 9565);
+        delay(80);
+      }
+
+      // Hardware sync: two sync for the first frame, seven for the following ones.
+      for (uint8_t i = 0; i < sync; i++)
+      {
+        this->send_value_(true, 4 * SYMBOL);
+        this->send_value_(false, 4 * SYMBOL);
+      }
+
+      // Software sync
+      this->send_value_(true, 4550);
+      this->send_value_(false, SYMBOL);
+
+      // Data: bits are sent one by one, starting with the MSB.
+      for (uint8_t i = 0; i < 56; i++)
+      {
+        if (((frame[i / 8] >> (7 - (i % 8))) & 1) == 1)
+        {
+          this->send_value_(false, SYMBOL);
+          this->send_value_(true, SYMBOL);
+        }
+        else
+        {
+          this->send_value_(true, SYMBOL);
+          this->send_value_(false, SYMBOL);
+        }
+      }
+
+      // Inter-frame silence
+      this->send_value_(false, 415);
+      delay(30);
+    }
+
+    void SomfyCover::send_value_(bool value, uint32_t micros)
+    {
+      auto pin = this->cc1101_->get_emitter_pin();
+      pin->digital_write(value);
+      delay_microseconds_safe(micros);
+    }
+
+    void SomfyCover::send_command_(SomfyCommand command, size_t repeat)
+    {
+      std::array<uint8_t, 7> frame;
+
+      this->cc1101_->enable_tx();
+      this->build_frame_(command, this->get_next_rolling_code_(), frame);
+      this->send_frame_(frame, 2);
+      for (size_t i = 0; i < repeat; i++)
+      {
+        this->send_frame_(frame, 7);
+      }
+      this->cc1101_->enable_sidle();
+    }
+
+    uint16_t SomfyCover::get_next_rolling_code_()
+    {
+      uint16_t code = 1;
+      this->rolling_code_pref_.load(&code);
+      uint16_t next_code = code + 1;
+      this->rolling_code_pref_.save(&next_code);
+      return code;
+    }
+
   }
 }
