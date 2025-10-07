@@ -1,13 +1,19 @@
 {
     "name": "ESPHome Projects",
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
+    "image": "mcr.microsoft.com/devcontainers/base:trixie",
     "privileged": true,
     "remoteUser": "root",
     "features": {
-        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-        "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {}
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "moby": false
+        },
+        "ghcr.io/devcontainers/features/python:1": {
+            "toolsToInstall": "esphome,interactivehtmlbom,ruff,uv"
+        },
+        "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
+            "packages": "kicad,libgtk-3-dev,xvfb"
+        },
+        "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {},
     },
     "customizations": {
         "vscode": {
