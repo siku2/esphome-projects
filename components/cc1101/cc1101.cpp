@@ -3,6 +3,7 @@
 #include "esphome/core/log.h"
 
 // See: <https://github.com/LSatan/SmartRC-CC1101-Driver-Lib>
+// See: <https://www.ti.com/lit/ds/symlink/cc1101.pdf>
 
 //***************************************CC1101 define**************************************************//
 // CC1101 CONFIG REGSITER
@@ -183,7 +184,6 @@ namespace esphome
       // TODO: We should wait for MISO to go low, but we have no access to it.
       //       Instead, we sleep.
       delay(1);
-      this->cs_->digital_write(true);
       this->disable();
     }
 
@@ -194,6 +194,8 @@ namespace esphome
       LOG_PIN("  TX Pin:", this->tx_pin_);
       LOG_PIN("  RX Pin:", this->rx_pin_);
       LOG_PIN("  CS Pin:", this->cs_);
+      ESP_LOGCONFIG(TAG, "  Part Number: %d", this->read_reg_(CC1101_PARTNUM));
+      ESP_LOGCONFIG(TAG, "  Version: %d", this->read_reg_(CC1101_VERSION));
     }
 
     void Cc1101::enable_tx()
