@@ -3,11 +3,11 @@ import esphome.config_validation as cv
 from esphome import pins
 from esphome.components import spi
 from esphome.const import (
+    CONF_CHANNEL,
     CONF_FREQUENCY,
     CONF_ID,
     CONF_RX_PIN,
     CONF_TX_PIN,
-    CONF_CHANNEL,
 )
 
 DEPENDENCIES = ["spi"]
@@ -24,8 +24,8 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(CONF_ID): cv.declare_id(Cc1101),
-            cv.Required(CONF_TX_PIN): pins.internal_gpio_output_pin_schema,
-            cv.Required(CONF_RX_PIN): pins.internal_gpio_input_pin_schema,
+            cv.Required(CONF_TX_PIN): pins.gpio_output_pin_schema,
+            cv.Required(CONF_RX_PIN): pins.gpio_input_pin_schema,
             cv.Optional(CONF_FREQUENCY, default="433.92 Mhz"): cv.frequency,
             cv.Optional(CONF_CHANNEL, default=0): cv.uint8_t,
             cv.Optional(CONF_CC_MODE, default=False): cv.boolean,

@@ -185,9 +185,9 @@ namespace esphome
     void Cc1101::dump_config()
     {
       ESP_LOGCONFIG(TAG, "CC1101:");
-      ESP_LOGCONFIG(TAG, "  TX Pin: %d", this->tx_pin_->get_pin());
-      ESP_LOGCONFIG(TAG, "  RX Pin: %d", this->rx_pin_->get_pin());
       ESP_LOGCONFIG(TAG, "  Frequency: %.1f MHz", this->frequency_ / 1000000);
+      LOG_PIN("  TX Pin:", this->tx_pin_);
+      LOG_PIN("  RX Pin:", this->rx_pin_);
       LOG_PIN("  CS Pin:", this->cs_);
     }
 

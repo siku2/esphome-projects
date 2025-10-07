@@ -17,17 +17,17 @@ namespace esphome
       void enable_tx();
       void enable_sidle();
 
-      uint8_t get_emitter_pin() const { return this->tx_pin_->get_pin(); }
+      GPIOPin *get_emitter_pin() const { return this->tx_pin_; }
 
-      void set_tx_pin(InternalGPIOPin *tx_pin) { this->tx_pin_ = tx_pin; }
-      void set_rx_pin(InternalGPIOPin *rx_pin) { this->rx_pin_ = rx_pin; }
+      void set_tx_pin(GPIOPin *tx_pin) { this->tx_pin_ = tx_pin; }
+      void set_rx_pin(GPIOPin *rx_pin) { this->rx_pin_ = rx_pin; }
       void set_channel(uint8_t chan) { this->chan_ = chan; }
       void set_cc_mode(bool cc_mode) { this->cc_mode_ = cc_mode; }
       void set_frequency(float frequency) { this->frequency_ = frequency; }
 
     protected:
-      InternalGPIOPin *tx_pin_{};
-      InternalGPIOPin *rx_pin_{};
+      GPIOPin *tx_pin_{};
+      GPIOPin *rx_pin_{};
       uint8_t chan_{};
       bool cc_mode_{};
       float frequency_{};
