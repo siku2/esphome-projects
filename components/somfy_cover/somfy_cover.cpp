@@ -34,9 +34,9 @@ namespace esphome
 
       void send_command(ElechouseCc1101 *cc1101, Command command)
       {
-        cc1101->set_tx();
+        cc1101->enable_tx();
         this->somfy_remote_->sendCommand(command);
-        cc1101->set_sidle();
+        cc1101->enable_sidle();
       }
     };
 
