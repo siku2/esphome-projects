@@ -166,6 +166,7 @@ namespace esphome
     {
       this->spi_setup();
 
+      this->tx_pin_->digital_write(false);
       this->reset_();
       this->write_config_();
     }
