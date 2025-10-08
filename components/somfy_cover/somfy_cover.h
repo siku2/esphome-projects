@@ -35,6 +35,7 @@ class SomfyCover : public cover::Cover, public Component {
   void set_close_duration(uint32_t close_duration) { this->close_duration_ = close_duration; }
 
   void program();
+  void reset_rolling_code();
 
  protected:
   cc1101::Cc1101 *cc1101_;
@@ -69,6 +70,16 @@ template<typename... Ts> class SomfyCoverProgramAction : public Action<Ts...> {
   SomfyCoverProgramAction(SomfyCover *parent) : parent_(parent) {}
 
   void play(Ts... x) { this->parent_->program(); }
+
+ protected:
+  SomfyCover *parent_;
+};
+
+template<typename... Ts> class SomfyCoverResetRollingCodeAction : public Action<Ts...> {
+ public:
+  SomfyCoverResetRollingCodeAction(SomfyCover *parent) : parent_(parent) {}
+
+  void play(Ts... x) { this->parent_->reset_rolling_code(); }
 
  protected:
   SomfyCover *parent_;

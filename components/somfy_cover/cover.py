@@ -18,6 +18,9 @@ SomfyCover = somfy_cover_ns.class_("SomfyCover", cover.Cover, cg.Component)
 SomfyCoverProgramAction = somfy_cover_ns.class_(
     "SomfyCoverProgramAction", automation.Action
 )
+SomfyCoverResetRollingCodeAction = somfy_cover_ns.class_(
+    "SomfyCoverResetRollingCodeAction", automation.Action
+)
 
 CONFIG_SCHEMA = cover.cover_schema(SomfyCover).extend(
     {
@@ -51,5 +54,19 @@ async def to_code(config):
     ),
 )
 async def program_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)
+
+
+@automation.register_action(
+    "cover.somfy_cover.reset_rolling_code",
+    SomfyCoverResetRollingCodeAction,
+    automation.maybe_simple_id(
+        {
+            cv.Required(CONF_ID): cv.use_id(SomfyCover),
+        }
+    ),
+)
+async def reset_rolling_code_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)

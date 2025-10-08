@@ -242,6 +242,11 @@ void SomfyCover::send_command_(SomfyCommand command, size_t repeat) {
   this->cc1101_->disable_tx();
 }
 
+void SomfyCover::reset_rolling_code() {
+  uint16_t code = 1;
+  this->rolling_code_pref_.save(&code);
+}
+
 uint16_t SomfyCover::get_next_rolling_code_() {
   uint16_t code = 1;
   this->rolling_code_pref_.load(&code);
