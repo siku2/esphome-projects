@@ -141,6 +141,7 @@ void Cc1101::setup() {
   this->tx_pin_->digital_write(false);
   this->reset_();
 
+  this->part_number_ = this->read_reg_(CC1101_PARTNUM);
   this->version_ = this->read_reg_(CC1101_VERSION);
   if (this->version_ == 0) {
     this->mark_failed("CC1101 not found");
@@ -180,6 +181,7 @@ void Cc1101::dump_config() {
   ESP_LOGCONFIG(TAG, "  PA: %d", this->pa_);
 
   // extra info
+  ESP_LOGCONFIG(TAG, "  Part Number: %d", this->part_number_);
   ESP_LOGCONFIG(TAG, "  Version: %d", this->version_);
   ESP_LOGCONFIG(TAG, "  M2_DC_OFF: %d", this->m2_dc_off_);
   ESP_LOGCONFIG(TAG, "  M2_MOD_FM: %d", this->m2_mod_fm_);

@@ -56,6 +56,7 @@ class Cc1101 : public Component,
   Modulation modulation_;
   int pa_;
 
+  uint8_t part_number_{0};
   uint8_t version_{0};
   uint8_t clb1_[2] = {24, 28};
   uint8_t clb2_[2] = {31, 38};
