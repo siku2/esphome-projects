@@ -112,22 +112,24 @@ namespace esphome {
 namespace cc1101 {
 static const char *const TAG = "cc1101";
 
-static uint8_t PA_TABLE[8]{0x00, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-//                       -30  -20  -15  -10   0    5    7    10
+// 300 - 348
 static uint8_t PA_TABLE_315[8]{
     0x12, 0x0D, 0x1C, 0x34, 0x51, 0x85, 0xCB, 0xC2,
-};  // 300 - 348
+};
+// 387 - 464
 static uint8_t PA_TABLE_433[8]{
     0x12, 0x0E, 0x1D, 0x34, 0x60, 0x84, 0xC8, 0xC0,
-};  // 387 - 464
-//                        -30  -20  -15  -10  -6    0    5    7    10   12
+};
+// 779 - 899.99
+//  -30   -20   -15   -10   -6    0     5     7     10    12
 static uint8_t PA_TABLE_868[10]{
     0x03, 0x17, 0x1D, 0x26, 0x37, 0x50, 0x86, 0xCD, 0xC5, 0xC0,
-};  // 779 - 899.99
-//                        -30  -20  -15  -10  -6    0    5    7    10   11
+};
+// 900 - 928
+//  -30   -20   -15   -10   -6    0     5     7     10    11
 static uint8_t PA_TABLE_915[10]{
     0x03, 0x0E, 0x1E, 0x27, 0x38, 0x8E, 0x84, 0xCC, 0xC3, 0xC0,
-};  // 900 - 928
+};
 
 long map(long x, long in_min, long in_max, long out_min, long out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -217,7 +219,7 @@ void Cc1101::read_mdmcfg2_() {
   this->m2_mod_fm_ = 0;
   this->m2_man_ch_ = 0;
   this->m2_sync_m_ = 0;
-  for (bool i = 0; i == 0;) {
+  for (bool stop = false; !stop;) {
     if (calc >= 128) {
       calc -= 128;
       this->m2_dc_off_ += 128;
@@ -229,7 +231,7 @@ void Cc1101::read_mdmcfg2_() {
       this->m2_man_ch_ += 8;
     } else {
       this->m2_sync_m_ = calc;
-      i = 1;
+      stop = true;
     }
   }
 }
@@ -238,7 +240,7 @@ void Cc1101::write_config_() {
   this->write_reg_(CC1101_FSCTRL1, 0x06);
 
   this->write_cc_mode_();
-  this->write_frequency_mhz_();
+  this->write_frequency_();
 
   this->write_reg_(CC1101_MDMCFG1, 0x02);
   this->write_reg_(CC1101_MDMCFG0, 0xF8);
@@ -264,12 +266,12 @@ void Cc1101::write_config_() {
   this->write_reg_(CC1101_PKTLEN, 0x00);
 }
 
-void Cc1101::write_frequency_mhz_() {
+void Cc1101::write_frequency_() {
   float mhz = this->frequency_ / 1000000;
   uint8_t freq2 = 0;
   uint8_t freq1 = 0;
-  uint8_t freq0 = 0;
-  for (bool i = 0; i == 0;) {
+  uint16_t freq0 = 0;
+  for (bool stop = false; !stop;) {
     if (mhz >= 26) {
       mhz -= 26;
       freq2 += 1;
@@ -280,7 +282,7 @@ void Cc1101::write_frequency_mhz_() {
       mhz -= 0.00039675;
       freq0 += 1;
     } else {
-      i = 1;
+      stop = true;
     }
   }
   if (freq0 > 255) {
@@ -491,14 +493,18 @@ void Cc1101::write_pa_() {
     }
     this->last_pa_ = 4;
   }
+
+  //                  -30   -20   -15   -10   0     5     7     10
+  uint8_t pa_table[8]{0x00, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
   if (this->modulation_ == 2) {
-    PA_TABLE[0] = 0;
-    PA_TABLE[1] = a;
+    pa_table[0] = 0;
+    pa_table[1] = a;
   } else {
-    PA_TABLE[0] = a;
-    PA_TABLE[1] = 0;
+    pa_table[0] = a;
+    pa_table[1] = 0;
   }
-  this->write_burst_reg_(CC1101_PATABLE, PA_TABLE, 8);
+  this->write_burst_reg_(CC1101_PATABLE, pa_table, 8);
 }
 }  // namespace cc1101
 }  // namespace esphome

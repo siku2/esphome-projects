@@ -59,7 +59,7 @@ class Cc1101 : public Component,
   void read_mdmcfg2_();
 
   void write_config_();
-  void write_frequency_mhz_();
+  void write_frequency_();
   void write_cc_mode_();
   void write_modulation_();
   void write_pa_();
