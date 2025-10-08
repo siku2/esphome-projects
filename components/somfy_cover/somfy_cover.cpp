@@ -240,7 +240,7 @@ void SomfyCover::send_frame_(const std::array<uint8_t, 7> &frame, uint8_t sync) 
 void SomfyCover::send_value_(bool value, uint32_t micros) {
   auto pin = this->cc1101_->get_emitter_pin();
   pin->digital_write(value);
-  delay_microseconds_safe(micros);
+  delayMicroseconds(micros);
 }
 
 void SomfyCover::send_command_(SomfyCommand command, size_t repeat) {
