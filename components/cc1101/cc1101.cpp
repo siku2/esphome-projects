@@ -163,7 +163,7 @@ void Cc1101::reset_() {
 
 void Cc1101::dump_config() {
   ESP_LOGCONFIG(TAG, "CC1101:");
-  ESP_LOGCONFIG(TAG, "  Frequency: %.1f MHz", this->frequency_ / 1000000);
+  ESP_LOGCONFIG(TAG, "  Frequency: %.3f MHz", this->frequency_ / 1000000.0);
   LOG_PIN("  TX Pin:", this->tx_pin_);
   LOG_PIN("  RX Pin:", this->rx_pin_);
   LOG_PIN("  CS Pin:", this->cs_);
@@ -268,7 +268,7 @@ void Cc1101::write_config_() {
 }
 
 void Cc1101::write_frequency_() {
-  float mhz = this->frequency_ / 1000000;
+  float mhz = this->frequency_ / 1000000.0;
   uint8_t freq2 = 0;
   uint8_t freq1 = 0;
   uint16_t freq0 = 0;
@@ -316,7 +316,7 @@ void Cc1101::write_cc_mode_() {
 }
 
 void Cc1101::calibrate_() {
-  float mhz = this->frequency_ / 1000000;
+  float mhz = this->frequency_ / 1000000.0;
   if (mhz >= 300 && mhz <= 348) {
     this->write_reg_(CC1101_FSCTRL0, map(mhz, 300, 348, this->clb1_[0], this->clb1_[1]));
     if (mhz < 322.88) {
@@ -407,7 +407,7 @@ void Cc1101::write_modulation_() {
 
 void Cc1101::write_pa_() {
   int a;
-  float mhz = this->frequency_ / 1000000;
+  float mhz = this->frequency_ / 1000000.0;
 
   if (mhz >= 300 && mhz <= 348) {
     if (this->pa_ <= -30) {
