@@ -252,7 +252,7 @@ void SomfyCover::send_command_(SomfyCommand command, size_t repeat) {
   for (size_t i = 0; i < repeat; i++) {
     this->send_frame_(frame, 7);
   }
-  this->cc1101_->enable_sidle();
+  this->cc1101_->disable_tx();
 }
 
 uint16_t SomfyCover::get_next_rolling_code_() {

@@ -179,13 +179,27 @@ void Cc1101::enable_and_wait() {
     yield();
 }
 
+void Cc1101::enable_rx() {
+  ESP_LOGD(TAG, "Enable RX");
+  this->command_strobe_(CC1101_SIDLE);
+  this->command_strobe_(CC1101_SRX);
+}
+
 void Cc1101::enable_tx() {
   ESP_LOGD(TAG, "Enable TX");
   this->command_strobe_(CC1101_SIDLE);
   this->command_strobe_(CC1101_STX);
 }
 
-void Cc1101::enable_sidle() {
+void Cc1101::disable_tx() {
+  if (this->always_listen_) {
+    this->enable_rx();
+  } else {
+    this->enable_idle();
+  }
+}
+
+void Cc1101::enable_idle() {
   ESP_LOGD(TAG, "Enable IDLE");
   this->command_strobe_(CC1101_SIDLE);
 }

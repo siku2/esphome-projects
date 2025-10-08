@@ -15,8 +15,10 @@ class Cc1101 : public Component,
 
   void enable_and_wait();
 
+  void enable_rx();
   void enable_tx();
-  void enable_sidle();
+  void disable_tx();
+  void enable_idle();
 
   GPIOPin *get_emitter_pin() const { return this->tx_pin_; }
 
@@ -26,6 +28,7 @@ class Cc1101 : public Component,
   void set_channel(uint8_t chan) { this->chan_ = chan; }
   void set_cc_mode(bool cc_mode) { this->cc_mode_ = cc_mode; }
   void set_frequency(float frequency) { this->frequency_ = frequency; }
+  void set_always_listen(bool always_listen) { this->always_listen_ = always_listen; }
 
  protected:
   GPIOPin *miso_pin_{};
@@ -34,6 +37,7 @@ class Cc1101 : public Component,
   uint8_t chan_{};
   bool cc_mode_{};
   float frequency_{};
+  bool always_listen_{false};
 
   uint8_t modulation_{2};
   uint8_t m4_rx_bw_{0};

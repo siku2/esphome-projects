@@ -17,6 +17,7 @@ MULTI_CONF = True
 # Defined for other components
 CONF_CC1101_ID = "cc1101_id"
 CONF_CC_MODE = "cc_mode"
+CONF_ALWAYS_LISTEN = "always_listen"
 
 cc1101_ns = cg.esphome_ns.namespace("cc1101")
 Cc1101 = cc1101_ns.class_("Cc1101", cg.Component, spi.SPIDevice)
@@ -31,6 +32,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_FREQUENCY, default="433.92 Mhz"): cv.frequency,
             cv.Optional(CONF_CHANNEL, default=0): cv.uint8_t,
             cv.Optional(CONF_CC_MODE, default=False): cv.boolean,
+            cv.Optional(CONF_ALWAYS_LISTEN, default=False): cv.boolean,
         },
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -49,3 +51,4 @@ async def to_code(config):
     cg.add(var.set_frequency(config[CONF_FREQUENCY]))
     cg.add(var.set_channel(config[CONF_CHANNEL]))
     cg.add(var.set_cc_mode(config[CONF_CC_MODE]))
+    cg.add(var.set_always_listen(config[CONF_ALWAYS_LISTEN]))
