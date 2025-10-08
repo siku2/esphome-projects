@@ -167,6 +167,7 @@ void Cc1101::dump_config() {
   LOG_PIN("  TX Pin:", this->tx_pin_);
   LOG_PIN("  RX Pin:", this->rx_pin_);
   LOG_PIN("  CS Pin:", this->cs_);
+  LOG_PIN("  MISO Pin:", this->miso_pin_);
   ESP_LOGCONFIG(TAG, "  Part Number: %d", this->read_reg_(CC1101_PARTNUM));
   ESP_LOGCONFIG(TAG, "  Version: %d", this->read_reg_(CC1101_VERSION));
 }
