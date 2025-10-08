@@ -233,7 +233,7 @@ void Cc1101::write_burst_reg_(uint8_t addr, uint8_t *data, size_t length) {
 
 uint8_t Cc1101::read_reg_(uint8_t addr) {
   this->enable_and_wait();
-  this->transfer_byte(addr | READ_BURST);
+  this->transfer_byte(addr | READ_SINGLE);
   uint8_t value = this->read_byte();
   this->disable();
   return value;
