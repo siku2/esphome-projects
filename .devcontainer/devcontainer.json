@@ -23,11 +23,15 @@
                 "ESPHome.esphome-vscode",
                 "hediet.vscode-drawio",
                 "kennylong.kubernetes-yaml-formatter",
+                "llvm-vs-code-extensions.vscode-clangd",
                 "ms-python.python",
                 "ms-vscode.cpptools-extension-pack",
                 "ms-vscode.live-server",
                 "platformio.platformio-ide",
-            ]
+            ],
+            "settings": {
+                "C_Cpp.intelliSenseEngine": "disabled",
+            }
         }
     }
 }

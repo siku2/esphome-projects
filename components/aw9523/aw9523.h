@@ -18,45 +18,42 @@
 #define AW9523_REG_LEDMODE0 0x12
 #define AW9523_REG_LEDMODE1 0x13
 
-namespace esphome
-{
-    namespace aw9523
-    {
+namespace esphome {
+namespace aw9523 {
 
-        class AW9523Component : public Component, public i2c::I2CDevice
-        {
-        public:
-            AW9523Component() = default;
+class AW9523Component : public Component, public i2c::I2CDevice {
+ public:
+  AW9523Component() = default;
 
-            float get_setup_priority() const override { return setup_priority::IO; }
+  float get_setup_priority() const override { return setup_priority::IO; }
 
-            void setup() override;
-            void dump_config() override;
+  void setup() override;
+  void dump_config() override;
 
-            void loop() override;
+  void loop() override;
 
-            void set_divider(uint8_t divider);
-            uint8_t get_divider();
+  void set_divider(uint8_t divider);
+  uint8_t get_divider();
 
-            void set_latch_inputs(bool latch_inputs) { this->latch_inputs_ = latch_inputs; }
-            void set_p0_push_pull(bool p0_push_pull) { this->p0_push_pull_ = p0_push_pull; }
+  void set_latch_inputs(bool latch_inputs) { this->latch_inputs_ = latch_inputs; }
+  void set_p0_push_pull(bool p0_push_pull) { this->p0_push_pull_ = p0_push_pull; }
 
-            float get_max_current();
+  float get_max_current();
 
-            void led_driver(uint8_t pin);
-            void set_pin_value(uint8_t pin, uint8_t val);
+  void led_driver(uint8_t pin);
+  void set_pin_value(uint8_t pin, uint8_t val);
 
-            void pin_mode(uint8_t pin, gpio::Flags flags);
-            void forward_interrupt(uint8_t pin, bool enable);
-            void digital_write(uint8_t pin, bool bit_value);
-            bool digital_read(uint8_t pin);
+  void pin_mode(uint8_t pin, gpio::Flags flags);
+  void forward_interrupt(uint8_t pin, bool enable);
+  void digital_write(uint8_t pin, bool bit_value);
+  bool digital_read(uint8_t pin);
 
-        private:
-            uint16_t value_{};
-            uint8_t divider_{};
-            bool latch_inputs_{};
-            bool p0_push_pull_{};
-        };
+ private:
+  uint16_t value_{};
+  uint8_t divider_{};
+  bool latch_inputs_{};
+  bool p0_push_pull_{};
+};
 
-    } // namespace aw9523
-} // namespace esphome
+}  // namespace aw9523
+}  // namespace esphome
