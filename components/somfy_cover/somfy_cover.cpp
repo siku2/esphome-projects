@@ -227,7 +227,7 @@ void SomfyCover::send_frame_(const std::array<uint8_t, 7> &frame, uint8_t sync) 
   }
 
   // Inter-frame silence
-  this->cc1101_->get_tx_pin().digital_write(false);
+  this->cc1101_->get_tx_pin()->digital_write(false);
   delayMicroseconds(30415);  // Originally `delayMicroseconds(415); delay(30);`
 }
 
