@@ -206,41 +206,27 @@ void SomfyCover::build_frame_(SomfyCommand command, uint16_t rolling_code, std::
 void SomfyCover::send_frame_(const std::array<uint8_t, 7> &frame, uint8_t sync) {
   if (sync == 2) {  // Only with the first frame.
     // Wake-up pulse & Silence
-    this->send_value_(true, 9415);
-    this->send_value_(false, 9565);
+    this->cc1101_->emit_pulse(true, 9415, 9565);
     delay(80);
   }
 
   // Hardware sync: two sync for the first frame, seven for the following ones.
   for (uint8_t i = 0; i < sync; i++) {
-    this->send_value_(true, 4 * SYMBOL);
-    this->send_value_(false, 4 * SYMBOL);
+    this->cc1101_->emit_pulse(true, 4 * SYMBOL, 4 * SYMBOL);
   }
 
   // Software sync
-  this->send_value_(true, 4550);
-  this->send_value_(false, SYMBOL);
+  this->cc1101_->emit_pulse(true, 4550, SYMBOL);
 
   // Data: bits are sent one by one, starting with the MSB.
   for (uint8_t i = 0; i < 56; i++) {
-    if (((frame[i / 8] >> (7 - (i % 8))) & 1) == 1) {
-      this->send_value_(false, SYMBOL);
-      this->send_value_(true, SYMBOL);
-    } else {
-      this->send_value_(true, SYMBOL);
-      this->send_value_(false, SYMBOL);
-    }
+    bool bit = ((frame[i / 8] >> (7 - (i % 8))) & 1) == 1;
+    this->cc1101_->emit_pulse(!bit, SYMBOL, SYMBOL);
   }
 
   // Inter-frame silence
-  this->send_value_(false, 415);
-  delay(30);
-}
-
-void SomfyCover::send_value_(bool value, uint32_t micros) {
-  auto pin = this->cc1101_->get_emitter_pin();
-  pin->digital_write(value);
-  delayMicroseconds(micros);
+  this->cc1101_->get_emitter_pin().digital_write(false);
+  delay_microseconds_safe(30415);  // Originally `delayMicroseconds(415); delay(30);`
 }
 
 void SomfyCover::send_command_(SomfyCommand command, size_t repeat) {

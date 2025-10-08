@@ -59,7 +59,6 @@ class SomfyCover : public cover::Cover, public Component {
 
   void build_frame_(SomfyCommand command, uint16_t rolling_code, std::array<uint8_t, 7> &frame);
   void send_frame_(const std::array<uint8_t, 7> &frame, uint8_t sync);
-  void send_value_(bool value, uint32_t micros);
 
   void send_command_(SomfyCommand command, size_t repeat = 4);
   uint16_t get_next_rolling_code_();
