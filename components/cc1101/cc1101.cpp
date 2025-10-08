@@ -142,18 +142,20 @@ void Cc1101::setup() {
 }
 
 void Cc1101::reset_() {
+  // Hold CSn low and then high for at least 40 μs relative to pulling CSn low
   this->enable();
   delay(1);
   this->cs_->digital_write(true);
   delay(1);
+  // Pull CSn low and wait for SO to go low
   this->cs_->digital_write(false);
-  // TODO: We should wait for MISO to go low, but we have no access to it.
-  //       Instead, we sleep.
-  delay(1);
+  while (this->miso_pin_->digital_read())
+    yield();
+
   this->transfer_byte(CC1101_SRES);
-  // TODO: We should wait for MISO to go low, but we have no access to it.
-  //       Instead, we sleep.
-  delay(1);
+  // When SO goes low again, reset is complete and the chip is in the IDLE state
+  while (this->miso_pin_->digital_read())
+    yield();
   this->disable();
 }
 
@@ -167,6 +169,13 @@ void Cc1101::dump_config() {
   ESP_LOGCONFIG(TAG, "  Version: %d", this->read_reg_(CC1101_VERSION));
 }
 
+void Cc1101::enable_and_wait() {
+  this->enable();
+  // When CSn is pulled low, the MCU must wait until CC1101 SO pin goes low before starting to transfer the header byte
+  while (this->miso_pin_->digital_read())
+    yield();
+}
+
 void Cc1101::enable_tx() {
   this->command_strobe_(CC1101_SIDLE);
   this->command_strobe_(CC1101_STX);
@@ -175,40 +184,27 @@ void Cc1101::enable_tx() {
 void Cc1101::enable_sidle() { this->command_strobe_(CC1101_SIDLE); }
 
 void Cc1101::command_strobe_(uint8_t strobe) {
-  this->enable();
-  // TODO: We should wait for MISO to go low, but we have no access to it.
-  //       Instead, we sleep.
-  delay(1);
+  this->enable_and_wait();
   this->transfer_byte(strobe);
   this->disable();
 }
 
 void Cc1101::write_reg_(uint8_t addr, uint8_t value) {
-  this->enable();
-  // TODO: We should wait for MISO to go low, but we have no access to it.
-  //       Instead, we sleep.
-  delay(1);
+  this->enable_and_wait();
   this->transfer_byte(addr);
   this->transfer_byte(value);
   this->disable();
 }
 
 void Cc1101::write_burst_reg_(uint8_t addr, uint8_t *data, size_t length) {
-  this->enable();
-  // TODO: We should wait for MISO to go low, but we have no access to it.
-  //       Instead, we sleep.
-  delay(1);
+  this->enable_and_wait();
   this->transfer_byte(addr | WRITE_BURST);
   this->transfer_array(data, length);
   this->disable();
 }
 
 uint8_t Cc1101::read_reg_(uint8_t addr) {
-  this->enable();
-  // TODO: We should wait for MISO to go low, but we have no access to it.
-  //       Instead, we sleep.
-  delay(1);
-
+  this->enable_and_wait();
   this->transfer_byte(addr | READ_BURST);
   uint8_t value = this->read_byte();
   this->disable();

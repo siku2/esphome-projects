@@ -8,6 +8,7 @@ from esphome.const import (
     CONF_ID,
     CONF_RX_PIN,
     CONF_TX_PIN,
+    CONF_MISO_PIN,
 )
 
 DEPENDENCIES = ["spi"]
@@ -24,6 +25,7 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(CONF_ID): cv.declare_id(Cc1101),
+            cv.Required(CONF_MISO_PIN): pins.gpio_input_pin_schema,
             cv.Required(CONF_TX_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_RX_PIN): pins.gpio_input_pin_schema,
             cv.Optional(CONF_FREQUENCY, default="433.92 Mhz"): cv.frequency,
@@ -41,6 +43,7 @@ async def to_code(config):
     await cg.register_component(var, config)
     await spi.register_spi_device(var, config)
 
+    cg.add(var.set_miso_pin(await cg.gpio_pin_expression(config[CONF_MISO_PIN])))
     cg.add(var.set_tx_pin(await cg.gpio_pin_expression(config[CONF_TX_PIN])))
     cg.add(var.set_rx_pin(await cg.gpio_pin_expression(config[CONF_RX_PIN])))
     cg.add(var.set_frequency(config[CONF_FREQUENCY]))

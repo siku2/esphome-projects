@@ -8,16 +8,19 @@ namespace esphome {
 namespace cc1101 {
 class Cc1101 : public Component,
                public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
-                                     spi::DATA_RATE_1MHZ> {
+                                     spi::DATA_RATE_5MHZ> {
  public:
   void setup() override;
   void dump_config() override;
+
+  void enable_and_wait();
 
   void enable_tx();
   void enable_sidle();
 
   GPIOPin *get_emitter_pin() const { return this->tx_pin_; }
 
+  void set_miso_pin(GPIOPin *miso_pin) { this->miso_pin_ = miso_pin; }
   void set_tx_pin(GPIOPin *tx_pin) { this->tx_pin_ = tx_pin; }
   void set_rx_pin(GPIOPin *rx_pin) { this->rx_pin_ = rx_pin; }
   void set_channel(uint8_t chan) { this->chan_ = chan; }
@@ -25,6 +28,7 @@ class Cc1101 : public Component,
   void set_frequency(float frequency) { this->frequency_ = frequency; }
 
  protected:
+  GPIOPin *miso_pin_{};
   GPIOPin *tx_pin_{};
   GPIOPin *rx_pin_{};
   uint8_t chan_{};
