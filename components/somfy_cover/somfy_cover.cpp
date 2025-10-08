@@ -178,16 +178,16 @@ void SomfyCover::program() { this->send_command_(SomfyCommand::Prog); }
 
 void SomfyCover::build_frame_(SomfyCommand command, uint16_t rolling_code, std::array<uint8_t, 7> &frame) {
   frame[0] = 0xA7;                                // Encryption key. Doesn't matter much
-  frame[1] = static_cast<uint8_t>(command) << 4;  // Which button did  you press? The 4 LSB will be the checksum
+  frame[1] = static_cast<uint8_t>(command) << 4;  // Which button did you press? The 4 LSB will be the checksum
   frame[2] = rolling_code >> 8;                   // Rolling code (big endian)
   frame[3] = rolling_code & 0xFF;                 // Rolling code
-  frame[4] = this->remote_code_ >> 16;            // Remote address
+  frame[4] = (this->remote_code_ >> 16) & 0xFF;   // Remote address
   frame[5] = (this->remote_code_ >> 8) & 0xFF;    // Remote address
   frame[6] = this->remote_code_ & 0xFF;           // Remote address
 
   // Checksum calculation: a XOR of all the nibbles
   uint8_t checksum = 0;
-  for (uint8_t i = 0; i < frame.size(); i++) {
+  for (size_t i = 0; i < frame.size(); i += 1) {
     checksum = checksum ^ frame[i] ^ (frame[i] >> 4);
   }
   checksum &= 0b1111;  // We keep the last 4 bits only
@@ -199,7 +199,7 @@ void SomfyCover::build_frame_(SomfyCommand command, uint16_t rolling_code, std::
            frame[0], frame[1], frame[2], frame[3], frame[4], frame[5], frame[6]);
 
   // Obfuscation: a XOR of all the bytes
-  for (uint8_t i = 1; i < frame.size(); i++) {
+  for (size_t i = 1; i < frame.size(); i += 1) {
     frame[i] ^= frame[i - 1];
   }
 }
@@ -212,7 +212,7 @@ void SomfyCover::send_frame_(const std::array<uint8_t, 7> &frame, uint8_t sync) 
   }
 
   // Hardware sync: two sync for the first frame, seven for the following ones.
-  for (uint8_t i = 0; i < sync; i++) {
+  for (uint8_t i = 0; i < sync; i += 1) {
     this->cc1101_->emit_pulse(true, 4 * SYMBOL, 4 * SYMBOL);
   }
 
@@ -220,21 +220,22 @@ void SomfyCover::send_frame_(const std::array<uint8_t, 7> &frame, uint8_t sync) 
   this->cc1101_->emit_pulse(true, 4550, SYMBOL);
 
   // Data: bits are sent one by one, starting with the MSB.
-  for (uint8_t i = 0; i < 56; i++) {
-    bool bit = ((frame[i / 8] >> (7 - (i % 8))) & 1) == 1;
+  for (size_t i = 0; i < 8 * frame.size(); i += 1) {
+    uint8_t byte = frame[i / 8];
+    bool bit = ((byte >> (7 - (i % 8))) & 1) == 1;
     this->cc1101_->emit_pulse(!bit, SYMBOL, SYMBOL);
   }
 
   // Inter-frame silence
   this->cc1101_->get_emitter_pin().digital_write(false);
-  delay_microseconds_safe(30415);  // Originally `delayMicroseconds(415); delay(30);`
+  delayMicroseconds(30415);  // Originally `delayMicroseconds(415); delay(30);`
 }
 
 void SomfyCover::send_command_(SomfyCommand command, size_t repeat) {
   std::array<uint8_t, 7> frame;
+  this->build_frame_(command, this->get_next_rolling_code_(), frame);
 
   this->cc1101_->enable_tx();
-  this->build_frame_(command, this->get_next_rolling_code_(), frame);
   this->send_frame_(frame, 2);
   for (size_t i = 0; i < repeat; i++) {
     this->send_frame_(frame, 7);
