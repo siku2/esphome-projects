@@ -8,7 +8,7 @@
             "moby": false
         },
         "ghcr.io/devcontainers/features/python:1": {
-            "toolsToInstall": "esphome,interactivehtmlbom,ruff,uv"
+            "toolsToInstall": "interactivehtmlbom,ruff,uv"
         },
         "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
             "packages": "kicad,libgtk-3-dev,xvfb"
@@ -23,15 +23,12 @@
                 "ESPHome.esphome-vscode",
                 "hediet.vscode-drawio",
                 "kennylong.kubernetes-yaml-formatter",
-                "llvm-vs-code-extensions.vscode-clangd",
                 "ms-python.python",
                 "ms-vscode.cpptools-extension-pack",
                 "ms-vscode.live-server",
                 "platformio.platformio-ide",
+                "tamasfe.even-better-toml",
             ],
-            "settings": {
-                "C_Cpp.intelliSenseEngine": "disabled",
-            }
         }
     }
 }
