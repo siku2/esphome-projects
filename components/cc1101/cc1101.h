@@ -20,11 +20,18 @@ class Cc1101 : public Component,
   void disable_tx();
   void enable_idle();
 
-  GPIOPin *get_emitter_pin() const { return this->tx_pin_; }
+  inline ISRInternalGPIOPin get_emitter_pin() const { return this->tx_pin_; }
+
+  inline void emit_pulse(bool value, uint32_t a_us, uint32_t b_us) {
+    this->tx_pin_.digital_write(value);
+    delayMicroseconds(a_us);
+    this->tx_pin_.digital_write(!value);
+    delayMicroseconds(b_us);
+  }
 
   void set_miso_pin(GPIOPin *miso_pin) { this->miso_pin_ = miso_pin; }
-  void set_tx_pin(GPIOPin *tx_pin) { this->tx_pin_ = tx_pin; }
-  void set_rx_pin(GPIOPin *rx_pin) { this->rx_pin_ = rx_pin; }
+  void set_tx_pin(InternalGPIOPin *tx_pin) { this->tx_pin_ = tx_pin->to_isr(); }
+  void set_rx_pin(InternalGPIOPin *rx_pin) { this->rx_pin_ = rx_pin->to_isr(); }
   void set_channel(uint8_t chan) { this->chan_ = chan; }
   void set_cc_mode(bool cc_mode) { this->cc_mode_ = cc_mode; }
   void set_frequency(float frequency) { this->frequency_ = frequency; }
@@ -32,8 +39,8 @@ class Cc1101 : public Component,
 
  protected:
   GPIOPin *miso_pin_{};
-  GPIOPin *tx_pin_{};
-  GPIOPin *rx_pin_{};
+  ISRInternalGPIOPin tx_pin_{};
+  ISRInternalGPIOPin rx_pin_{};
   uint8_t chan_{};
   bool cc_mode_{};
   float frequency_{};
