@@ -180,11 +180,15 @@ void Cc1101::enable_and_wait() {
 }
 
 void Cc1101::enable_tx() {
+  ESP_LOGD(TAG, "Enable TX");
   this->command_strobe_(CC1101_SIDLE);
   this->command_strobe_(CC1101_STX);
 }
 
-void Cc1101::enable_sidle() { this->command_strobe_(CC1101_SIDLE); }
+void Cc1101::enable_sidle() {
+  ESP_LOGD(TAG, "Enable IDLE");
+  this->command_strobe_(CC1101_SIDLE);
+}
 
 void Cc1101::command_strobe_(uint8_t strobe) {
   this->enable_and_wait();
