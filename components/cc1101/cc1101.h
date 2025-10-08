@@ -6,6 +6,14 @@
 
 namespace esphome {
 namespace cc1101 {
+enum Modulation {
+  MODULATION_2FSK = 0,
+  MODULATION_GFSK = 1,
+  MODULATION_ASK_OOK = 2,
+  MODULATION_4FSK = 3,
+  MODULATION_MSK = 4,
+};
+
 class Cc1101 : public Component,
                public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                      spi::DATA_RATE_5MHZ> {
@@ -15,12 +23,10 @@ class Cc1101 : public Component,
 
   void enable_and_wait();
 
-  void enable_rx();
   void enable_tx();
   void disable_tx();
-  void enable_idle();
 
-  inline ISRInternalGPIOPin get_emitter_pin() const { return this->tx_pin_isr_; }
+  inline ISRInternalGPIOPin get_tx_pin() const { return this->tx_pin_isr_; }
 
   inline void emit_pulse(bool value, uint32_t a_us, uint32_t b_us) {
     this->tx_pin_isr_.digital_write(value);
@@ -34,34 +40,28 @@ class Cc1101 : public Component,
     this->tx_pin_ = tx_pin;
     this->tx_pin_isr_ = tx_pin->to_isr();
   }
-  void set_rx_pin(InternalGPIOPin *rx_pin) {
-    this->rx_pin_ = rx_pin;
-    this->rx_pin_isr_ = rx_pin->to_isr();
-  }
+  void set_frequency(float frequency) { this->frequency_ = frequency; }
   void set_channel(uint8_t chan) { this->chan_ = chan; }
   void set_cc_mode(bool cc_mode) { this->cc_mode_ = cc_mode; }
-  void set_frequency(float frequency) { this->frequency_ = frequency; }
-  void set_always_listen(bool always_listen) { this->always_listen_ = always_listen; }
+  void set_modulation(Modulation modulation) { this->modulation_ = modulation; }
+  void set_pa(int pa) { this->pa_ = pa; }
 
  protected:
-  GPIOPin *miso_pin_{};
-  InternalGPIOPin *tx_pin_{};
-  ISRInternalGPIOPin tx_pin_isr_{};
-  InternalGPIOPin *rx_pin_{};
-  ISRInternalGPIOPin rx_pin_isr_{};
-  uint8_t chan_{};
-  bool cc_mode_{};
-  float frequency_{};
-  bool always_listen_{false};
+  GPIOPin *miso_pin_;
+  InternalGPIOPin *tx_pin_;
+  ISRInternalGPIOPin tx_pin_isr_;
+  float frequency_;
+  uint8_t chan_;
+  bool cc_mode_;
+  Modulation modulation_;
+  int pa_;
 
-  uint8_t modulation_{2};
   uint8_t m4_rx_bw_{0};
   uint8_t clb1_[2] = {24, 28};
   uint8_t clb2_[2] = {31, 38};
   uint8_t clb3_[2] = {65, 76};
   uint8_t clb4_[2] = {77, 79};
   uint8_t last_pa_{0};
-  uint8_t pa_{12};
   uint8_t m2_dc_off_{0};
   uint8_t m2_mod_fm_{0};
   uint8_t m2_man_ch_{0};
@@ -73,7 +73,7 @@ class Cc1101 : public Component,
 
   uint8_t read_reg_(uint8_t addr);
   void write_reg_(uint8_t addr, uint8_t value);
-  void write_burst_reg_(uint8_t addr, uint8_t *data, size_t length);
+  void write_burst_reg_(uint8_t addr, const uint8_t *data, size_t length);
 
   void read_mdmcfg2_();
 

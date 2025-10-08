@@ -141,10 +141,6 @@ void Cc1101::setup() {
   this->tx_pin_->digital_write(false);
   this->reset_();
   this->write_config_();
-
-  if (this->always_listen_) {
-    this->enable_rx();
-  }
 }
 
 void Cc1101::reset_() {
@@ -167,14 +163,16 @@ void Cc1101::reset_() {
 
 void Cc1101::dump_config() {
   ESP_LOGCONFIG(TAG, "CC1101:");
+  LOG_PIN("  CS Pin:", this->cs_);
+  LOG_PIN("  MISO Pin:", this->miso_pin_);
+  LOG_PIN("  TX Pin:", this->tx_pin_);
   ESP_LOGCONFIG(TAG, "  Frequency: %.3f MHz", this->frequency_ / 1000000.0);
   ESP_LOGCONFIG(TAG, "  Channel: %d", this->chan_);
   ESP_LOGCONFIG(TAG, "  CC Mode: %s", YESNO(this->cc_mode_));
-  ESP_LOGCONFIG(TAG, "  Always Listen: %s", YESNO(this->always_listen_));
-  LOG_PIN("  TX Pin:", this->tx_pin_);
-  LOG_PIN("  RX Pin:", this->rx_pin_);
-  LOG_PIN("  CS Pin:", this->cs_);
-  LOG_PIN("  MISO Pin:", this->miso_pin_);
+  ESP_LOGCONFIG(TAG, "  Modulation: %d", this->modulation_);
+  ESP_LOGCONFIG(TAG, "  PA: %d", this->pa_);
+
+  // extra info
   ESP_LOGCONFIG(TAG, "  Part Number: %d", this->read_reg_(CC1101_PARTNUM));
   ESP_LOGCONFIG(TAG, "  Version: %d", this->read_reg_(CC1101_VERSION));
 }
@@ -186,28 +184,14 @@ void Cc1101::enable_and_wait() {
     yield();
 }
 
-void Cc1101::enable_rx() {
-  ESP_LOGD(TAG, "Enable RX");
-  this->command_strobe_(CC1101_SIDLE);
-  this->command_strobe_(CC1101_SRX);
-}
-
 void Cc1101::enable_tx() {
-  ESP_LOGD(TAG, "Enable TX");
+  ESP_LOGD(TAG, "Changing to TX state");
   this->command_strobe_(CC1101_SIDLE);
   this->command_strobe_(CC1101_STX);
 }
 
 void Cc1101::disable_tx() {
-  if (this->always_listen_) {
-    this->enable_rx();
-  } else {
-    this->enable_idle();
-  }
-}
-
-void Cc1101::enable_idle() {
-  ESP_LOGD(TAG, "Enable IDLE");
+  ESP_LOGD(TAG, "Changing to IDLE state");
   this->command_strobe_(CC1101_SIDLE);
 }
 
@@ -224,10 +208,10 @@ void Cc1101::write_reg_(uint8_t addr, uint8_t value) {
   this->disable();
 }
 
-void Cc1101::write_burst_reg_(uint8_t addr, uint8_t *data, size_t length) {
+void Cc1101::write_burst_reg_(uint8_t addr, const uint8_t *data, size_t length) {
   this->enable_and_wait();
   this->transfer_byte(addr | WRITE_BURST);
-  this->transfer_array(data, length);
+  this->write_array(data, length);
   this->disable();
 }
 
@@ -348,7 +332,7 @@ void Cc1101::calibrate_() {
       this->write_reg_(CC1101_TEST0, 0x0B);
     } else {
       this->write_reg_(CC1101_TEST0, 0x09);
-      int s = this->read_reg_(CC1101_FSCAL2);
+      uint8_t s = this->read_reg_(CC1101_FSCAL2);
       if (s < 32) {
         this->write_reg_(CC1101_FSCAL2, s + 32);
       }
@@ -362,7 +346,7 @@ void Cc1101::calibrate_() {
       this->write_reg_(CC1101_TEST0, 0x0B);
     } else {
       this->write_reg_(CC1101_TEST0, 0x09);
-      int s = this->read_reg_(CC1101_FSCAL2);
+      uint8_t s = this->read_reg_(CC1101_FSCAL2);
       if (s < 32) {
         this->write_reg_(CC1101_FSCAL2, s + 32);
       }
@@ -376,7 +360,7 @@ void Cc1101::calibrate_() {
       this->write_reg_(CC1101_TEST0, 0x0B);
     } else {
       this->write_reg_(CC1101_TEST0, 0x09);
-      int s = this->read_reg_(CC1101_FSCAL2);
+      uint8_t s = this->read_reg_(CC1101_FSCAL2);
       if (s < 32) {
         this->write_reg_(CC1101_FSCAL2, s + 32);
       }
@@ -387,7 +371,7 @@ void Cc1101::calibrate_() {
   } else if (mhz >= 900 && mhz <= 928) {
     this->write_reg_(CC1101_FSCTRL0, map(mhz, 900, 928, this->clb4_[0], this->clb4_[1]));
     this->write_reg_(CC1101_TEST0, 0x09);
-    int s = this->read_reg_(CC1101_FSCAL2);
+    uint8_t s = this->read_reg_(CC1101_FSCAL2);
     if (s < 32) {
       this->write_reg_(CC1101_FSCAL2, s + 32);
     }
@@ -401,29 +385,26 @@ void Cc1101::write_modulation_() {
   this->read_mdmcfg2_();
   uint8_t frend0;
   switch (this->modulation_) {
-    case 0:
+    case MODULATION_2FSK:
       this->m2_mod_fm_ = 0x00;
       frend0 = 0x10;
-      break;  // 2-FSK
-    case 1:
+      break;
+    case MODULATION_GFSK:
       this->m2_mod_fm_ = 0x10;
       frend0 = 0x10;
-      break;  // GFSK
-    case 2:
+      break;
+    case MODULATION_ASK_OOK:
       this->m2_mod_fm_ = 0x30;
       frend0 = 0x11;
-      break;  // ASK
-    case 3:
+      break;
+    case MODULATION_4FSK:
       this->m2_mod_fm_ = 0x40;
       frend0 = 0x10;
-      break;  // 4-FSK
-    case 4:
+      break;
+    case MODULATION_MSK:
       this->m2_mod_fm_ = 0x70;
       frend0 = 0x10;
-      break;  // MSK
-    default:
-      ESP_LOGE(TAG, "Modulation %d not supported.", this->modulation_);
-      return;
+      break;
   }
   this->write_reg_(CC1101_MDMCFG2, this->m2_dc_off_ + this->m2_mod_fm_ + this->m2_man_ch_ + this->m2_sync_m_);
   this->write_reg_(CC1101_FREND0, frend0);
@@ -523,7 +504,7 @@ void Cc1101::write_pa_() {
   //                  -30   -20   -15   -10   0     5     7     10
   uint8_t pa_table[8]{0x00, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-  if (this->modulation_ == 2) {
+  if (this->modulation_ == MODULATION_ASK_OOK) {
     pa_table[0] = 0;
     pa_table[1] = a;
   } else {
