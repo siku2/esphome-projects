@@ -56,7 +56,7 @@ class Cc1101 : public Component,
   Modulation modulation_;
   int pa_;
 
-  uint8_t m4_rx_bw_{0};
+  uint8_t version_{0};
   uint8_t clb1_[2] = {24, 28};
   uint8_t clb2_[2] = {31, 38};
   uint8_t clb3_[2] = {65, 76};
@@ -66,6 +66,7 @@ class Cc1101 : public Component,
   uint8_t m2_mod_fm_{0};
   uint8_t m2_man_ch_{0};
   uint8_t m2_sync_m_{0};
+  uint8_t m4_rx_bw_{0};
 
   void reset_();
   void calibrate_();
