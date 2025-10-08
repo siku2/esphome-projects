@@ -219,10 +219,10 @@ namespace esphome
       frame[0] = 0xA7;                               // Encryption key. Doesn't matter much
       frame[1] = static_cast<uint8_t>(command) << 4; // Which button did  you press? The 4 LSB will be the checksum
       frame[2] = rolling_code >> 8;                  // Rolling code (big endian)
-      frame[3] = rolling_code;                       // Rolling code
+      frame[3] = rolling_code & 0xFF;                // Rolling code
       frame[4] = this->remote_code_ >> 16;           // Remote address
-      frame[5] = this->remote_code_ >> 8;            // Remote address
-      frame[6] = this->remote_code_;                 // Remote address
+      frame[5] = (this->remote_code_ >> 8) & 0xFF;   // Remote address
+      frame[6] = this->remote_code_ & 0xFF;          // Remote address
 
       // Checksum calculation: a XOR of all the nibbles
       uint8_t checksum = 0;
