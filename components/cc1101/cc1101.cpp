@@ -183,10 +183,6 @@ void Cc1101::dump_config() {
   // extra info
   ESP_LOGCONFIG(TAG, "  Part Number: %d", this->part_number_);
   ESP_LOGCONFIG(TAG, "  Version: %d", this->version_);
-  ESP_LOGCONFIG(TAG, "  M2_DC_OFF: %d", this->m2_dc_off_);
-  ESP_LOGCONFIG(TAG, "  M2_MOD_FM: %d", this->m2_mod_fm_);
-  ESP_LOGCONFIG(TAG, "  M2_MAN_CH: %d", this->m2_man_ch_);
-  ESP_LOGCONFIG(TAG, "  M2_SYNC_M: %d", this->m2_sync_m_);
 }
 
 void Cc1101::enable_and_wait() {
