@@ -164,6 +164,9 @@ void Cc1101::reset_() {
 void Cc1101::dump_config() {
   ESP_LOGCONFIG(TAG, "CC1101:");
   ESP_LOGCONFIG(TAG, "  Frequency: %.3f MHz", this->frequency_ / 1000000.0);
+  ESP_LOGCONFIG(TAG, "  Channel: %d", this->chan_);
+  ESP_LOGCONFIG(TAG, "  CC Mode: %s", YESNO(this->cc_mode_));
+  ESP_LOGCONFIG(TAG, "  Always Listen: %s", YESNO(this->always_listen_));
   LOG_PIN("  TX Pin:", this->tx_pin_);
   LOG_PIN("  RX Pin:", this->rx_pin_);
   LOG_PIN("  CS Pin:", this->cs_);
