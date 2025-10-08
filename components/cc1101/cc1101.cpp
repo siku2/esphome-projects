@@ -141,6 +141,10 @@ void Cc1101::setup() {
   this->tx_pin_->digital_write(false);
   this->reset_();
   this->write_config_();
+
+  if (this->always_listen_) {
+    this->enable_rx();
+  }
 }
 
 void Cc1101::reset_() {
