@@ -28,12 +28,8 @@ substitutions:
 packages:
   base: !include
     file: ../../packages/base.yaml
-    vars:
-      language: "${language}"
   crowpanel_5_79in_epaper: !include
     file: ../../packages/crowpanel_5_79in_epaper.yaml
-    vars:
-      language: "${language}"
 
 esphome:
   name: "${name}"
