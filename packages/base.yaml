@@ -1,5 +1,5 @@
 substitutions:
-  language: "de"
+  language: "en"
   timezone: "Europe/Zurich"
   translation:
     de:
