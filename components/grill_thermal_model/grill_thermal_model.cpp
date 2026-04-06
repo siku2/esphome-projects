@@ -350,14 +350,16 @@ void GrillThermalModel::update() {
   }
 
   if (this->phase_ == CookPhase::IDLE || this->phase_ == CookPhase::LEARNING) {
-    this->publish_if_changed_(this->finish_time_sensor_, "Estimating...", &this->last_finish_time_text_);
-    this->publish_if_changed_(this->pull_time_sensor_, "Estimating...", &this->last_pull_time_text_);
+    this->publish_if_changed_(this->finish_time_sensor_, "", &this->last_finish_time_text_);
+    this->publish_if_changed_(this->pull_time_sensor_, "", &this->last_pull_time_text_);
+    this->publish_if_changed_(this->rest_end_time_sensor_, "", &this->last_rest_end_time_text_);
     return;
   }
 
   if (this->phase_ == CookPhase::PAUSE) {
-    this->publish_if_changed_(this->finish_time_sensor_, "Paused", &this->last_finish_time_text_);
-    this->publish_if_changed_(this->pull_time_sensor_, "Paused", &this->last_pull_time_text_);
+    this->publish_if_changed_(this->finish_time_sensor_, "", &this->last_finish_time_text_);
+    this->publish_if_changed_(this->pull_time_sensor_, "", &this->last_pull_time_text_);
+    this->publish_if_changed_(this->rest_end_time_sensor_, "", &this->last_rest_end_time_text_);
     return;
   }
 
@@ -371,8 +373,8 @@ void GrillThermalModel::update() {
     if (this->rest_remaining_min_sensor_ != nullptr) {
       this->rest_remaining_min_sensor_->publish_state(roundf(remaining_s / 60.0f));
     }
-    this->publish_if_changed_(this->finish_time_sensor_, "Resting", &this->last_finish_time_text_);
-    this->publish_if_changed_(this->pull_time_sensor_, "Resting", &this->last_pull_time_text_);
+    this->publish_if_changed_(this->finish_time_sensor_, "", &this->last_finish_time_text_);
+    this->publish_if_changed_(this->pull_time_sensor_, "", &this->last_pull_time_text_);
     return;
   }
 
@@ -387,8 +389,9 @@ void GrillThermalModel::update() {
   }
 
   if (!this->regression_valid_ || this->regression_r2_ < MIN_R2) {
-    this->publish_if_changed_(this->finish_time_sensor_, "Estimating...", &this->last_finish_time_text_);
-    this->publish_if_changed_(this->pull_time_sensor_, "Estimating...", &this->last_pull_time_text_);
+    this->publish_if_changed_(this->finish_time_sensor_, "", &this->last_finish_time_text_);
+    this->publish_if_changed_(this->pull_time_sensor_, "", &this->last_pull_time_text_);
+    this->publish_if_changed_(this->rest_end_time_sensor_, "", &this->last_rest_end_time_text_);
     return;
   }
 
@@ -401,8 +404,9 @@ void GrillThermalModel::update() {
   bool pull_ok = this->compute_eta_seconds_(pull_temp, now_s, &pull_eta_s);
 
   if (!finish_ok || !pull_ok) {
-    this->publish_if_changed_(this->finish_time_sensor_, "Estimating...", &this->last_finish_time_text_);
-    this->publish_if_changed_(this->pull_time_sensor_, "Estimating...", &this->last_pull_time_text_);
+    this->publish_if_changed_(this->finish_time_sensor_, "", &this->last_finish_time_text_);
+    this->publish_if_changed_(this->pull_time_sensor_, "", &this->last_pull_time_text_);
+    this->publish_if_changed_(this->rest_end_time_sensor_, "", &this->last_rest_end_time_text_);
     return;
   }
 
