@@ -1,0 +1,71 @@
+substitutions:
+  language: "de"
+  timezone: "Europe/Zurich"
+  translation:
+    de:
+      base_restart: "Neustarten"
+      base_log_level: "Log Level"
+      base_last_restart: "Letzter Neustart"
+      base_wifi_signal: "WiFi Signal"
+      base_restart_reason: "Neustart Grund"
+
+    en:
+      base_restart: "Restart"
+      base_log_level: "Log Level"
+      base_last_restart: "Last Restart"
+      base_wifi_signal: "WiFi Signal"
+      base_restart_reason: "Restart Reason"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  domain: !secret wifi_domain
+  fast_connect: true
+
+debug:
+  update_interval: "never"
+
+logger:
+  level: "VERBOSE"
+  initial_level: "DEBUG"
+
+# Peripherals
+
+button:
+- id: "base_restart"
+  platform: "restart"
+  name: "${translation[language].base_restart}"
+
+select:
+- id: "base_log_level"
+  platform: "logger"
+  name: "${translation[language].base_log_level}"
+
+sensor:
+- id: "base_last_restart"
+  entity_category: "DIAGNOSTIC"
+  platform: "uptime"
+  type: "timestamp"
+  name: "${translation[language].base_last_restart}"
+
+- id: "base_wifi_signal"
+  name: "${translation[language].base_wifi_signal}"
+  entity_category: "DIAGNOSTIC"
+  filters:
+  - round: 1
+  # Only send significant changes or every 24h
+  - or:
+    - throttle: "24h"
+    - delta: 5.0
+  platform: "wifi_signal"
+  update_interval: "5min"
+
+text_sensor:
+- platform: "debug"
+  reset_reason:
+    name: "${translation[language].base_restart_reason}"
+
+time:
+- id: "base_homeassistant_time"
+  timezone: "${timezone}"
+  platform: "homeassistant"
