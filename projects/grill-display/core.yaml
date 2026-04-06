@@ -566,15 +566,12 @@ grill_thermal_model:
             args: [ "x" ]
 
 interval:
-# Update cooking display every 1.5 seconds when grill is running
-- interval: 1.5s
+- interval: 5s
   then:
   - if:
       condition:
-        lambda: return id(grill_cook_phase).state == "${translation[language].grill_phase_idle}";
+        lambda: return id(climate_pid_east).action == CLIMATE_ACTION_HEATING || id(climate_pid_west).action == CLIMATE_ACTION_HEATING;
       then:
-      - lvgl.page.show: "lvgl_pg_clock"
-      else:
       - lvgl.page.show: "lvgl_pg_cooking"
       - lvgl.label.update:
           id: "lbl_east_temp"
@@ -625,3 +622,6 @@ interval:
           - lvgl.label.update:
               id: "lbl_secondary_time"
               text: !lambda return id(grill_pull_time).state;
+      - component.update: "cp579epd_display"
+      else:
+      - lvgl.page.show: "lvgl_pg_clock"
