@@ -34,8 +34,6 @@ packages:
     file: ../../packages/crowpanel_5_79in_epaper.yaml
     vars:
       language: "${language}"
-    vars:
-      language: "${language}"
 
 esphome:
   name: "${name}"
