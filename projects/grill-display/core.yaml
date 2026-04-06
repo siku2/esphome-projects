@@ -1,6 +1,7 @@
 substitutions:
   api_encryption_key: "" # REQUIRED!
   ota_password: "" # REQUIRED!
+  git_ref: "" # REQUIRED!
 
   name: "grill-display"
   friendly_name: "Grill Display"
@@ -29,8 +30,10 @@ dashboard_import:
 
 external_components:
 - source:
-    type: local
-    path: ../../components
+    type: git
+    url: "https://github.com/siku2/esphome-projects"
+    ref: "${git_ref}"
+    path: "projects/reflow-oven/components"
   components: [ "grill_thermal_model" ]
 
 logger:
