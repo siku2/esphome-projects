@@ -317,20 +317,20 @@ lvgl:
           format: "Cooking page loaded"
     widgets:
     - obj:
-        # Main container with grid layout
-        width: 240
-        height: 296
-        pad_all: 2
+        # Main container with grid layout for widescreen (792x272)
+        width: 792
+        height: 272
+        pad_all: 4
         border_width: 0
         bg_color: "color_white"
         layout:
           type: grid
-          grid_rows: [ "35px", "35px", "35px", "35px", "35px", "35px", "35px", "35px" ]
-          grid_columns: [ "120px", "120px" ]
-          pad_row: 2px
-          pad_column: 2px
+          grid_rows: [ "40px", "50px", "40px", "50px", "40px", "50px" ]
+          grid_columns: [ "260px", "260px", "260px" ]
+          pad_row: 3px
+          pad_column: 3px
         widgets:
-        # --- ROW 1: LEFT/RIGHT GRILL LABELS ---
+        # --- ROW 0: ZONE LABELS ---
         - label:
             text: "Left / East"
             text_font: "roboto_14"
@@ -339,14 +339,21 @@ lvgl:
             grid_cell_column_pos: 0
             grid_cell_x_align: "CENTER"
         - label:
-            text: "Right / West"
+            text: "Phase"
             text_font: "roboto_14"
             text_align: "CENTER"
             grid_cell_row_pos: 0
             grid_cell_column_pos: 1
             grid_cell_x_align: "CENTER"
+        - label:
+            text: "Right / West"
+            text_font: "roboto_14"
+            text_align: "CENTER"
+            grid_cell_row_pos: 0
+            grid_cell_column_pos: 2
+            grid_cell_x_align: "CENTER"
 
-        # --- ROW 2: LEFT/RIGHT GRILL TEMPERATURES ---
+        # --- ROW 1: ZONE TEMPERATURES ---
         - label:
             id: "lbl_east_temp"
             text: "--°C"
@@ -356,15 +363,24 @@ lvgl:
             grid_cell_column_pos: 0
             grid_cell_x_align: "CENTER"
         - label:
+            id: "lbl_cook_phase"
+            text: "---"
+            text_font: "roboto_14"
+            text_align: "CENTER"
+            long_mode: "WRAP"
+            grid_cell_row_pos: 1
+            grid_cell_column_pos: 1
+            grid_cell_x_align: "CENTER"
+        - label:
             id: "lbl_west_temp"
             text: "--°C"
             text_font: "roboto_24_bold"
             text_align: "CENTER"
             grid_cell_row_pos: 1
-            grid_cell_column_pos: 1
+            grid_cell_column_pos: 2
             grid_cell_x_align: "CENTER"
 
-        # --- ROW 3: MEAT AND TARGET LABELS ---
+        # --- ROW 2: MEAT/TARGET AND TIMING LABELS ---
         - label:
             text: "Meat"
             text_font: "roboto_14"
@@ -373,14 +389,21 @@ lvgl:
             grid_cell_column_pos: 0
             grid_cell_x_align: "CENTER"
         - label:
-            text: "Target"
+            text: "Finish"
             text_font: "roboto_14"
             text_align: "CENTER"
             grid_cell_row_pos: 2
             grid_cell_column_pos: 1
             grid_cell_x_align: "CENTER"
+        - label:
+            text: "Zone"
+            text_font: "roboto_14"
+            text_align: "CENTER"
+            grid_cell_row_pos: 2
+            grid_cell_column_pos: 2
+            grid_cell_x_align: "CENTER"
 
-        # --- ROW 4: MEAT AND TARGET VALUES ---
+        # --- ROW 3: MEAT/TARGET AND TIMING VALUES ---
         - label:
             id: "lbl_meat_temp"
             text: "--°C"
@@ -390,55 +413,28 @@ lvgl:
             grid_cell_column_pos: 0
             grid_cell_x_align: "CENTER"
         - label:
-            id: "lbl_target_temp"
-            text: "--°C"
+            id: "lbl_finish_time"
+            text: "---"
             text_font: "roboto_24_bold"
             text_align: "CENTER"
             grid_cell_row_pos: 3
             grid_cell_column_pos: 1
             grid_cell_x_align: "CENTER"
-
-        # --- ROW 5: ACTIVE ZONE AND PHASE LABELS ---
-        - label:
-            text: "Zone"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            grid_cell_row_pos: 4
-            grid_cell_column_pos: 0
-            grid_cell_x_align: "CENTER"
-        - label:
-            text: "Phase"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            grid_cell_row_pos: 4
-            grid_cell_column_pos: 1
-            grid_cell_x_align: "CENTER"
-
-        # --- ROW 6: ACTIVE ZONE AND PHASE VALUES ---
         - label:
             id: "lbl_active_side"
             text: "---"
             text_font: "roboto_20"
             text_align: "CENTER"
-            grid_cell_row_pos: 5
-            grid_cell_column_pos: 0
-            grid_cell_x_align: "CENTER"
-        - label:
-            id: "lbl_cook_phase"
-            text: "---"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            long_mode: "WRAP"
-            grid_cell_row_pos: 5
-            grid_cell_column_pos: 1
+            grid_cell_row_pos: 3
+            grid_cell_column_pos: 2
             grid_cell_x_align: "CENTER"
 
-        # --- ROW 7: FINISH/PULL LABELS ---
+        # --- ROW 4: TARGET AND SECONDARY TIMING LABELS ---
         - label:
-            text: "Finish"
+            text: "Target"
             text_font: "roboto_14"
             text_align: "CENTER"
-            grid_cell_row_pos: 6
+            grid_cell_row_pos: 4
             grid_cell_column_pos: 0
             grid_cell_x_align: "CENTER"
         - label:
@@ -446,27 +442,36 @@ lvgl:
             text: "Pull"
             text_font: "roboto_14"
             text_align: "CENTER"
-            grid_cell_row_pos: 6
+            grid_cell_row_pos: 4
             grid_cell_column_pos: 1
             grid_cell_x_align: "CENTER"
-
-        # --- ROW 8: FINISH/PULL VALUES ---
         - label:
-            id: "lbl_finish_time"
-            text: "---"
-            text_font: "roboto_20"
+            text: ""
+            text_font: "roboto_14"
+            grid_cell_row_pos: 4
+            grid_cell_column_pos: 2
+
+        # --- ROW 5: TARGET AND SECONDARY TIMING VALUES ---
+        - label:
+            id: "lbl_target_temp"
+            text: "--°C"
+            text_font: "roboto_24_bold"
             text_align: "CENTER"
-            grid_cell_row_pos: 7
+            grid_cell_row_pos: 5
             grid_cell_column_pos: 0
             grid_cell_x_align: "CENTER"
         - label:
             id: "lbl_secondary_time"
             text: "---"
-            text_font: "roboto_20"
+            text_font: "roboto_24_bold"
             text_align: "CENTER"
-            grid_cell_row_pos: 7
+            grid_cell_row_pos: 5
             grid_cell_column_pos: 1
             grid_cell_x_align: "CENTER"
+        - label:
+            text: ""
+            grid_cell_row_pos: 5
+            grid_cell_column_pos: 2
 
 output:
 - &heater_east_float
