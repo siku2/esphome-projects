@@ -1,6 +1,6 @@
 substitutions:
-  api_encryption_key: !secret api_encryption_key
-  ota_password: !secret ota_password
+  api_encryption_key: "" # REQUIRED!
+  ota_password: "" # REQUIRED!
 
   name: "grill-display"
   friendly_name: "Grill Display"
