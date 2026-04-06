@@ -33,7 +33,7 @@ external_components:
     type: git
     url: "https://github.com/siku2/esphome-projects"
     ref: "${git_ref}"
-    path: "projects/reflow-oven/components"
+    path: "components"
   components: [ "grill_thermal_model" ]
 
 logger:
