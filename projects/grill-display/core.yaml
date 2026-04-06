@@ -1,0 +1,315 @@
+substitutions:
+  api_encryption_key: "" # REQUIRED!
+  ota_password: "" # REQUIRED!
+
+  name: "grill-display"
+  friendly_name: "Grill Display"
+  language: "en"
+  translation:
+    de:
+      probe_east_temperature_raw: "Probe Ost"
+      probe_grey_temperature_raw: "Probe Grau"
+      probe_west_temperature_public: "Temperatur West"
+      probe_east_temperature_public: "Temperatur Ost"
+      probe_grey_temperature_public: "Temperatur Grau"
+      climate_pid_east: "Heizstab Ost"
+      climate_pid_west: "Heizstab West"
+
+    en:
+      probe_east_temperature_raw: "Probe East"
+      probe_grey_temperature_raw: "Probe Grey"
+      probe_west_temperature_public: "Temperature West"
+      probe_east_temperature_public: "Temperature East"
+      probe_grey_temperature_public: "Temperature Grey"
+      climate_pid_east: "Heater East"
+      climate_pid_west: "Heater West"
+
+
+packages:
+  base: !include
+    file: ../../packages/base.yaml
+    vars:
+      language: "${language}"
+  crowpanel_5_79in_epaper: !include
+    file: ../../packages/crowpanel_5_79in_epaper.yaml
+    vars:
+      language: "${language}"
+    vars:
+      language: "${language}"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  name_add_mac_suffix: true
+  project:
+    name: "siku2.grill-display"
+    version: "0.1.0"
+
+dashboard_import:
+  package_import_url: "github://siku2/esphome-projects/projects/grill-display/core.yaml@main"
+  import_full_config: false
+
+logger:
+  logs:
+    max31855: "INFO"
+  hardware_uart: "UART0"
+
+api:
+  encryption:
+    key: "${api_encryption_key}"
+
+ota:
+- platform: "esphome"
+  password: "${ota_password}"
+
+spi:
+  miso_pin: "GPIO18"
+  clk_pin: "GPIO19"
+
+sensor:
+- &probe_west_temperature_raw
+  id: "probe_west_temperature_raw"
+  internal: true
+  filters:
+  - round: 1
+  # Don't report error values (they happen fairly often)
+  - filter_out: "NaN"
+  # Only resort to NaN after 5s of no new value
+  - timeout: "5s"
+  - delta: 0.5
+  # If the value doesn't change still emit a value every 5s
+  - timeout:
+      timeout: "5s"
+      value: "last"
+  on_value:
+    then:
+    - lambda: !lambda |
+        id(probe_west_temperature_public)->publish_state(x);
+  platform: "max31855"
+  update_interval: "500ms"
+  cs_pin: "GPIO20"
+
+- <<: *probe_west_temperature_raw
+  id: "probe_east_temperature_raw"
+  name: "${translation[language].probe_east_temperature_raw}"
+  on_value: 
+    then:
+    - lambda: !lambda |
+        id(probe_east_temperature_public)->publish_state(x);
+  cs_pin: "GPIO38"
+
+- <<: *probe_west_temperature_raw
+  id: "probe_grey_temperature_raw"
+  name: "${translation[language].probe_grey_temperature_raw}"
+  on_value: 
+    then:
+    - lambda: !lambda |
+        id(probe_grey_temperature_public)->publish_state(x);
+  cs_pin: "GPIO21"
+
+# Public temperature sensors exposed to HA
+
+- &probe_west_temperature_public
+  id: "probe_west_temperature_public"
+  name: "${translation[language].probe_west_temperature_public}"
+  unit_of_measurement: "°C"
+  device_class: "temperature"
+  state_class: "measurement"
+  accuracy_decimals: 0
+  filters:
+  - delta: 0.5
+  platform: "template"
+  update_interval: "never"
+
+- <<: *probe_west_temperature_public
+  id: "probe_east_temperature_public"
+  name: "${translation[language].probe_east_temperature_public}"
+
+- <<: *probe_west_temperature_public
+  id: "probe_grey_temperature_public"
+  name: "${translation[language].probe_grey_temperature_public}"
+
+time:
+- id: !extend "base_homeassistant_time"
+  on_time_sync:
+    then:
+    - script.execute: "update_display_time"
+  on_time:
+  # Every 5 minutes, offset by 2:30
+  - seconds: "30"
+    minutes: "2/5"
+    then:
+    - script.execute: "update_display_time"
+
+font:
+# gfonts://family[@weight]
+- file: "gfonts://Roboto"
+  id: "roboto_20"
+  size: 30
+
+switch:
+- &heater_east
+  id: "heater_east"
+  restore_mode: "ALWAYS_OFF"
+  platform: "homeassistant"
+  entity_id: "switch.on_off_light_31"
+
+- <<: *heater_east
+  id: "heater_west"
+  entity_id: "switch.terrasse_grill_west"
+
+
+script:
+- id: "update_display_time"
+  mode: "single"
+  then:
+  - logger.log:
+      level: "DEBUG"
+      format: "Updating display time"
+  - lambda: !lambda |
+      const uint32_t five_minutes_in_seconds = 5 * 60;
+      const uint32_t twelve_hours_in_seconds = 12 * 60 * 60;
+
+      auto now = id(base_homeassistant_time).now();
+      uint32_t seconds = now.second + 60 * now.minute + 3600 * now.hour;
+      // Round to the nearest 5 minutes
+      seconds = (seconds + five_minutes_in_seconds / 2) / five_minutes_in_seconds * five_minutes_in_seconds;
+
+      auto meter_widget = id(lvgl_meter_time);
+
+      lv_meter_set_indicator_value(meter_widget, id(lvgl_minute_hand), (seconds % 3600) / 60.0);
+      // Only divide by 60 instead of 3600 because the hour hand is still resolved in minute resolution.
+      lv_meter_set_indicator_value(meter_widget, id(lvgl_hour_hand), (seconds % twelve_hours_in_seconds) / 60.0);
+
+  - component.update: "cp579epd_display"
+
+color:
+- id: "color_white"
+  hex: "000000"
+- id: "color_black"
+  hex: "FFFFFF"
+
+lvgl:
+  displays:
+  - "cp579epd_display"
+  buffer_size: "12%"
+  log_level: "info"
+  theme:
+    label:
+      text_color: "color_black"
+  bg_color: "color_white"
+
+  pages:
+  - id: "lvgl_pg_clock"
+    widgets:
+    - obj:
+        # clock container
+        height: "SIZE_CONTENT"
+        width: 240
+        align: "CENTER"
+        pad_all: 0
+        border_width: 0
+        bg_color: "color_white"
+        widgets:
+        - meter:
+            id: "lvgl_meter_time"
+            # clock face
+            height: 220
+            width: 220
+            align: "CENTER"
+            bg_opa: "TRANSP"
+            border_width: 0
+            text_color: "color_black"
+            scales:
+            - range_from: 0 # minutes scale
+              range_to: 60
+              angle_range: 360
+              rotation: 270
+              ticks:
+                width: 1
+                count: 61
+                length: 10
+                color: "color_black"
+              indicators:
+              - line:
+                  id: "lvgl_minute_hand"
+                  width: 3
+                  color: "color_black"
+                  r_mod: -4
+                  value: 0
+            - range_from: 1 # hours scale for labels
+              range_to: 12
+              angle_range: 330
+              rotation: 300
+              ticks:
+                width: 1
+                count: 12
+                length: 1
+                major:
+                  stride: 1
+                  width: 4
+                  length: 10
+                  color: "color_black"
+                  label_gap: 12
+            - range_from: 0 # hi-res hours scale for hand
+              range_to: 720
+              angle_range: 360
+              rotation: 270
+              ticks:
+                count: 0
+              indicators:
+              - line:
+                  id: "lvgl_hour_hand"
+                  width: 5
+                  color: "color_black"
+                  r_mod: -30
+                  value: 0
+
+output:
+- &heater_east_float
+  id: "heater_east_float"
+  platform: "template"
+  type: "float"
+  write_action:
+  - lambda: !lambda |
+      auto sw = id(heater_east);
+      if (state > 0.5) {
+        sw->turn_on();
+      } else {
+        sw->turn_off();
+      }
+
+- <<: *heater_east_float
+  id: heater_west_float
+  write_action:
+  - lambda: !lambda |
+      auto sw = id(heater_west);
+      if (state > 0.5) {
+        sw->turn_on();
+      } else {
+        sw->turn_off();
+      }
+
+
+climate:
+- &climate_pid_east
+  id: "climate_pid_east"
+  name: "${translation[language].climate_pid_east}"
+  visual:
+    min_temperature: 40
+    max_temperature: 300
+    temperature_step: 5
+  platform: "pid"
+  sensor: "probe_east_temperature_raw"
+  default_target_temperature: 0.0
+  heat_output: "heater_east_float"
+  control_parameters:
+    kp: 0.02829
+    ki: 0.00016
+    kd: 1.21726
+
+- <<: *climate_pid_east
+  id: "climate_pid_west"
+  name: "${translation[language].climate_pid_west}"
+  sensor: "probe_west_temperature_raw"
+  heat_output: "heater_west_float"
