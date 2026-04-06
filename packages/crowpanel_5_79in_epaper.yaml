@@ -29,6 +29,29 @@
 # - `cp579epd_epd_power`: EPD power control.
 # - `cp579epd_display_full_update`: Switch to control full/partial updates (Defaults to partial update).
 
+substitutions:
+  language: "en"
+  translation:
+    de:
+      cp579epd_rotary_down: "Drehregler runter"
+      cp579epd_rotary_press: "Drehregler drücken"
+      cp579epd_rotary_up: "Drehregler hoch"
+      cp579epd_exit: "Taste Zurück"
+      cp579epd_menu: "Taste Menü"
+      cp579epd_epd_power: "EPD Strom"
+      cp579epd_display_full_update: "Anzeige Vollaktualisierung"
+      cp579epd_run_full_update: "Anzeige einmal voll aktualisieren"
+
+    en:
+      cp579epd_rotary_down: "Rotary down"
+      cp579epd_rotary_press: "Rotary press"
+      cp579epd_rotary_up: "Rotary up"
+      cp579epd_exit: "Button exit"
+      cp579epd_menu: "Button menu"
+      cp579epd_epd_power: "EPD Power"
+      cp579epd_display_full_update: "Display Full Update"
+      cp579epd_run_full_update: "Display full update"
+
 external_components:
 - source: "github://siku2/esphome-crowpanel@d953202ad93176f7159df530837637170adaf33b"
   components: [ "crowpanel_epaper" ]
@@ -69,7 +92,7 @@ psram:
 binary_sensor:
 - &cp579epd_rotary_down
   id: "cp579epd_rotary_down"
-  name: "Rotary down"
+  name: "${translation[language].cp579epd_rotary_down}"
   entity_category: "DIAGNOSTIC"
   platform: "gpio"
   pin:
@@ -78,28 +101,28 @@ binary_sensor:
 
 - <<: *cp579epd_rotary_down
   id: "cp579epd_rotary_press"
-  name: "Rotary press"
+  name: "${translation[language].cp579epd_rotary_press}"
   pin:
     number: "GPIO5"
     inverted: true
 
 - <<: *cp579epd_rotary_down
   id: "cp579epd_rotary_up"
-  name: "Rotary up"
+  name: "${translation[language].cp579epd_rotary_up}"
   pin:
     number: "GPIO6"
     inverted: true
 
 - <<: *cp579epd_rotary_down
   id: "cp579epd_exit"
-  name: "Button exit"
+  name: "${translation[language].cp579epd_exit}"
   pin:
     number: "GPIO1"
     inverted: true
 
 - <<: *cp579epd_rotary_down
   id: "cp579epd_menu"
-  name: "Button menu"
+  name: "${translation[language].cp579epd_menu}"
   pin:
     number: "GPIO2"
     inverted: true
@@ -123,14 +146,14 @@ display:
 
 switch:
 - id: "cp579epd_epd_power"
-  name: "EPD Power"
+  name: "${translation[language].cp579epd_epd_power}"
   entity_category: "CONFIG"
   platform: "gpio"
   pin: "GPIO7"
   restore_mode: "ALWAYS_ON"
 
 - id: "cp579epd_display_full_update"
-  name: "Display Full Update"
+  name: "${translation[language].cp579epd_display_full_update}"
   entity_category: "CONFIG"
   restore_mode: "ALWAYS_OFF"
   platform: "template"
@@ -146,7 +169,7 @@ switch:
 
 button:
 - id: "cp579epd_run_full_update"
-  name: "Display full update"
+  name: "${translation[language].cp579epd_run_full_update}"
   entity_category: "CONFIG"
   on_press:
   - logger.log:
