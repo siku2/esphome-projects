@@ -186,13 +186,13 @@ select:
 
 number:
 - platform: "template"
-  id: "grill_target_temperature"
+  id: "target_meat_core_temperature"
   name: "${translation[language].grill_target_temperature}"
   optimistic: true
   restore_value: true
   initial_value: 93
   min_value: 40
-  max_value: 105
+  max_value: 300
   step: 0.5
   mode: "box"
 
@@ -218,6 +218,85 @@ script:
       // Only divide by 60 instead of 3600 because the hour hand is still resolved in minute resolution.
       lv_meter_set_indicator_value(meter_widget, id(lvgl_hour_hand), (seconds % twelve_hours_in_seconds) / 60.0);
 
+  - component.update: "cp579epd_display"
+
+- id: "refresh_page_selection"
+  mode: "restart"
+  then:
+  - if:
+      condition:
+        lambda: return id(climate_pid_east).mode == CLIMATE_MODE_OFF && id(climate_pid_west).mode == CLIMATE_MODE_OFF;
+      then:
+      - lvgl.page.show: "lvgl_pg_clock"
+      - component.update: "cp579epd_display"
+      else:
+      - lvgl.page.show: "lvgl_pg_cooking"
+      - script.execute: "update_cooking_page"
+
+- id: "update_cooking_page"
+  mode: "restart"
+  then:
+  - lvgl.label.update:
+      id: "lbl_east_status"
+      text: !lambda |-
+        const bool mode_on = id(climate_pid_east).mode != CLIMATE_MODE_OFF;
+        const bool selected = id(grill_active_side).current_option() == "east";
+        if (mode_on && selected) return std::string("${translation[language].ui_status_east_on_selected}");
+        if (mode_on) return std::string("${translation[language].ui_status_east_on}");
+        if (selected) return std::string("${translation[language].ui_status_east_off_selected}");
+        return std::string("${translation[language].ui_status_east_off}");
+  - lvgl.label.update:
+      id: "lbl_west_status"
+      text: !lambda |-
+        const bool mode_on = id(climate_pid_west).mode != CLIMATE_MODE_OFF;
+        const bool selected = id(grill_active_side).current_option() == "west";
+        if (mode_on && selected) return std::string("${translation[language].ui_status_west_on_selected}");
+        if (mode_on) return std::string("${translation[language].ui_status_west_on}");
+        if (selected) return std::string("${translation[language].ui_status_west_off_selected}");
+        return std::string("${translation[language].ui_status_west_off}");
+  - lvgl.label.update:
+      id: "lbl_east_current"
+      text:
+        format: "${translation[language].ui_current_format}"
+        args: [ "id(probe_east_temperature_public).state" ]
+  - lvgl.label.update:
+      id: "lbl_west_current"
+      text:
+        format: "${translation[language].ui_current_format}"
+        args: [ "id(probe_west_temperature_public).state" ]
+  - lvgl.label.update:
+      id: "lbl_east_target_heat"
+      text: !lambda |-
+        char buf[40];
+        const bool heating = id(climate_pid_east).action == CLIMATE_ACTION_HEATING;
+        snprintf(buf, sizeof(buf), "${translation[language].ui_target_heat_format}", id(climate_pid_east).target_temperature,
+                 heating ? "${translation[language].ui_state_on}" : "${translation[language].ui_state_off}");
+        return std::string(buf);
+  - lvgl.label.update:
+      id: "lbl_west_target_heat"
+      text: !lambda |-
+        char buf[40];
+        const bool heating = id(climate_pid_west).action == CLIMATE_ACTION_HEATING;
+        snprintf(buf, sizeof(buf), "${translation[language].ui_target_heat_format}", id(climate_pid_west).target_temperature,
+                 heating ? "${translation[language].ui_state_on}" : "${translation[language].ui_state_off}");
+        return std::string(buf);
+  - lvgl.label.update:
+      id: "lbl_meat_caption"
+      text: !lambda |-
+        return id(probe_grey_temperature_public).state > 35.0f ? std::string("${translation[language].ui_meat_label}") : std::string("");
+  - if:
+      condition:
+        lambda: return id(probe_grey_temperature_public).state > 35.0f;
+      then:
+      - lvgl.label.update:
+          id: "lbl_meat_temp"
+          text:
+            format: "%.1fC"
+            args: [ "id(probe_grey_temperature_public).state" ]
+      else:
+      - lvgl.label.update:
+          id: "lbl_meat_temp"
+          text: ""
   - component.update: "cp579epd_display"
 
 color:
@@ -317,7 +396,7 @@ lvgl:
           format: "Cooking page loaded"
     widgets:
     - obj:
-        # Main container with grid layout for widescreen (792x272)
+        # Clean EPD dashboard: per-side status + target/current/heating + optional meat line.
         width: 792
         height: 272
         pad_all: 4
@@ -325,153 +404,82 @@ lvgl:
         bg_color: "color_white"
         layout:
           type: grid
-          grid_rows: [ "40px", "50px", "40px", "50px", "40px", "50px" ]
-          grid_columns: [ "260px", "260px", "260px" ]
-          pad_row: 3px
-          pad_column: 3px
+          grid_rows: [ "40px", "84px", "84px", "40px" ]
+          grid_columns: [ "392px", "392px" ]
+          pad_row: 6px
+          pad_column: 8px
         widgets:
-        # --- ROW 0: ZONE LABELS ---
+        # --- ROW 0: side status (active/enabled) ---
         - label:
-            text: "Left / East"
+            id: "lbl_east_status"
+            text: "${translation[language].ui_status_east_off}"
             text_font: "roboto_14"
             text_align: "CENTER"
             grid_cell_row_pos: 0
             grid_cell_column_pos: 0
             grid_cell_x_align: "CENTER"
         - label:
-            text: "Phase"
+            id: "lbl_west_status"
+            text: "${translation[language].ui_status_west_off}"
             text_font: "roboto_14"
             text_align: "CENTER"
             grid_cell_row_pos: 0
             grid_cell_column_pos: 1
             grid_cell_x_align: "CENTER"
-        - label:
-            text: "Right / West"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            grid_cell_row_pos: 0
-            grid_cell_column_pos: 2
-            grid_cell_x_align: "CENTER"
 
-        # --- ROW 1: ZONE TEMPERATURES ---
+        # --- ROW 1: current grill temperatures ---
         - label:
-            id: "lbl_east_temp"
-            text: "--°C"
+            id: "lbl_east_current"
+            text: "${translation[language].ui_current_placeholder}"
             text_font: "roboto_24_bold"
             text_align: "CENTER"
             grid_cell_row_pos: 1
             grid_cell_column_pos: 0
             grid_cell_x_align: "CENTER"
         - label:
-            id: "lbl_cook_phase"
-            text: "---"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            long_mode: "WRAP"
-            grid_cell_row_pos: 1
-            grid_cell_column_pos: 1
-            grid_cell_x_align: "CENTER"
-        - label:
-            id: "lbl_west_temp"
-            text: "--°C"
+            id: "lbl_west_current"
+            text: "${translation[language].ui_current_placeholder}"
             text_font: "roboto_24_bold"
             text_align: "CENTER"
             grid_cell_row_pos: 1
-            grid_cell_column_pos: 2
+            grid_cell_column_pos: 1
             grid_cell_x_align: "CENTER"
 
-        # --- ROW 2: MEAT/TARGET AND TIMING LABELS ---
+        # --- ROW 2: target and heater element state ---
         - label:
-            text: "Meat"
+            id: "lbl_east_target_heat"
+            text: "${translation[language].ui_target_heat_placeholder}"
             text_font: "roboto_14"
             text_align: "CENTER"
             grid_cell_row_pos: 2
             grid_cell_column_pos: 0
             grid_cell_x_align: "CENTER"
         - label:
-            text: "Finish"
+            id: "lbl_west_target_heat"
+            text: "${translation[language].ui_target_heat_placeholder}"
             text_font: "roboto_14"
             text_align: "CENTER"
             grid_cell_row_pos: 2
             grid_cell_column_pos: 1
             grid_cell_x_align: "CENTER"
-        - label:
-            text: "Zone"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            grid_cell_row_pos: 2
-            grid_cell_column_pos: 2
-            grid_cell_x_align: "CENTER"
 
-        # --- ROW 3: MEAT/TARGET AND TIMING VALUES ---
+        # --- ROW 3: meat probe (shown only if active) ---
+        - label:
+            id: "lbl_meat_caption"
+            text: ""
+            text_font: "roboto_14"
+            text_align: "RIGHT"
+            grid_cell_row_pos: 3
+            grid_cell_column_pos: 0
+            grid_cell_x_align: "END"
         - label:
             id: "lbl_meat_temp"
-            text: "--°C"
-            text_font: "roboto_24_bold"
-            text_align: "CENTER"
-            grid_cell_row_pos: 3
-            grid_cell_column_pos: 0
-            grid_cell_x_align: "CENTER"
-        - label:
-            id: "lbl_finish_time"
-            text: "---"
-            text_font: "roboto_24_bold"
-            text_align: "CENTER"
-            grid_cell_row_pos: 3
-            grid_cell_column_pos: 1
-            grid_cell_x_align: "CENTER"
-        - label:
-            id: "lbl_active_side"
-            text: "---"
-            text_font: "roboto_20"
-            text_align: "CENTER"
-            grid_cell_row_pos: 3
-            grid_cell_column_pos: 2
-            grid_cell_x_align: "CENTER"
-
-        # --- ROW 4: TARGET AND SECONDARY TIMING LABELS ---
-        - label:
-            text: "Target"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            grid_cell_row_pos: 4
-            grid_cell_column_pos: 0
-            grid_cell_x_align: "CENTER"
-        - label:
-            id: "lbl_secondary_label"
-            text: "Pull"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            grid_cell_row_pos: 4
-            grid_cell_column_pos: 1
-            grid_cell_x_align: "CENTER"
-        - label:
             text: ""
             text_font: "roboto_14"
-            grid_cell_row_pos: 4
-            grid_cell_column_pos: 2
-
-        # --- ROW 5: TARGET AND SECONDARY TIMING VALUES ---
-        - label:
-            id: "lbl_target_temp"
-            text: "--°C"
-            text_font: "roboto_24_bold"
-            text_align: "CENTER"
-            grid_cell_row_pos: 5
-            grid_cell_column_pos: 0
-            grid_cell_x_align: "CENTER"
-        - label:
-            id: "lbl_secondary_time"
-            text: "---"
-            text_font: "roboto_24_bold"
-            text_align: "CENTER"
-            grid_cell_row_pos: 5
+            text_align: "LEFT"
+            grid_cell_row_pos: 3
             grid_cell_column_pos: 1
-            grid_cell_x_align: "CENTER"
-        - label:
-            text: ""
-            grid_cell_row_pos: 5
-            grid_cell_column_pos: 2
+            grid_cell_x_align: "START"
 
 output:
 - &heater_east_float
@@ -514,6 +522,8 @@ climate:
     kp: 0.02829
     ki: 0.00016
     kd: 1.21726
+  on_state:
+  - script.execute: "refresh_page_selection"
 
 - <<: *climate_pid_east
   id: "climate_pid_west"
@@ -526,7 +536,7 @@ grill_thermal_model:
   time_id: "base_homeassistant_time"
   grill_probe: "grill_selected_grill_temperature"
   meat_probe: "probe_grey_temperature_raw"
-  target_number: "grill_target_temperature"
+  target_number: "target_meat_core_temperature"
   rest_duration_min: 30
   finish_time:
     id: "grill_finish_time"
@@ -575,58 +585,6 @@ interval:
   then:
   - if:
       condition:
-        lambda: return id(climate_pid_east).action == CLIMATE_ACTION_HEATING || id(climate_pid_west).action == CLIMATE_ACTION_HEATING;
+        lvgl.page.is_showing: "lvgl_pg_cooking"
       then:
-      - lvgl.page.show: "lvgl_pg_cooking"
-      - lvgl.label.update:
-          id: "lbl_east_temp"
-          text:
-            format: "%.0f°C"
-            args: [ "id(probe_east_temperature_public).state" ]
-      - lvgl.label.update:
-          id: "lbl_west_temp"
-          text:
-            format: "%.0f°C"
-            args: [ "id(probe_west_temperature_public).state" ]
-      - lvgl.label.update:
-          id: "lbl_meat_temp"
-          text:
-            format: "%.0f°C"
-            args: [ "id(probe_grey_temperature_public).state" ]
-      - lvgl.label.update:
-          id: "lbl_target_temp"
-          text:
-            format: "%.1f°C"
-            args: [ "id(grill_target_temperature).state" ]
-      - lvgl.label.update:
-          id: "lbl_active_side"
-          text: !lambda |-
-            return id(grill_active_side).current_option() == "east" ? std::string("Left") : std::string("Right");
-      - lvgl.label.update:
-          id: "lbl_cook_phase"
-          text: !lambda return id(grill_cook_phase).state;
-      - lvgl.label.update:
-          id: "lbl_finish_time"
-          text: !lambda return id(grill_finish_time).state;
-      - if:
-          condition:
-            lambda: return id(grill_cook_phase).state == "${translation[language].grill_phase_resting}";
-          then:
-          - lvgl.label.update:
-              id: "lbl_secondary_label"
-              text: "Rest"
-          - lvgl.label.update:
-              id: "lbl_secondary_time"
-              text:
-                format: "%.0f min"
-                args: [ "id(grill_rest_remaining_min).state" ]
-          else:
-          - lvgl.label.update:
-              id: "lbl_secondary_label"
-              text: "Pull"
-          - lvgl.label.update:
-              id: "lbl_secondary_time"
-              text: !lambda return id(grill_pull_time).state;
-      - component.update: "cp579epd_display"
-      else:
-      - lvgl.page.show: "lvgl_pg_clock"
+      - script.execute: "update_cooking_page"
