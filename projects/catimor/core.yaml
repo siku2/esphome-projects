@@ -6,9 +6,10 @@ substitutions:
   name: "esp-catimor"
   friendly_name: "Catimor"
   language: "en"
-  translation:
-    de: !include translations/de.yaml
-    en: !include translations/en.yaml
+  i18n:
+    catimor:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
 
 packages:
   base: !include
@@ -48,7 +49,7 @@ m5stack_4encodermotor:
   update_interval: "100ms"
   current:
     id: "m54em_current"
-    name: "${translation[language].m54em_current}"
+    name: "${i18n.catimor[language].m54em_current}"
     filters:
     - sliding_window_moving_average:
         window_size: 10
@@ -58,14 +59,14 @@ m5stack_4encodermotor:
     - delta: "10%"
   voltage:
     id: "m54em_voltage"
-    name: "${translation[language].m54em_voltage}"
+    name: "${i18n.catimor[language].m54em_voltage}"
     filters:
     - delta: 0.1
 
 cover:
 - &cover_north
   id: "cover_north"
-  name: "${translation[language].cover_north}"
+  name: "${i18n.catimor[language].cover_north}"
   device_class: "shutter"
   platform: "m5stack_4encodermotor"
   m5stack_4encodermotor_id: "motor_encoder"
@@ -78,12 +79,12 @@ cover:
 
 - <<: *cover_north
   id: "cover_south"
-  name: "${translation[language].cover_south}"
+  name: "${i18n.catimor[language].cover_south}"
   motor: "M4"
 
 number:
 - id: "display_timeout"
-  name: "${translation[language].display_timeout}"
+  name: "${i18n.catimor[language].display_timeout}"
   unit_of_measurement: "s"
   entity_category: "CONFIG"
   mode: "box"

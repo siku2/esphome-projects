@@ -1,20 +1,21 @@
 substitutions:
   language: "en"
   timezone: "Europe/Zurich"
-  translation:
-    de:
-      base_restart: "Neustarten"
-      base_log_level: "Log Level"
-      base_last_restart: "Letzter Neustart"
-      base_wifi_signal: "WiFi Signal"
-      base_restart_reason: "Neustart Grund"
+  i18n:
+    base:
+      de:
+        restart: "Neustarten"
+        log_level: "Log Level"
+        last_restart: "Letzter Neustart"
+        wifi_signal: "WiFi Signal"
+        restart_reason: "Neustart Grund"
 
-    en:
-      base_restart: "Restart"
-      base_log_level: "Log Level"
-      base_last_restart: "Last Restart"
-      base_wifi_signal: "WiFi Signal"
-      base_restart_reason: "Restart Reason"
+      en:
+        restart: "Restart"
+        log_level: "Log Level"
+        last_restart: "Last Restart"
+        wifi_signal: "WiFi Signal"
+        restart_reason: "Restart Reason"
 
 wifi:
   ssid: !secret wifi_ssid
@@ -34,22 +35,22 @@ logger:
 button:
 - id: "base_restart"
   platform: "restart"
-  name: "${translation[language].base_restart}"
+  name: "${i18n.base[language].restart}"
 
 select:
 - id: "base_log_level"
   platform: "logger"
-  name: "${translation[language].base_log_level}"
+  name: "${i18n.base[language].log_level}"
 
 sensor:
 - id: "base_last_restart"
   entity_category: "DIAGNOSTIC"
   platform: "uptime"
   type: "timestamp"
-  name: "${translation[language].base_last_restart}"
+  name: "${i18n.base[language].last_restart}"
 
 - id: "base_wifi_signal"
-  name: "${translation[language].base_wifi_signal}"
+  name: "${i18n.base[language].wifi_signal}"
   entity_category: "DIAGNOSTIC"
   filters:
   - round: 1
@@ -63,7 +64,7 @@ sensor:
 text_sensor:
 - platform: "debug"
   reset_reason:
-    name: "${translation[language].base_restart_reason}"
+    name: "${i18n.base[language].restart_reason}"
 
 time:
 - id: "base_homeassistant_time"

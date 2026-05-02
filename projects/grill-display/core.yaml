@@ -6,9 +6,10 @@ substitutions:
   name: "grill-display"
   friendly_name: "Grill Display"
   language: "en"
-  translation:
-    de: !include translations/de.yaml
-    en: !include translations/en.yaml
+  i18n:
+    grilldisplay:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
 
 packages:
   base: !include
@@ -81,7 +82,7 @@ sensor:
 
 - <<: *probe_west_temperature_raw
   id: "probe_east_temperature_raw"
-  name: "${translation[language].probe_east_temperature_raw}"
+  name: "${i18n.grilldisplay[language].probe_east_temperature_raw}"
   on_value:
     then:
     - lambda: !lambda |
@@ -94,7 +95,7 @@ sensor:
 
 - <<: *probe_west_temperature_raw
   id: "probe_grey_temperature_raw"
-  name: "${translation[language].probe_grey_temperature_raw}"
+  name: "${i18n.grilldisplay[language].probe_grey_temperature_raw}"
   on_value:
     then:
     - lambda: !lambda |
@@ -105,7 +106,7 @@ sensor:
 
 - &probe_west_temperature_public
   id: "probe_west_temperature_public"
-  name: "${translation[language].probe_west_temperature_public}"
+  name: "${i18n.grilldisplay[language].probe_west_temperature_public}"
   unit_of_measurement: "°C"
   device_class: "temperature"
   state_class: "measurement"
@@ -117,11 +118,11 @@ sensor:
 
 - <<: *probe_west_temperature_public
   id: "probe_east_temperature_public"
-  name: "${translation[language].probe_east_temperature_public}"
+  name: "${i18n.grilldisplay[language].probe_east_temperature_public}"
 
 - <<: *probe_west_temperature_public
   id: "probe_grey_temperature_public"
-  name: "${translation[language].probe_grey_temperature_public}"
+  name: "${i18n.grilldisplay[language].probe_grey_temperature_public}"
 
 - platform: "template"
   id: "grill_selected_grill_temperature"
@@ -166,7 +167,7 @@ switch:
 select:
 - platform: "template"
   id: "grill_active_side"
-  name: "${translation[language].grill_side_selector}"
+  name: "${i18n.grilldisplay[language].grill_side_selector}"
   optimistic: true
   restore_value: true
   initial_option: "west"
@@ -186,7 +187,7 @@ select:
 number:
 - platform: "template"
   id: "target_meat_core_temperature"
-  name: "${translation[language].grill_target_temperature}"
+  name: "${i18n.grilldisplay[language].grill_target_temperature}"
   optimistic: true
   restore_value: true
   initial_value: 93
@@ -240,49 +241,49 @@ script:
       text: !lambda |-
         const bool mode_on = id(climate_pid_east).mode != CLIMATE_MODE_OFF;
         const bool selected = id(grill_active_side).current_option() == "east";
-        if (mode_on && selected) return std::string("${translation[language].ui_status_east_on_selected}");
-        if (mode_on) return std::string("${translation[language].ui_status_east_on}");
-        if (selected) return std::string("${translation[language].ui_status_east_off_selected}");
-        return std::string("${translation[language].ui_status_east_off}");
+        if (mode_on && selected) return std::string("${i18n.grilldisplay[language].ui_status_east_on_selected}");
+        if (mode_on) return std::string("${i18n.grilldisplay[language].ui_status_east_on}");
+        if (selected) return std::string("${i18n.grilldisplay[language].ui_status_east_off_selected}");
+        return std::string("${i18n.grilldisplay[language].ui_status_east_off}");
   - lvgl.label.update:
       id: "lbl_west_status"
       text: !lambda |-
         const bool mode_on = id(climate_pid_west).mode != CLIMATE_MODE_OFF;
         const bool selected = id(grill_active_side).current_option() == "west";
-        if (mode_on && selected) return std::string("${translation[language].ui_status_west_on_selected}");
-        if (mode_on) return std::string("${translation[language].ui_status_west_on}");
-        if (selected) return std::string("${translation[language].ui_status_west_off_selected}");
-        return std::string("${translation[language].ui_status_west_off}");
+        if (mode_on && selected) return std::string("${i18n.grilldisplay[language].ui_status_west_on_selected}");
+        if (mode_on) return std::string("${i18n.grilldisplay[language].ui_status_west_on}");
+        if (selected) return std::string("${i18n.grilldisplay[language].ui_status_west_off_selected}");
+        return std::string("${i18n.grilldisplay[language].ui_status_west_off}");
   - lvgl.label.update:
       id: "lbl_east_current"
       text:
-        format: "${translation[language].ui_current_format}"
+        format: "${i18n.grilldisplay[language].ui_current_format}"
         args: [ "id(probe_east_temperature_public).state" ]
   - lvgl.label.update:
       id: "lbl_west_current"
       text:
-        format: "${translation[language].ui_current_format}"
+        format: "${i18n.grilldisplay[language].ui_current_format}"
         args: [ "id(probe_west_temperature_public).state" ]
   - lvgl.label.update:
       id: "lbl_east_target_heat"
       text: !lambda |-
         char buf[40];
         const bool heating = id(climate_pid_east).action == CLIMATE_ACTION_HEATING;
-        snprintf(buf, sizeof(buf), "${translation[language].ui_target_heat_format}", id(climate_pid_east).target_temperature,
-                 heating ? "${translation[language].ui_state_on}" : "${translation[language].ui_state_off}");
+        snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_target_heat_format}", id(climate_pid_east).target_temperature,
+                 heating ? "${i18n.grilldisplay[language].ui_state_on}" : "${i18n.grilldisplay[language].ui_state_off}");
         return std::string(buf);
   - lvgl.label.update:
       id: "lbl_west_target_heat"
       text: !lambda |-
         char buf[40];
         const bool heating = id(climate_pid_west).action == CLIMATE_ACTION_HEATING;
-        snprintf(buf, sizeof(buf), "${translation[language].ui_target_heat_format}", id(climate_pid_west).target_temperature,
-                 heating ? "${translation[language].ui_state_on}" : "${translation[language].ui_state_off}");
+        snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_target_heat_format}", id(climate_pid_west).target_temperature,
+                 heating ? "${i18n.grilldisplay[language].ui_state_on}" : "${i18n.grilldisplay[language].ui_state_off}");
         return std::string(buf);
   - lvgl.label.update:
       id: "lbl_meat_caption"
       text: !lambda |-
-        return id(probe_grey_temperature_public).state > 35.0f ? std::string("${translation[language].ui_meat_label}") : std::string("");
+        return id(probe_grey_temperature_public).state > 35.0f ? std::string("${i18n.grilldisplay[language].ui_meat_label}") : std::string("");
   - if:
       condition:
         lambda: return id(probe_grey_temperature_public).state > 35.0f;
@@ -409,7 +410,7 @@ lvgl:
         # --- ROW 0: side status (active/enabled) ---
         - label:
             id: "lbl_east_status"
-            text: "${translation[language].ui_status_east_off}"
+            text: "${i18n.grilldisplay[language].ui_status_east_off}"
             text_font: "roboto_14"
             text_align: "CENTER"
             grid_cell_row_pos: 0
@@ -417,7 +418,7 @@ lvgl:
             grid_cell_x_align: "CENTER"
         - label:
             id: "lbl_west_status"
-            text: "${translation[language].ui_status_west_off}"
+            text: "${i18n.grilldisplay[language].ui_status_west_off}"
             text_font: "roboto_14"
             text_align: "CENTER"
             grid_cell_row_pos: 0
@@ -427,7 +428,7 @@ lvgl:
         # --- ROW 1: current grill temperatures ---
         - label:
             id: "lbl_east_current"
-            text: "${translation[language].ui_current_placeholder}"
+            text: "${i18n.grilldisplay[language].ui_current_placeholder}"
             text_font: "roboto_24_bold"
             text_align: "CENTER"
             grid_cell_row_pos: 1
@@ -435,7 +436,7 @@ lvgl:
             grid_cell_x_align: "CENTER"
         - label:
             id: "lbl_west_current"
-            text: "${translation[language].ui_current_placeholder}"
+            text: "${i18n.grilldisplay[language].ui_current_placeholder}"
             text_font: "roboto_24_bold"
             text_align: "CENTER"
             grid_cell_row_pos: 1
@@ -445,7 +446,7 @@ lvgl:
         # --- ROW 2: target and heater element state ---
         - label:
             id: "lbl_east_target_heat"
-            text: "${translation[language].ui_target_heat_placeholder}"
+            text: "${i18n.grilldisplay[language].ui_target_heat_placeholder}"
             text_font: "roboto_14"
             text_align: "CENTER"
             grid_cell_row_pos: 2
@@ -453,7 +454,7 @@ lvgl:
             grid_cell_x_align: "CENTER"
         - label:
             id: "lbl_west_target_heat"
-            text: "${translation[language].ui_target_heat_placeholder}"
+            text: "${i18n.grilldisplay[language].ui_target_heat_placeholder}"
             text_font: "roboto_14"
             text_align: "CENTER"
             grid_cell_row_pos: 2
@@ -506,7 +507,7 @@ output:
 climate:
 - &climate_pid_east
   id: "climate_pid_east"
-  name: "${translation[language].climate_pid_east}"
+  name: "${i18n.grilldisplay[language].climate_pid_east}"
   visual:
     min_temperature: 40
     max_temperature: 300
@@ -524,7 +525,7 @@ climate:
 
 - <<: *climate_pid_east
   id: "climate_pid_west"
-  name: "${translation[language].climate_pid_west}"
+  name: "${i18n.grilldisplay[language].climate_pid_west}"
   sensor: "probe_west_temperature_raw"
   heat_output: "heater_west_float"
 
@@ -537,34 +538,34 @@ grill_thermal_model:
   rest_duration_min: 30
   finish_time:
     id: "grill_finish_time"
-    name: "${translation[language].grill_finish_time}"
+    name: "${i18n.grilldisplay[language].grill_finish_time}"
   pull_time:
     id: "grill_pull_time"
-    name: "${translation[language].grill_pull_time}"
+    name: "${i18n.grilldisplay[language].grill_pull_time}"
   rest_end_time:
     id: "grill_rest_end_time"
-    name: "${translation[language].grill_rest_end_time}"
+    name: "${i18n.grilldisplay[language].grill_rest_end_time}"
   rest_remaining_min:
     id: "grill_rest_remaining_min"
-    name: "${translation[language].grill_rest_remaining_min}"
+    name: "${i18n.grilldisplay[language].grill_rest_remaining_min}"
     accuracy_decimals: 0
   cook_phase:
     id: "grill_cook_phase"
-    name: "${translation[language].grill_cook_phase}"
+    name: "${i18n.grilldisplay[language].grill_cook_phase}"
     filters:
     - lambda: !lambda |
-        if (x == "IDLE") return std::string("${translation[language].grill_phase_idle}");
-        if (x == "LEARNING") return std::string("${translation[language].grill_phase_learning}");
-        if (x == "ACTIVE") return std::string("${translation[language].grill_phase_active}");
-        if (x == "STALL") return std::string("${translation[language].grill_phase_stall}");
-        if (x == "STRETCH") return std::string("${translation[language].grill_phase_stretch}");
-        if (x == "PULL") return std::string("${translation[language].grill_phase_pull}");
-        if (x == "RESTING") return std::string("${translation[language].grill_phase_resting}");
-        if (x == "PAUSE") return std::string("${translation[language].grill_phase_pause}");
+        if (x == "IDLE") return std::string("${i18n.grilldisplay[language].grill_phase_idle}");
+        if (x == "LEARNING") return std::string("${i18n.grilldisplay[language].grill_phase_learning}");
+        if (x == "ACTIVE") return std::string("${i18n.grilldisplay[language].grill_phase_active}");
+        if (x == "STALL") return std::string("${i18n.grilldisplay[language].grill_phase_stall}");
+        if (x == "STRETCH") return std::string("${i18n.grilldisplay[language].grill_phase_stretch}");
+        if (x == "PULL") return std::string("${i18n.grilldisplay[language].grill_phase_pull}");
+        if (x == "RESTING") return std::string("${i18n.grilldisplay[language].grill_phase_resting}");
+        if (x == "PAUSE") return std::string("${i18n.grilldisplay[language].grill_phase_pause}");
         return x;
   thermal_mass_index:
     id: "grill_thermal_mass_index"
-    name: "${translation[language].grill_thermal_mass_index}"
+    name: "${i18n.grilldisplay[language].grill_thermal_mass_index}"
     accuracy_decimals: 2
     on_value:
     - if:
