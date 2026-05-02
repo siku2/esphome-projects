@@ -376,8 +376,6 @@ lvgl:
               range_to: 720
               angle_range: 360
               rotation: 270
-              ticks:
-                count: 0
               indicators:
               - line:
                   id: "lvgl_hour_hand"
