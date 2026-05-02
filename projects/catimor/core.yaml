@@ -1,0 +1,150 @@
+substitutions:
+  api_encryption_key: "" # REQUIRED!
+  ota_password: "" # REQUIRED!
+  git_ref: "" # REQUIRED!
+
+  name: "esp-catimor"
+  friendly_name: "Catimor"
+  language: "en"
+  translation:
+    de: !include translations/de.yaml
+    en: !include translations/en.yaml
+
+packages:
+  base: !include
+    file: ../../packages/base.yaml
+  m5stack_cores3_lite: !include
+    file: ../../packages/m5stack_cores3_lite.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "siku2.esp-catimor"
+    version: "0.1.0"
+
+dashboard_import:
+  package_import_url: "github://siku2/esphome-projects/projects/catimor/core.yaml@main"
+  import_full_config: false
+
+external_components:
+- source:
+    type: git
+    url: "https://github.com/siku2/esphome-projects"
+    ref: "${git_ref}"
+    path: "components"
+  components: [ "m5stack_4encodermotor" ]
+
+api:
+  encryption:
+    key: "${api_encryption_key}"
+
+ota:
+- platform: "esphome"
+  password: "${ota_password}"
+
+m5stack_4encodermotor:
+- id: "motor_encoder"
+  update_interval: "100ms"
+  current:
+    id: "m54em_current"
+    name: "${translation[language].m54em_current}"
+    filters:
+    - sliding_window_moving_average:
+        window_size: 10
+        send_every: 10
+        send_first_at: 10
+    - round: 3
+    - delta: "10%"
+  voltage:
+    id: "m54em_voltage"
+    name: "${translation[language].m54em_voltage}"
+    filters:
+    - delta: 0.1
+
+cover:
+- &cover_north
+  id: "cover_north"
+  name: "${translation[language].cover_north}"
+  device_class: "shutter"
+  platform: "m5stack_4encodermotor"
+  m5stack_4encodermotor_id: "motor_encoder"
+  motor: "M3"
+  min_current: "0.1A"
+  soft_start_stop: true
+  open_duration: "29s"
+  close_duration: "28.5s"
+  acceleration_wait_time: "0.5s"
+
+- <<: *cover_north
+  id: "cover_south"
+  name: "${translation[language].cover_south}"
+  motor: "M4"
+
+number:
+- id: "display_timeout"
+  name: "${translation[language].display_timeout}"
+  unit_of_measurement: "s"
+  entity_category: "CONFIG"
+  mode: "box"
+  platform: "template"
+  optimistic: true
+  initial_value: 5
+  restore_value: true
+  min_value: 10
+  max_value: 180
+  step: 5
+
+touchscreen:
+- id: !extend m5s3l_touchscreen
+  on_release:
+  - if:
+      condition: lvgl.is_paused
+      then:
+      - logger.log: "LVGL resuming"
+      - lvgl.resume:
+      - lvgl.widget.redraw:
+      - light.turn_on: "m5s3l_lcd_backlight"
+
+lvgl:
+  displays: [ "m5s3l_lcd" ]
+  touchscreens:
+  - touchscreen_id: "m5s3l_touchscreen"
+  on_idle:
+    timeout: !lambda "return (id(display_timeout).state * 1000);"
+    then:
+    - logger.log: "LVGL is idle"
+    - light.turn_off: "m5s3l_lcd_backlight"
+    - lvgl.pause:
+  theme:
+    slider:
+      radius: 0
+      knob:
+        radius: 0
+      indicator:
+        radius: 0
+  pages:
+  - id: "main_page"
+    widgets:
+    - obj:
+        align: "CENTER"
+        width: "100%"
+        height: "100%"
+        layout:
+          type: "GRID"
+          grid_columns: [ "FR(1)", "FR(1)", "FR(1)", "FR(1)" ]
+          grid_rows: [ "FR(1)" ]
+        widgets:
+        - slider: &slider_south
+            id: "slider_south"
+            grid_cell_column_pos: 0
+            grid_cell_row_pos: 0
+            grid_cell_x_align: "CENTER"
+            grid_cell_y_align: "CENTER"
+            width: "15%"
+            height: "100%"
+            animated: false
+        - slider:
+            <<: *slider_south
+            id: "slider_north"
+            grid_cell_column_pos: 3

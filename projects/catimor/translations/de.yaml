@@ -1,0 +1,5 @@
+m54em_current: "Motor Strom"
+m54em_voltage: "Motor Spannung"
+cover_north: "Rollladen Nord"
+cover_south: "Rollladen Süd"
+display_timeout: "LVGL Bildschirm Timeout"

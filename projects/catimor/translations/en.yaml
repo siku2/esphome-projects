@@ -1,0 +1,5 @@
+m54em_current: "Motor Current"
+m54em_voltage: "Motor Voltage"
+cover_north: "Shutter North"
+cover_south: "Shutter South"
+display_timeout: "LVGL Screen Timeout"
