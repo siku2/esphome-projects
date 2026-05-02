@@ -158,7 +158,7 @@ light:
 - id: "m5s3l_lcd_backlight"
   name: "LCD Backlight"
   default_transition_length: "0.25s"
-  restore_mode: "RESTORE_DEFAULT_ON"
+  restore_mode: "ALWAYS_ON"
   entity_category: "CONFIG"
   platform: "monochromatic"
   output: "axp2101_dldo1"
