@@ -1,0 +1,144 @@
+id: "pg_home"
+bg_color: "0x1E1E2E"
+bg_opa: "COVER"
+pad_all: 6
+layout:
+  type: "GRID"
+  grid_rows: ["fr(1)", "fr(1)"]
+  grid_columns: ["fr(1)", "fr(1)", "fr(1)"]
+  pad_row: 6
+  pad_column: 6
+widgets:
+
+# --- Row 0, Col 0: Blinds ---
+- button:
+    id: "tile_blinds"
+    bg_color: "0x495A7F"
+    bg_opa: "COVER"
+    grid_cell_x_align: "STRETCH"
+    grid_cell_y_align: "STRETCH"
+    layout:
+      type: "FLEX"
+      flex_flow: "COLUMN"
+      flex_align_main: "CENTER"
+      flex_align_cross: "CENTER"
+    on_click:
+    - lvgl.page.show: "pg_blinds_control"
+    widgets:
+    - label:
+        text: "\uF0C9"
+        text_font: "montserrat_18"
+        text_align: "CENTER"
+        width: "100%"
+    - label:
+        text: "${i18n.catimor[language].tile_blinds}"
+        text_font: "montserrat_12_ext"
+        text_align: "CENTER"
+        width: "100%"
+
+# --- Row 0, Col 1: Shutters ---
+- button:
+    id: "tile_shutters"
+    bg_color: "0x3D6B52"
+    bg_opa: "COVER"
+    opa: "20%"
+    clickable: false
+    grid_cell_x_align: "STRETCH"
+    grid_cell_y_align: "STRETCH"
+    layout:
+      type: "FLEX"
+      flex_flow: "COLUMN"
+      flex_align_main: "CENTER"
+      flex_align_cross: "CENTER"
+    widgets:
+    - label:
+        text: "\uF077"
+        text_font: "montserrat_18"
+        text_align: "CENTER"
+        width: "100%"
+    - label:
+        text: "${i18n.catimor[language].tile_shutters}"
+        text_font: "montserrat_12_ext"
+        text_align: "CENTER"
+        width: "100%"
+
+# --- Row 0, Col 2: Lights ---
+- button:
+    id: "tile_lights"
+    bg_color: "0x756C61"
+    bg_opa: "COVER"
+    opa: "20%"
+    clickable: false
+    grid_cell_x_align: "STRETCH"
+    grid_cell_y_align: "STRETCH"
+    layout:
+      type: "FLEX"
+      flex_flow: "COLUMN"
+      flex_align_main: "CENTER"
+      flex_align_cross: "CENTER"
+    widgets:
+    - label:
+        text: "\uF0E7"
+        text_font: "montserrat_18"
+        text_align: "CENTER"
+        width: "100%"
+    - label:
+        text: "${i18n.catimor[language].tile_lights}"
+        text_font: "montserrat_12_ext"
+        text_align: "CENTER"
+        width: "100%"
+
+# --- Row 1, Col 0: A/C ---
+- button:
+    id: "tile_ac"
+    bg_color: "0x6B4E7A"
+    bg_opa: "COVER"
+    opa: "20%"
+    clickable: false
+    grid_cell_x_align: "STRETCH"
+    grid_cell_y_align: "STRETCH"
+    layout:
+      type: "FLEX"
+      flex_flow: "COLUMN"
+      flex_align_main: "CENTER"
+      flex_align_cross: "CENTER"
+    widgets:
+    - label:
+        text: "\uF043"
+        text_font: "montserrat_18"
+        text_align: "CENTER"
+        width: "100%"
+    - label:
+        text: "${i18n.catimor[language].tile_ac}"
+        text_font: "montserrat_12_ext"
+        text_align: "CENTER"
+        width: "100%"
+
+# --- Row 1, Col 2: Settings ---
+- button:
+    id: "tile_settings"
+    bg_color: "0x5A5E81"
+    bg_opa: "COVER"
+    opa: "20%"
+    clickable: false
+    grid_cell_column_pos: 2
+    grid_cell_row_pos: 1
+    grid_cell_x_align: "STRETCH"
+    grid_cell_y_align: "STRETCH"
+    layout:
+      type: "FLEX"
+      flex_flow: "COLUMN"
+      flex_align_main: "CENTER"
+      flex_align_cross: "CENTER"
+    widgets:
+    - label:
+        text: "\uF013"
+        text_font: "montserrat_18"
+        text_align: "CENTER"
+        width: "100%"
+    - label:
+        text: "${i18n.catimor[language].tile_settings}"
+        text_font: "montserrat_12_ext"
+        text_align: "CENTER"
+        width: "100%"
+

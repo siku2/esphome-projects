@@ -16,6 +16,8 @@ widgets:
     bg_color: "0x313244"
     bg_opa: "COVER"
     border_width: 0
+    on_click:
+    - lvgl.page.show: "pg_home"
     widgets:
     - label:
         align: "CENTER"

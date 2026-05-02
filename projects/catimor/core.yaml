@@ -127,6 +127,13 @@ script:
 - !include scripts/set_cover_tilt.yaml
 - !include scripts/sync_sliders.yaml
 
+font:
+- id: "montserrat_12_ext"
+  file: "gfonts://Montserrat"
+  size: 12
+  glyphsets:
+  - "GF_Latin_Core"
+
 touchscreen:
 - id: !extend m5s3l_touchscreen
   on_release:
@@ -135,6 +142,7 @@ touchscreen:
       then:
       - logger.log: "LVGL resuming"
       - lvgl.resume:
+      - lvgl.page.show: "pg_blinds_control"
       - lvgl.widget.redraw:
       - light.turn_on: "m5s3l_lcd_backlight"
 
@@ -178,3 +186,4 @@ lvgl:
     - lvgl.pause:
   pages:
   - !include pages/blinds_control.yaml
+  - !include pages/home.yaml
