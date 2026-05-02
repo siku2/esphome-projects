@@ -19,7 +19,6 @@ packages:
 esphome:
   name: "${name}"
   friendly_name: "${friendly_name}"
-  name_add_mac_suffix: true
   project:
     name: "siku2.grill-display"
     version: "0.1.0"
