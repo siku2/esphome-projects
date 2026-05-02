@@ -2,11 +2,3 @@
 .venv/
 __pycache__/
 /public/
-
-# kicad
-_autosave-*.kicad_*
-*.kicad_prl
-**/*-backups/*.zip
-**/*.kicad_*.lck
-\#auto_saved_files\#
-fp-info-cache
