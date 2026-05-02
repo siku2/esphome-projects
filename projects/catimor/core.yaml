@@ -90,9 +90,9 @@ number:
   mode: "box"
   platform: "template"
   optimistic: true
-  initial_value: 5
+  initial_value: 10
   restore_value: true
-  min_value: 10
+  min_value: 5
   max_value: 180
   step: 5
 
