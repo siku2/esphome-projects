@@ -214,9 +214,9 @@ script:
 
       auto meter_widget = id(lvgl_meter_time);
 
-      lv_meter_set_indicator_value(meter_widget, id(lvgl_minute_hand), (seconds % 3600) / 60.0);
+      id(lvgl_minute_hand)->set_value((seconds % 3600) / 60.0);
       // Only divide by 60 instead of 3600 because the hour hand is still resolved in minute resolution.
-      lv_meter_set_indicator_value(meter_widget, id(lvgl_hour_hand), (seconds % twelve_hours_in_seconds) / 60.0);
+      id(lvgl_hour_hand)->set_value((seconds % twelve_hours_in_seconds) / 60.0);
 
   - component.update: "cp579epd_display"
 
@@ -357,7 +357,7 @@ lvgl:
                   id: "lvgl_minute_hand"
                   width: 3
                   color: "color_black"
-                  r_mod: -4
+                  length: 96%
                   value: 0
             - range_from: 1 # hours scale for labels
               range_to: 12
@@ -382,7 +382,7 @@ lvgl:
                   id: "lvgl_hour_hand"
                   width: 5
                   color: "color_black"
-                  r_mod: -30
+                  length: 70%
                   value: 0
 
   # ========== COOKING DETAILS PAGE ==========
