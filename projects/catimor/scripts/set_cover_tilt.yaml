@@ -1,0 +1,23 @@
+id: "script_set_cover_tilt"
+mode: "restart"
+parameters:
+  tilt: "float"
+then:
+- if:
+    condition:
+      lambda: 'return lv_obj_get_state(id(btn_select_left)) & LV_STATE_CHECKED;'
+    then:
+    - homeassistant.action:
+        action: "cover.set_cover_tilt_position"
+        data:
+          entity_id: "${blind_left_cover_id}"
+          tilt_position: !lambda 'return (int) tilt;'
+- if:
+    condition:
+      lambda: 'return lv_obj_get_state(id(btn_select_right)) & LV_STATE_CHECKED;'
+    then:
+    - homeassistant.action:
+        action: "cover.set_cover_tilt_position"
+        data:
+          entity_id: "${blind_right_cover_id}"
+          tilt_position: !lambda 'return (int) tilt;'

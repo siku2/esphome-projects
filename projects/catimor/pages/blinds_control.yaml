@@ -1,0 +1,199 @@
+id: "pg_blinds_control"
+bg_color: "0x1E1E2E"
+bg_opa: "COVER"
+on_load:
+- script.execute: "script_sync_sliders"
+widgets:
+# --- TOP LEFT: Home Button ---
+- button:
+    id: "btn_back"
+    align: "TOP_LEFT"
+    x: 0
+    y: 0
+    width: 56
+    height: 56
+    radius: 0
+    bg_color: "0x313244"
+    bg_opa: "COVER"
+    border_width: 0
+    widgets:
+    - label:
+        align: "CENTER"
+        text_color: "0x585B70"
+        text: ""
+
+# --- LEFT EDGE: Window A Toggle ---
+- button:
+    id: "btn_select_left"
+    align: "LEFT_MID"
+    x: 0
+    y: 30
+    width: "15%"
+    height: "40%"
+    checkable: true
+    bg_opa: "TRANSP"
+    border_width: 2
+    state:
+      checked: true
+    checked:
+      bg_color: "0x89B4FA"
+      bg_opa: "40%"
+      border_color: "0x89B4FA"
+      border_width: 3
+    on_click:
+    - if:
+        condition:
+          lambda: 'return !(lv_obj_get_state(id(btn_select_right)) & LV_STATE_CHECKED);'
+        then:
+        - lvgl.widget.update:
+            id: "btn_select_right"
+            state:
+              checked: true
+    - script.execute: "script_sync_sliders"
+    widgets:
+    - label:
+        align: "CENTER"
+        text: ""
+
+# --- RIGHT EDGE: Window B Toggle ---
+- button:
+    id: "btn_select_right"
+    align: "RIGHT_MID"
+    x: 0
+    y: 30
+    width: "15%"
+    height: "40%"
+    checkable: true
+    bg_opa: "TRANSP"
+    border_width: 2
+    state:
+      checked: true
+    checked:
+      bg_color: "0x89B4FA"
+      bg_opa: "40%"
+      border_color: "0x89B4FA"
+      border_width: 3
+    on_click:
+    - if:
+        condition:
+          lambda: 'return !(lv_obj_get_state(id(btn_select_left)) & LV_STATE_CHECKED);'
+        then:
+        - lvgl.widget.update:
+            id: "btn_select_left"
+            state:
+              checked: true
+    - script.execute: "script_sync_sliders"
+    widgets:
+    - label:
+        align: "CENTER"
+        text: ""
+
+# --- CENTER-LEFT: Position Control ---
+- slider:
+    id: "slider_position"
+    align: "TOP_MID"
+    x: "-13%"
+    y: 4
+    width: "15%"
+    height: 213
+    min_value: 0
+    max_value: 100
+    value: 50
+    bg_color: "0x89B4FA"
+    indicator:
+      bg_color: "0x313244"
+      bg_opa: "COVER"
+    knob:
+      bg_color: "0x89B4FA"
+    on_value:
+      then:
+      - lvgl.label.update:
+          id: "label_pos_pct"
+          text:
+            format: "%.0f%%"
+            args: [ "x" ]
+    on_release:
+      then:
+      - script.execute:
+          id: "script_set_cover_position"
+          position: !lambda 'return x;'
+
+- label:
+    text: "${i18n.catimor[language].slider_position}"
+    text_font: "montserrat_12"
+    align_to:
+      id: "slider_position"
+      align: "OUT_BOTTOM_MID"
+      y: 4
+
+- label:
+    id: "label_pos_pct"
+    text: "50%"
+    text_font: "montserrat_12"
+    text_align: "CENTER"
+    width: 42
+    bg_color: "0x1E1E2E"
+    bg_opa: "COVER"
+    radius: 100
+    pad_top: 2
+    pad_bottom: 2
+    pad_left: 6
+    pad_right: 6
+    align_to:
+      id: "slider_position"
+      align: "CENTER"
+
+# --- CENTER-RIGHT: Tilt Control ---
+- slider:
+    id: "slider_tilt"
+    align: "TOP_MID"
+    x: "13%"
+    y: 4
+    width: "15%"
+    height: 213
+    min_value: 0
+    max_value: 100
+    value: 50
+    bg_color: "0xA6E3A1"
+    indicator:
+      bg_color: "0x313244"
+      bg_opa: "COVER"
+    knob:
+      bg_color: "0xA6E3A1"
+    on_value:
+      then:
+      - lvgl.label.update:
+          id: "label_tilt_pct"
+          text:
+            format: "%.0f%%"
+            args: [ "x" ]
+    on_release:
+      then:
+      - script.execute:
+          id: "script_set_cover_tilt"
+          tilt: !lambda 'return x;'
+
+- label:
+    text: "${i18n.catimor[language].slider_tilt}"
+    text_font: "montserrat_12"
+    align_to:
+      id: "slider_tilt"
+      align: "OUT_BOTTOM_MID"
+      y: 4
+
+- label:
+    id: "label_tilt_pct"
+    text: "50%"
+    text_font: "montserrat_12"
+    text_align: "CENTER"
+    width: 42
+    bg_color: "0x1E1E2E"
+    bg_opa: "COVER"
+    radius: 100
+    pad_top: 2
+    pad_bottom: 2
+    pad_left: 6
+    pad_right: 6
+    align_to:
+      id: "slider_tilt"
+      align: "CENTER"

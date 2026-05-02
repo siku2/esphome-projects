@@ -2,6 +2,8 @@ substitutions:
   api_encryption_key: "" # REQUIRED!
   ota_password: "" # REQUIRED!
   git_ref: "" # REQUIRED!
+  blind_left_cover_id: "" # REQUIRED!
+  blind_right_cover_id: "" # REQUIRED!
 
   name: "esp-catimor"
   friendly_name: "Catimor"
@@ -96,6 +98,35 @@ number:
   max_value: 180
   step: 5
 
+sensor:
+- &blind_left_position
+  id: "blind_left_position"
+  on_value:
+  - script.execute: "script_sync_sliders"
+  platform: "homeassistant"
+  entity_id: "${blind_left_cover_id}"
+  attribute: "current_position"
+
+- <<: *blind_left_position
+  id: "blind_right_position"
+  entity_id: "${blind_right_cover_id}"
+
+- &blind_left_tilt
+  <<: *blind_left_position
+  id: "blind_left_tilt"
+  on_value:
+  - script.execute: "script_sync_sliders"
+  attribute: "current_tilt_position"
+
+- <<: *blind_left_tilt
+  id: "blind_right_tilt"
+  entity_id: "${blind_right_cover_id}"
+
+script:
+- !include scripts/set_cover_position.yaml
+- !include scripts/set_cover_tilt.yaml
+- !include scripts/sync_sliders.yaml
+
 touchscreen:
 - id: !extend m5s3l_touchscreen
   on_release:
@@ -111,41 +142,39 @@ lvgl:
   displays: [ "m5s3l_lcd" ]
   touchscreens:
   - touchscreen_id: "m5s3l_touchscreen"
+  theme:
+    dark_mode: true
+    button:
+      text_color: "0xCDD6F4"
+      radius: 4
+      border_width: 1
+      border_color: "0x585B70"
+      pressed:
+        bg_color: "0x313244"
+      checked:
+        bg_color: "0x89B4FA"
+        border_color: "0x89B4FA"
+        text_color: "0x1E1E2E"
+    slider:
+      radius: 4
+      indicator:
+        bg_color: "0x89B4FA"
+        radius: 4
+      knob:
+        radius: 4
+        pad_top: -14
+        pad_bottom: -14
+        bg_color: "0x89B4FA"
+        border_color: "0x1E1E2E"
+        border_width: 1
+    label:
+      text_color: "0xCDD6F4"
   on_idle:
-    timeout: !lambda "return (id(display_timeout).state * 1000);"
+    timeout: !lambda >
+      return (id(display_timeout).state * 1000);
     then:
     - logger.log: "LVGL is idle"
     - light.turn_off: "m5s3l_lcd_backlight"
     - lvgl.pause:
-  theme:
-    slider:
-      radius: 0
-      knob:
-        radius: 0
-      indicator:
-        radius: 0
   pages:
-  - id: "main_page"
-    widgets:
-    - obj:
-        align: "CENTER"
-        width: "100%"
-        height: "100%"
-        layout:
-          type: "GRID"
-          grid_columns: [ "FR(1)", "FR(1)", "FR(1)", "FR(1)" ]
-          grid_rows: [ "FR(1)" ]
-        widgets:
-        - slider: &slider_south
-            id: "slider_south"
-            grid_cell_column_pos: 0
-            grid_cell_row_pos: 0
-            grid_cell_x_align: "CENTER"
-            grid_cell_y_align: "CENTER"
-            width: "15%"
-            height: "100%"
-            animated: false
-        - slider:
-            <<: *slider_south
-            id: "slider_north"
-            grid_cell_column_pos: 3
+  - !include pages/blinds_control.yaml

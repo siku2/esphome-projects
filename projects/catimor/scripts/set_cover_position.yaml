@@ -1,0 +1,23 @@
+id: "script_set_cover_position"
+mode: "restart"
+parameters:
+  position: "float"
+then:
+- if:
+    condition:
+      lambda: 'return lv_obj_get_state(id(btn_select_left)) & LV_STATE_CHECKED;'
+    then:
+    - homeassistant.action:
+        action: "cover.set_cover_position"
+        data:
+          entity_id: "${blind_left_cover_id}"
+          position: !lambda 'return (int) position;'
+- if:
+    condition:
+      lambda: 'return lv_obj_get_state(id(btn_select_right)) & LV_STATE_CHECKED;'
+    then:
+    - homeassistant.action:
+        action: "cover.set_cover_position"
+        data:
+          entity_id: "${blind_right_cover_id}"
+          position: !lambda 'return (int) position;'
