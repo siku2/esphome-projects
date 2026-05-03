@@ -45,7 +45,8 @@ widgets:
     on_click:
     - if:
         condition:
-          lambda: 'return !(lv_obj_get_state(id(btn_select_right)) & LV_STATE_CHECKED);'
+          lambda: !lambda |
+            return !(lv_obj_get_state(id(btn_select_right)) & LV_STATE_CHECKED);
         then:
         - lvgl.widget.update:
             id: "btn_select_right"
@@ -78,7 +79,8 @@ widgets:
     on_click:
     - if:
         condition:
-          lambda: 'return !(lv_obj_get_state(id(btn_select_left)) & LV_STATE_CHECKED);'
+          lambda: !lambda |
+            return !(lv_obj_get_state(id(btn_select_left)) & LV_STATE_CHECKED);
         then:
         - lvgl.widget.update:
             id: "btn_select_left"
@@ -118,7 +120,8 @@ widgets:
       then:
       - script.execute:
           id: "script_set_cover_position"
-          position: !lambda 'return x;'
+          position: !lambda |
+            return x;
 
 - label:
     text: "${i18n.catimor[language].slider_position}"
@@ -173,7 +176,8 @@ widgets:
       then:
       - script.execute:
           id: "script_set_cover_tilt"
-          tilt: !lambda 'return x;'
+          tilt: !lambda |
+            return x;
 
 - label:
     text: "${i18n.catimor[language].slider_tilt}"

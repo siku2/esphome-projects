@@ -1,31 +1,42 @@
 id: "script_sync_sliders"
 mode: "restart"
 then:
-- lvgl.slider.update:
-    id: "slider_position"
-    animated: false
-    value: !lambda |-
-      bool left  = lv_obj_get_state(id(btn_select_left))  & LV_STATE_CHECKED;
-      bool right = lv_obj_get_state(id(btn_select_right)) & LV_STATE_CHECKED;
-      float lv = id(blind_left_position).state;
-      float rv = id(blind_right_position).state;
-      bool lv_ok = left  && !isnan(lv);
-      bool rv_ok = right && !isnan(rv);
-      if (lv_ok && rv_ok) return (int)((lv + rv) / 2.0f);
-      if (lv_ok) return (int)lv;
-      if (rv_ok) return (int)rv;
-      return lv_slider_get_value(id(slider_position));
-- lvgl.slider.update:
-    id: "slider_tilt"
-    animated: false
-    value: !lambda |-
-      bool left  = lv_obj_get_state(id(btn_select_left))  & LV_STATE_CHECKED;
-      bool right = lv_obj_get_state(id(btn_select_right)) & LV_STATE_CHECKED;
-      float lv = id(blind_left_tilt).state;
-      float rv = id(blind_right_tilt).state;
-      bool lv_ok = left  && !isnan(lv);
-      bool rv_ok = right && !isnan(rv);
-      if (lv_ok && rv_ok) return (int)((lv + rv) / 2.0f);
-      if (lv_ok) return (int)lv;
-      if (rv_ok) return (int)rv;
-      return lv_slider_get_value(id(slider_tilt));
+- if:
+    condition:
+      lambda: !lambda |
+        bool left  = lv_obj_get_state(id(btn_select_left))  & LV_STATE_CHECKED;
+        bool right = lv_obj_get_state(id(btn_select_right)) & LV_STATE_CHECKED;
+        auto &ls = id(blind_left_state).state;
+        auto &rs = id(blind_right_state).state;
+        bool left_moving  = left  && (ls == "opening" || ls == "closing");
+        bool right_moving = right && (rs == "opening" || rs == "closing");
+        return !(left_moving || right_moving);
+    then:
+    - lvgl.slider.update:
+        id: "slider_position"
+        animated: false
+        value: !lambda |
+          bool left  = lv_obj_get_state(id(btn_select_left))  & LV_STATE_CHECKED;
+          bool right = lv_obj_get_state(id(btn_select_right)) & LV_STATE_CHECKED;
+          float lv = id(blind_left_position).state;
+          float rv = id(blind_right_position).state;
+          bool lv_ok = left  && !isnan(lv);
+          bool rv_ok = right && !isnan(rv);
+          if (lv_ok && rv_ok) return (int)((lv + rv) / 2.0f);
+          if (lv_ok) return (int)lv;
+          if (rv_ok) return (int)rv;
+          return lv_slider_get_value(id(slider_position));
+    - lvgl.slider.update:
+        id: "slider_tilt"
+        animated: false
+        value: !lambda |
+          bool left  = lv_obj_get_state(id(btn_select_left))  & LV_STATE_CHECKED;
+          bool right = lv_obj_get_state(id(btn_select_right)) & LV_STATE_CHECKED;
+          float lv = id(blind_left_tilt).state;
+          float rv = id(blind_right_tilt).state;
+          bool lv_ok = left  && !isnan(lv);
+          bool rv_ok = right && !isnan(rv);
+          if (lv_ok && rv_ok) return (int)((lv + rv) / 2.0f);
+          if (lv_ok) return (int)lv;
+          if (rv_ok) return (int)rv;
+          return lv_slider_get_value(id(slider_tilt));

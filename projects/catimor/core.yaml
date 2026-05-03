@@ -122,6 +122,18 @@ sensor:
   id: "blind_right_tilt"
   entity_id: "${blind_right_cover_id}"
 
+text_sensor:
+- &blind_left_state
+  id: "blind_left_state"
+  on_value:
+  - script.execute: "script_sync_sliders"
+  platform: "homeassistant"
+  entity_id: "${blind_left_cover_id}"
+
+- <<: *blind_left_state
+  id: "blind_right_state"
+  entity_id: "${blind_right_cover_id}"
+
 script:
 - !include scripts/set_cover_position.yaml
 - !include scripts/set_cover_tilt.yaml
