@@ -1,9 +1,11 @@
 substitutions:
+  blind_left_cover_id: "" # REQUIRED!
+  blind_right_cover_id: "" # REQUIRED!
+  climate_id: "" # REQUIRED!
+
   api_encryption_key: "" # REQUIRED!
   ota_password: "" # REQUIRED!
   git_ref: "" # REQUIRED!
-  blind_left_cover_id: "" # REQUIRED!
-  blind_right_cover_id: "" # REQUIRED!
 
   name: "esp-catimor"
   friendly_name: "Catimor"
@@ -122,6 +124,13 @@ sensor:
   id: "blind_right_tilt"
   entity_id: "${blind_right_cover_id}"
 
+- id: "ac_temperature"
+  on_value:
+  - script.execute: "script_sync_ac"
+  platform: "homeassistant"
+  entity_id: "${climate_id}"
+  attribute: "temperature"
+
 text_sensor:
 - &blind_left_state
   id: "blind_left_state"
@@ -134,9 +143,30 @@ text_sensor:
   id: "blind_right_state"
   entity_id: "${blind_right_cover_id}"
 
+- id: "ac_hvac_mode"
+  on_value:
+  - script.execute: "script_sync_ac"
+  platform: "homeassistant"
+  entity_id: "${climate_id}"
+
+- id: "ac_fan_mode"
+  on_value:
+  - script.execute: "script_sync_ac"
+  platform: "homeassistant"
+  entity_id: "${climate_id}"
+  attribute: "fan_mode"
+
+- id: "ac_swing_mode"
+  on_value:
+  - script.execute: "script_sync_ac"
+  platform: "homeassistant"
+  entity_id: "${climate_id}"
+  attribute: "swing_mode"
+
 script:
 - !include scripts/set_cover_position.yaml
 - !include scripts/set_cover_tilt.yaml
+- !include scripts/sync_ac.yaml
 - !include scripts/sync_sliders.yaml
 
 font:
@@ -199,3 +229,4 @@ lvgl:
   pages:
   - !include pages/blinds_control.yaml
   - !include pages/home.yaml
+  - !include pages/ac_control.yaml

@@ -1,0 +1,17 @@
+button:
+  align: "TOP_LEFT"
+  x: 0
+  y: 0
+  width: 56
+  height: 56
+  radius: 0
+  bg_color: "0x313244"
+  bg_opa: "COVER"
+  border_width: 0
+  on_click:
+  - lvgl.page.show: "pg_home"
+  widgets:
+  - label:
+      align: "CENTER"
+      text_color: "0x585B70"
+      text: ""

@@ -1,0 +1,56 @@
+id: "script_sync_ac"
+mode: "restart"
+then:
+- if:
+    condition:
+      lambda: 'return !isnan(id(ac_temperature).state);'
+    then:
+    - lvgl.arc.update:
+        id: "arc_temperature"
+        value: !lambda 'return (int)(id(ac_temperature).state * 2.0f + 0.5f);'
+    - lvgl.label.update:
+        id: "label_ac_temp"
+        text:
+          format: "%.1f"
+          args: ["id(ac_temperature).state"]
+- if:
+    condition:
+      lambda: 'return !id(ac_hvac_mode).state.empty();'
+    then:
+    - lvgl.widget.update:
+        id: "btn_ac_power"
+        state:
+          checked: !lambda 'return id(ac_hvac_mode).state != "off";'
+    - if:
+        condition:
+          lambda: 'return id(ac_hvac_mode).state != "off";'
+        then:
+        - lvgl.dropdown.update:
+            id: "dd_ac_mode"
+            selected_index: !lambda |-
+              auto &s = id(ac_hvac_mode).state;
+              if (s == "heat") return 0;
+              if (s == "cool") return 1;
+              if (s == "auto") return 2;
+              if (s == "fan_only") return 3;
+              return 4;
+- if:
+    condition:
+      lambda: 'return !id(ac_fan_mode).state.empty();'
+    then:
+    - lvgl.dropdown.update:
+        id: "dd_ac_fan"
+        selected_index: !lambda |-
+          auto &s = id(ac_fan_mode).state;
+          if (s == "low") return 0;
+          if (s == "medium") return 1;
+          if (s == "high") return 2;
+          return 3;
+- if:
+    condition:
+      lambda: 'return !id(ac_swing_mode).state.empty();'
+    then:
+    - lvgl.widget.update:
+        id: "sw_ac_swing"
+        state:
+          checked: !lambda 'return id(ac_swing_mode).state == "vertical";'

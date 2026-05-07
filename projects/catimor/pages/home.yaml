@@ -93,8 +93,6 @@ widgets:
     id: "tile_ac"
     bg_color: "0x6B4E7A"
     bg_opa: "COVER"
-    opa: "20%"
-    clickable: false
     grid_cell_x_align: "STRETCH"
     grid_cell_y_align: "STRETCH"
     layout:
@@ -102,6 +100,8 @@ widgets:
       flex_flow: "COLUMN"
       flex_align_main: "CENTER"
       flex_align_cross: "CENTER"
+    on_click:
+    - lvgl.page.show: "pg_ac_control"
     widgets:
     - label:
         text: "\uF043"

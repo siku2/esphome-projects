@@ -1,0 +1,209 @@
+id: "pg_ac_control"
+bg_color: "0x1E1E2E"
+bg_opa: "COVER"
+on_load:
+- script.execute: "script_sync_ac"
+widgets:
+
+# --- TOP LEFT: Home Button ---
+- !include widgets/btn_home.yaml
+
+# --- LEFT: Controls Panel (below home button) ---
+- obj:
+    align: "TOP_LEFT"
+    x: 0
+    y: 56
+    width: 115
+    height: 184
+    pad_all: 6
+    bg_opa: "TRANSP"
+    border_width: 0
+    scrollbar_mode: "OFF"
+    layout:
+      type: "FLEX"
+      flex_flow: "COLUMN"
+      flex_align_main: "CENTER"
+      flex_align_cross: "STRETCH"
+      pad_row: 4
+    widgets:
+
+    - label:
+        text: "${i18n.catimor[language].ac_mode}"
+        text_font: "montserrat_12_ext"
+        text_color: "0x585B70"
+
+    # Mode options: index 0=heat 1=cool 2=auto 3=fan_only 4=dry 5=off
+    - dropdown:
+        id: "dd_ac_mode"
+        width: "100%"
+        dir: "BOTTOM"
+        text_font: "montserrat_12_ext"
+        indicator:
+          text_font: montserrat_14
+        dropdown_list:
+          bg_color: "0x313244"
+          text_font: "montserrat_12_ext"
+          selected:
+            checked:
+              bg_color: "0x89B4FA"
+              text_color: "0x1E1E2E"
+        options:
+          - "${i18n.catimor[language].ac_mode_heat}"
+          - "${i18n.catimor[language].ac_mode_cool}"
+          - "${i18n.catimor[language].ac_mode_auto}"
+          - "${i18n.catimor[language].ac_mode_fan_only}"
+          - "${i18n.catimor[language].ac_mode_dry}"
+        on_change:
+          then:
+          - homeassistant.action:
+              action: "climate.set_hvac_mode"
+              data:
+                entity_id: "${climate_id}"
+                hvac_mode: !lambda |-
+                  const char* m[] = {"heat","cool","auto","fan_only","dry"};
+                  return std::string(m[std::min((int)x, 4)]);
+
+    - label:
+        text: "${i18n.catimor[language].ac_fan}"
+        text_font: "montserrat_12_ext"
+        text_color: "0x585B70"
+
+    # Fan options: index 0=low 1=medium 2=high 3=auto
+    - dropdown:
+        id: "dd_ac_fan"
+        width: "100%"
+        dir: "BOTTOM"
+        text_font: "montserrat_12_ext"
+        indicator:
+          text_font: montserrat_14
+        dropdown_list:
+          bg_color: "0x313244"
+          text_font: "montserrat_12_ext"
+          selected:
+            checked:
+              bg_color: "0x89B4FA"
+              text_color: "0x1E1E2E"
+        options:
+          - "${i18n.catimor[language].ac_fan_low}"
+          - "${i18n.catimor[language].ac_fan_medium}"
+          - "${i18n.catimor[language].ac_fan_high}"
+          - "${i18n.catimor[language].ac_fan_auto}"
+        on_change:
+          then:
+          - homeassistant.action:
+              action: "climate.set_fan_mode"
+              data:
+                entity_id: "${climate_id}"
+                fan_mode: !lambda |-
+                  const char* m[] = {"low","medium","high","auto"};
+                  return std::string(m[std::min((int)x, 3)]);
+
+    # Swing toggle row
+    - obj:
+        width: "100%"
+        height: "SIZE_CONTENT"
+        bg_opa: "TRANSP"
+        border_width: 0
+        pad_all: 0
+        layout:
+          type: "FLEX"
+          flex_flow: "ROW"
+          flex_align_cross: "CENTER"
+          flex_align_main: "SPACE_BETWEEN"
+        widgets:
+        - label:
+            text: "${i18n.catimor[language].ac_swing}"
+            text_font: "montserrat_12_ext"
+            text_color: "0x585B70"
+        - switch:
+            id: "sw_ac_swing"
+            on_change:
+              then:
+              - homeassistant.action:
+                  action: "climate.set_swing_mode"
+                  data:
+                    entity_id: "${climate_id}"
+                    swing_mode: !lambda 'return x ? std::string("vertical") : std::string("off");'
+
+# --- RIGHT: Temperature Arc ---
+# Arc value is scaled ×2: integer 32–60 = 16.0–30.0 °C in 0.5° steps
+- arc:
+    id: "arc_temperature"
+    align: "TOP_RIGHT"
+    x: -8
+    y: 57
+    width: 182
+    height: 182
+    adjustable: true
+    min_value: 32
+    max_value: 60
+    value: 44
+    start_angle: 135
+    end_angle: 45
+    arc_width: 16
+    arc_rounded: true
+    arc_color: "0x313244"
+    indicator:
+      arc_color: "0x89B4FA"
+      arc_width: 16
+    knob:
+      bg_color: "0x89B4FA"
+      radius: 11
+      pad_all: 2
+    on_value:
+      then:
+      - lvgl.label.update:
+          id: "label_ac_temp"
+          text:
+            format: "%.1f"
+            args: ["x / 2.0f"]
+    on_release:
+      then:
+      - homeassistant.action:
+          action: "climate.set_temperature"
+          data:
+            entity_id: "${climate_id}"
+            temperature: !lambda "return x / 2.0f;"
+    widgets:
+    - label:
+        id: "label_ac_temp"
+        align: "CENTER"
+        y: -16
+        text: "--"
+        text_font: "montserrat_28"
+        text_color: "0xCDD6F4"
+        text_align: "CENTER"
+    - button:
+        id: "btn_ac_power"
+        checkable: true
+        align: "CENTER"
+        y: 24
+        width: 42
+        height: 42
+        radius: 21
+        bg_color: "0x313244"
+        text_color: "0x45475A"
+        checked:
+          bg_color: "0x89B4FA"
+          text_color: "0x1E1E2E"
+        widgets:
+        - label:
+            align: "CENTER"
+            text: "\uF011"
+            text_font: "montserrat_20"
+        on_change:
+          then:
+          - if:
+              condition:
+                lambda: 'return x;'
+              then:
+              - homeassistant.action:
+                  action: "climate.turn_on"
+                  data:
+                    entity_id: "${climate_id}"
+              else:
+              - homeassistant.action:
+                  action: "climate.set_hvac_mode"
+                  data:
+                    entity_id: "${climate_id}"
+                    hvac_mode: "off"
