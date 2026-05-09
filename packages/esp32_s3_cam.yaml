@@ -1,0 +1,84 @@
+# ESP32-S3-CAM
+#
+# See: <https://docs.keyestudio.com/projects/MB0184/en/latest/docs/MB0184%20ESP32-S3%20CAM%20Development%20Board.html>
+#
+# ## Variables
+#
+# ## Namespace
+#
+# `e32s3cam`
+#
+# ## Components
+#
+# ### ESP32 Camera
+#
+# - `e32s3cam_camera`: The camera component.
+#
+# ### I2C
+#
+# - `e32s3cam_i2c`: I2C bus for camera configuration.
+
+substitutions:
+  language: "en"
+  i18n:
+    e32s3cam:
+      de:
+        camera: "Kamera"
+        flash: "Blitzlicht"
+
+      en:
+        camera: "Camera"
+        flash: "Flash"
+
+# ESP32-S3 peripherals
+esp32:
+  variant: "esp32s3"
+  flash_size: "4MB"
+  framework:
+    type: esp-idf
+
+psram:
+  mode: "octal"
+  speed: "80MHz"
+
+i2c:
+- id: "e32s3cam_i2c"
+  sda: "GPIO4"
+  scl: "GPIO5"
+
+output:
+- id: "e32s3cam_flash_output"
+  platform: "ledc"
+  pin: "GPIO1"
+  frequency: "1kHz"
+  inverted: true
+
+# Board peripherals
+
+esp32_camera:
+  id: "e32s3cam_camera"
+  name: "${i18n.e32s3cam[language].camera}"
+  data_pins:
+  - "GPIO11"
+  - "GPIO9"
+  - "GPIO8"
+  - "GPIO10"
+  - "GPIO12"
+  - "GPIO18"
+  - "GPIO17"
+  - "GPIO16"
+  vsync_pin: "GPIO6"
+  href_pin: "GPIO7"
+  pixel_clock_pin: "GPIO13"
+  external_clock:
+    pin: "GPIO15"
+    frequency: "20MHz"
+  i2c_id: "e32s3cam_i2c"
+
+light:
+- id: "e32s3cam_flash"
+  name: "${i18n.e32s3cam[language].flash}"
+  default_transition_length: "0s"
+  restore_mode: "ALWAYS_OFF"
+  platform: "monochromatic"
+  output: "e32s3cam_flash_output"
