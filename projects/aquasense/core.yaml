@@ -44,9 +44,9 @@ ota:
 - platform: "esphome"
   password: "${ota_password}"
 
-esp32_camera: 
-  pixel_format: "rgb565"
-  jpeg_quality: 0
+# esp32_camera:
+#   pixel_format: "rgb565"
+#   jpeg_quality: 0
 
 # TODO: for testing
 esp32_camera_web_server:
