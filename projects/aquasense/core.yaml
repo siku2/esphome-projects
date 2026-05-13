@@ -1,0 +1,57 @@
+substitutions:
+  api_encryption_key: "" # REQUIRED!
+  ota_password: "" # REQUIRED!
+  git_ref: "" # REQUIRED!
+
+  name: "aquasense"
+  friendly_name: "Aquasense"
+  language: "en"
+  i18n:
+    aquasense:
+      de: !include i18n/de.yaml
+      en: !include i18n/en.yaml
+
+packages:
+  base: !include
+    file: ../../packages/base.yaml
+  e32s3cam: !include
+    file: ../../packages/esp32_s3_cam.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "siku2.aquasense"
+    version: "0.1.0"
+
+dashboard_import:
+  package_import_url: "github://siku2/esphome-projects/projects/aquasense/core.yaml@main"
+  import_full_config: false
+
+external_components:
+- source:
+    type: git
+    url: "https://github.com/siku2/esphome-projects"
+    ref: "${git_ref}"
+    path: "components"
+  components: [ "tflite" ]
+
+api:
+  encryption:
+    key: "${api_encryption_key}"
+
+ota:
+- platform: "esphome"
+  password: "${ota_password}"
+
+esp32_camera: 
+  id: !extend "e32s3cam_camera"
+  pixel_format: "rgb565"
+  jpeg_quality: 0
+
+# TODO: for testing
+esp32_camera_web_server:
+- port: 8080
+  mode: stream
+- port: 8081
+  mode: snapshot
