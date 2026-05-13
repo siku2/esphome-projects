@@ -45,7 +45,6 @@ ota:
   password: "${ota_password}"
 
 esp32_camera: 
-  id: !extend "e32s3cam_camera"
   pixel_format: "rgb565"
   jpeg_quality: 0
 
