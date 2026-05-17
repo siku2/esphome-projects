@@ -17,6 +17,10 @@
 # ### I2C
 #
 # - `e32s3cam_i2c`: I2C bus for camera configuration.
+#
+# ### Light
+# 
+# - `e32s3cam_flash`: The flash light component.
 
 substitutions:
   language: "en"
@@ -35,11 +39,12 @@ esp32:
   variant: "esp32s3"
   flash_size: "4MB"
   framework:
-    type: esp-idf
+    type: "esp-idf"
 
 psram:
   mode: "octal"
   speed: "80MHz"
+  ignore_not_found: false
 
 i2c:
 - id: "e32s3cam_i2c"
