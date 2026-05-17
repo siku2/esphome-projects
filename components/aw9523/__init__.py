@@ -37,6 +37,7 @@ CONFIG_SCHEMA = (
     .extend(i2c.i2c_device_schema(0x58))
 )
 
+
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
@@ -46,12 +47,14 @@ async def to_code(config):
     cg.add(var.set_p0_push_pull(config[CONF_P0_PUSH_PULL]))
     return var
 
+
 def validate_mode(value):
     if not (value[CONF_INPUT] or value[CONF_OUTPUT]):
         raise cv.Invalid("Mode must be either input or output")
     if value[CONF_INPUT] and value[CONF_OUTPUT]:
         raise cv.Invalid("Mode must be either input or output")
     return value
+
 
 CONF_AW9523 = "aw9523"
 AW9523_PIN_SCHEMA = cv.All(

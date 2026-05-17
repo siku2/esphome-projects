@@ -8,7 +8,9 @@ CONF_MAX_CURRENT = "max_current"
 
 DEPENDENCIES = ["aw9523"]
 
-AW9523FloatOutputChannel = aw9523_ns.class_("AW9523FloatOutputChannel", output.FloatOutput, cg.Component)
+AW9523FloatOutputChannel = aw9523_ns.class_(
+    "AW9523FloatOutputChannel", output.FloatOutput, cg.Component
+)
 
 CONFIG_SCHEMA = output.BINARY_OUTPUT_SCHEMA.extend(
     {
@@ -21,6 +23,7 @@ CONFIG_SCHEMA = output.BINARY_OUTPUT_SCHEMA.extend(
         ),
     }
 ).extend(cv.COMPONENT_SCHEMA)
+
 
 async def to_code(config):
     parent = await cg.get_variable(config[CONF_AW9523])

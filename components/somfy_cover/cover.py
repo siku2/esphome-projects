@@ -22,15 +22,19 @@ SomfyCoverResetRollingCodeAction = somfy_cover_ns.class_(
     "SomfyCoverResetRollingCodeAction", automation.Action
 )
 
-CONFIG_SCHEMA = cover.cover_schema(SomfyCover).extend(
-    {
-        cv.GenerateID(CONF_ID): cv.declare_id(SomfyCover),
-        cv.GenerateID(CONF_CC1101_ID): cv.use_id(Cc1101),
-        cv.Required(CONF_REMOTE_CODE): cv.uint32_t,
-        cv.Required(CONF_OPEN_DURATION): cv.positive_time_period_milliseconds,
-        cv.Required(CONF_CLOSE_DURATION): cv.positive_time_period_milliseconds,
-    },
-).extend(cv.COMPONENT_SCHEMA)
+CONFIG_SCHEMA = (
+    cover.cover_schema(SomfyCover)
+    .extend(
+        {
+            cv.GenerateID(CONF_ID): cv.declare_id(SomfyCover),
+            cv.GenerateID(CONF_CC1101_ID): cv.use_id(Cc1101),
+            cv.Required(CONF_REMOTE_CODE): cv.uint32_t,
+            cv.Required(CONF_OPEN_DURATION): cv.positive_time_period_milliseconds,
+            cv.Required(CONF_CLOSE_DURATION): cv.positive_time_period_milliseconds,
+        },
+    )
+    .extend(cv.COMPONENT_SCHEMA)
+)
 
 
 async def to_code(config):
