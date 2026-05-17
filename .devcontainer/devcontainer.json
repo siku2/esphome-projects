@@ -1,13 +1,18 @@
 {
     "name": "ESPHome Projects",
-    "image": "mcr.microsoft.com/devcontainers/base:trixie",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
     "privileged": true,
+    "remoteUser": "dev",
     "features": {
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-            "moby": false
+        "ghcr.io/devcontainers/features/common-utils:2.5.8": {
+            "installZsh": false,
+            "installOhMyZsh": false,
+            "installOhMyZshConfig": false
         },
-        "ghcr.io/devcontainers/features/python:1": {
-            "toolsToInstall": "ruff,uv"
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1.9.1": {
+            "moby": false
         }
     },
     "customizations": {
