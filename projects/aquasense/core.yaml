@@ -3,6 +3,14 @@ substitutions:
   ota_password: "" # REQUIRED!
   git_ref: "" # REQUIRED!
 
+  crop_dig1:
+    top_left:
+      x: 0
+      y: 0
+    bottom_right:
+      x: 0
+      y: 0
+
   name: "aquasense"
   friendly_name: "Aquasense"
   language: "en"
@@ -83,10 +91,4 @@ sensor:
   - id: "dig1"
     platform: "tflite"
     interpreter: "digits_interpreter"
-    crop:
-      top_left:
-        x: 0
-        y: 0
-      bottom_right:
-        x: 128
-        y: 128
+    crop: "${crop_dig1}"

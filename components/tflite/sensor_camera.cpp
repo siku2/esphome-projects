@@ -13,6 +13,10 @@ void CameraSnapshotSensor::setup() {
     this->mark_failed();
     return;
   }
+  if (this->crop_.empty()) {
+    this->mark_failed(LOG_STR("Crop region is empty"));
+    return;
+  }
   this->snapshotter_->add_listener(this);
 }
 
@@ -173,12 +177,10 @@ void feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, const Rect
 }
 
 void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
-  if (this->input_ready_)
+  if (this->failed() || this->input_ready_)
     // Still processing previous snapshot or in an error state.
     return;
 
-  if (!this->interpreter_component_->interpreter())
-    return;
   MicroInterpreter &interpreter = this->interpreter_component_->interpreter().value();
   TfLiteTensor *input = interpreter.input(0);
   if (!input) {
