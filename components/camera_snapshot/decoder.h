@@ -11,11 +11,12 @@ class Decoder {
   explicit Decoder(jpeg_pixel_format_t output_format);
   ~Decoder();
 
-  jpeg_error_t decode(uint8_t *buf, size_t len);
+  jpeg_error_t decode(uint8_t *buf, size_t len, jpeg_rotate_t rotate);
   Snapshot get_snapshot() const;
 
  protected:
   jpeg_pixel_format_t output_format_;
+  jpeg_rotate_t last_rotate_{};
   jpeg_dec_handle_t jpeg_dec_{nullptr};
   jpeg_dec_io_t jpeg_io_{};
   jpeg_dec_header_info_t out_info_{};

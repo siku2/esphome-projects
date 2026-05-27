@@ -4,6 +4,7 @@
 #include <esphome/core/component.h>
 
 #include "decoder.h"
+#include "esp_jpeg_common.h"
 
 namespace esphome::camera::snapshot {
 
@@ -22,6 +23,8 @@ enum class Phase {
 
 class Snapshotter : public PollingComponent, public CameraListener {
  public:
+  void set_rotate(jpeg_rotate_t rotate) { this->rotate_ = rotate; }
+
   Trigger<> *get_pre_snapshot_trigger() { return &pre_snapshot_; }
   Trigger<> *get_post_snapshot_trigger() { return &post_snapshot_; }
   Trigger<const Snapshot &> *get_on_snapshot_trigger() { return &on_snapshot_; }
@@ -32,6 +35,7 @@ class Snapshotter : public PollingComponent, public CameraListener {
   static Decoder global_decoder;
 
   Camera *camera_{nullptr};
+  jpeg_rotate_t rotate_{JPEG_ROTATE_0D};
   Phase phase_{Phase::IDLE};
   std::shared_ptr<CameraImage> pending_image_{nullptr};
   std::optional<Snapshot> snapshot_{};

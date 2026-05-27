@@ -40,7 +40,7 @@ void Snapshotter::loop() {
       // Wait for the camera to give us an image.
       if (this->pending_image_ != nullptr) {
         jpeg_error_t ret = Snapshotter::global_decoder.decode(this->pending_image_->get_data_buffer(),
-                                                              this->pending_image_->get_data_length());
+                                                              this->pending_image_->get_data_length(), this->rotate_);
         this->pending_image_.reset();
         if (ret == JPEG_ERR_OK) {
           this->snapshot_ = Snapshotter::global_decoder.get_snapshot();

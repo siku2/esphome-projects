@@ -46,6 +46,7 @@ ota:
 
 camera_snapshot:
   update_interval: "10s"
+  rotate: "90°"
   before_snapshot:
     - light.turn_on: "e32s3cam_flash"
     - delay: "100ms"

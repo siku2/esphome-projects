@@ -6,17 +6,7 @@ static const char *const TAG = "camera_snapshot.decoder";
 
 using namespace esphome::camera::snapshot;
 
-Decoder::Decoder(jpeg_pixel_format_t output_format) : output_format_(output_format) {
-  jpeg_error_t ret = JPEG_ERR_OK;
-
-  jpeg_dec_config_t config = DEFAULT_JPEG_DEC_CONFIG();
-  config.output_type = this->output_format_;
-  ret = jpeg_dec_open(&config, &this->jpeg_dec_);
-  if (ret != JPEG_ERR_OK) {
-    ESP_LOGE(TAG, "Failed to open JPEG decoder: %d", ret);
-    return;
-  }
-}
+Decoder::Decoder(jpeg_pixel_format_t output_format) : output_format_(output_format) {}
 
 Decoder::~Decoder() {
   if (this->jpeg_dec_ != nullptr) {
@@ -30,14 +20,28 @@ Decoder::~Decoder() {
   }
 }
 
-jpeg_error_t Decoder::decode(uint8_t *buf, size_t len) {
-  if (this->jpeg_dec_ == nullptr)
-    return JPEG_ERR_FAIL;
+jpeg_error_t Decoder::decode(uint8_t *buf, size_t len, jpeg_rotate_t rotate) {
+  jpeg_error_t ret = JPEG_ERR_OK;
+
+  if (this->last_rotate_ != rotate && this->jpeg_dec_ != nullptr) {
+    // We want a different rotation...
+    jpeg_dec_close(this->jpeg_dec_);
+    this->jpeg_dec_ = nullptr;
+  }
+
+  if (this->jpeg_dec_ == nullptr) {
+    jpeg_dec_config_t config = DEFAULT_JPEG_DEC_CONFIG();
+    config.output_type = this->output_format_;
+    config.rotate = rotate;
+    ret = jpeg_dec_open(&config, &this->jpeg_dec_);
+    if (ret != JPEG_ERR_OK)
+      return ret;
+  }
 
   this->jpeg_io_.inbuf = buf;
   this->jpeg_io_.inbuf_len = len;
 
-  jpeg_error_t ret = jpeg_dec_parse_header(this->jpeg_dec_, &this->jpeg_io_, &this->out_info_);
+  ret = jpeg_dec_parse_header(this->jpeg_dec_, &this->jpeg_io_, &this->out_info_);
   if (ret != JPEG_ERR_OK)
     return ret;
 
