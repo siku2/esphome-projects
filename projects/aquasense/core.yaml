@@ -29,28 +29,63 @@ dashboard_import:
   import_full_config: false
 
 external_components:
-- source:
-    type: git
-    url: "https://github.com/siku2/esphome-projects"
-    ref: "${git_ref}"
-    path: "components"
-  components: [ "tflite" ]
+  - source:
+      type: git
+      url: "https://github.com/siku2/esphome-projects"
+      ref: "${git_ref}"
+      path: "components"
+    components: ["camera_snapshot", "tflite"]
 
 api:
   encryption:
     key: "${api_encryption_key}"
 
 ota:
-- platform: "esphome"
-  password: "${ota_password}"
+  - platform: "esphome"
+    password: "${ota_password}"
 
-# esp32_camera:
-#   pixel_format: "rgb565"
-#   jpeg_quality: 0
+camera_snapshot:
+  update_interval: "10s"
+  before_snapshot:
+    - light.turn_on: "e32s3cam_flash"
+    - delay: "100ms"
+  after_snapshot:
+    - light.turn_off: "e32s3cam_flash"
 
-# TODO: for testing
-esp32_camera_web_server:
-- port: 8080
-  mode: stream
-- port: 8081
-  mode: snapshot
+tflite:
+  op_resolver:
+    builtin:
+      - "add"
+      - "conv_2d"
+      - "dequantize"
+      - "fully_connected"
+      - "leaky_relu"
+      - "max_pool_2d"
+      - "mul"
+      - "quantize"
+      - "reshape"
+      - "softmax"
+  allocator:
+    size: "150 kB"
+  model:
+    - id: "digits_model"
+      file: "https://github.com/jomjol/AI-on-the-edge-device/raw/refs/heads/main/sd-card/config/dig-cont_0900_s3_q.tflite"
+    - id: "analog_model"
+      file: "https://github.com/jomjol/AI-on-the-edge-device/raw/refs/heads/main/sd-card/config/ana-cont_1500_s2_q.tflite"
+  interpreter:
+    - id: "digits_interpreter"
+      model: "digits_model"
+    - id: "analog_interpreter"
+      model: "analog_model"
+
+sensor:
+  - id: "dig1"
+    platform: "tflite"
+    interpreter: "digits_interpreter"
+    crop:
+      top_left:
+        x: 0
+        y: 0
+      bottom_right:
+        x: 128
+        y: 128
