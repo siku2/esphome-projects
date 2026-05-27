@@ -1,8 +1,11 @@
+import hashlib
 import logging
+from functools import partial
 from pathlib import Path
 
 import esphome.codegen as cg
 import esphome.config_validation as cv
+from esphome import external_files
 from esphome.components import esp32
 from esphome.const import (
     CONF_FILE,
@@ -14,7 +17,7 @@ from esphome.const import (
     CONF_TYPE,
     CONF_URL,
 )
-from esphome.core import HexInt
+from esphome.core import CORE, HexInt
 from esphome.types import ConfigType
 
 _LOGGER = logging.getLogger(__name__)
@@ -288,10 +291,28 @@ TYPED_FILE_SCHEMA = cv.typed_schema(
 )
 
 
+def _compute_local_file_path(value: ConfigType) -> Path:
+    url: str = value[CONF_URL]
+    h = hashlib.new("sha256")
+    h.update(url.encode())
+    key = h.hexdigest()[:8]
+    base_dir = external_files.compute_local_file_dir(DOMAIN)
+    return base_dir / key
+
+
 def _file_schema(value: ConfigType | str) -> ConfigType:
     if isinstance(value, str):
         return _validate_file_shorthand(value)
     return TYPED_FILE_SCHEMA(value)
+
+
+def _get_file_path(config: ConfigType) -> Path:
+    ty = config[CONF_TYPE]
+    if ty == TYPE_WEB:
+        return _compute_local_file_path(config)
+    if ty == TYPE_LOCAL:
+        return CORE.relative_config_path(config[CONF_PATH])
+    raise cv.Invalid("Invalid file type")
 
 
 def _validate_file_shorthand(value: str) -> ConfigType:
@@ -318,6 +339,25 @@ MODEL_SCHEMA = cv.Schema(
     }
 )
 
+MODEL_FILES_SCHEMA = cv.All(
+    cv.ensure_list(MODEL_SCHEMA),
+    partial(
+        external_files.download_web_files_in_config,
+        path_for=_compute_local_file_path,
+    ),
+)
+
+
+async def _model_file_to_code(config: ConfigType) -> cg.MockObj:
+    p = _get_file_path(config[CONF_FILE])
+    rhs = [HexInt(x) for x in p.read_bytes()]
+    buf = cg.progmem_array(config[CONF_RAW_DATA_ID], rhs)
+    var = cg.new_Pvariable(config[CONF_ID])
+    await cg.register_component(var, config)
+    cg.add(var.set_buf(buf, len(rhs)))
+    return var
+
+
 ALLOCATOR_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_ID): cv.declare_id(AllocatorComponent),
@@ -336,7 +376,7 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_OP_RESOLVER): OP_RESOLVER_SCHEMA,
         cv.Required(CONF_ALLOCATOR): ALLOCATOR_SCHEMA,
-        cv.Required(CONF_MODEL): cv.ensure_list(MODEL_SCHEMA),
+        cv.Required(CONF_MODEL): MODEL_FILES_SCHEMA,
         cv.Required(CONF_INTERPRETER): cv.ensure_list(INTERPRETER_SCHEMA),
     }
 )
@@ -368,12 +408,7 @@ async def to_code(config: ConfigType) -> None:
     cg.add(allocator.set_size(allocator_config[CONF_SIZE]))
 
     for model_config in config[CONF_MODEL]:
-        p: Path = model_config[CONF_FILE][CONF_PATH]
-        rhs = [HexInt(x) for x in p.read_bytes()]
-        buf = cg.progmem_array(model_config[CONF_RAW_DATA_ID], rhs)
-        model = cg.new_Pvariable(model_config[CONF_ID])
-        await cg.register_component(model, model_config)
-        cg.add(model.set_buf(buf, len(rhs)))
+        await _model_file_to_code(model_config)
 
     for interpreter_config in config[CONF_INTERPRETER]:
         model = await cg.get_variable(interpreter_config[CONF_MODEL])
