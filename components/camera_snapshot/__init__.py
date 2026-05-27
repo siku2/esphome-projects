@@ -22,6 +22,7 @@ snapshot_ns = camera_ns.namespace("snapshot")
 Snapshotter = snapshot_ns.class_("Snapshotter", cg.PollingComponent)
 Snapshot = snapshot_ns.class_("Snapshot")
 SnapshotConstRef = Snapshot.operator("const").operator("ref")
+SnapshotListener = snapshot_ns.class_("SnapshotListener")
 
 CONFIG_SCHEMA = cv.polling_component_schema("60s").extend(
     {

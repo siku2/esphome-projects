@@ -6,6 +6,12 @@
 #include "decoder.h"
 
 namespace esphome::camera::snapshot {
+
+class SnapshotListener {
+ public:
+  virtual void on_snapshot(const Snapshot &snapshot) {}
+};
+
 enum class Phase {
   IDLE,
   PRE_SNAPSHOT,
@@ -20,6 +26,8 @@ class Snapshotter : public PollingComponent, public CameraListener {
   Trigger<> *get_post_snapshot_trigger() { return &post_snapshot_; }
   Trigger<const Snapshot &> *get_on_snapshot_trigger() { return &on_snapshot_; }
 
+  void add_listener(SnapshotListener *listener) { this->listeners_.push_back(listener); }
+
  protected:
   static Decoder global_decoder;
 
@@ -27,6 +35,7 @@ class Snapshotter : public PollingComponent, public CameraListener {
   Phase phase_{Phase::IDLE};
   std::shared_ptr<CameraImage> pending_image_{nullptr};
   std::optional<Snapshot> snapshot_{};
+  std::vector<SnapshotListener *> listeners_{};
   Trigger<> pre_snapshot_;
   Trigger<> post_snapshot_;
   Trigger<const Snapshot &> on_snapshot_;

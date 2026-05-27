@@ -2,9 +2,10 @@
 
 #include <esp_jpeg_common.h>
 #include <esphome/core/color.h>
-#include <cstdint>
 
 namespace esphome::camera::snapshot {
+using Color = esphome::Color;
+
 class Snapshot {
   friend class Decoder;
 

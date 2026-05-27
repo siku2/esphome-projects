@@ -56,6 +56,9 @@ void Snapshotter::loop() {
       // Wait for the after_snapshot action to finish.
       if (!this->post_snapshot_.is_action_running()) {
         if (this->snapshot_.has_value()) {
+          for (auto *listener : this->listeners_) {
+            listener->on_snapshot(this->snapshot_.value());
+          }
           this->on_snapshot_.trigger(this->snapshot_.value());
         }
         this->phase_ = Phase::ON_SNAPSHOT;

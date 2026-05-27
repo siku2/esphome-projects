@@ -2,7 +2,7 @@
 
 using namespace esphome::camera::snapshot;
 
-Color Snapshot::get_pixel(uint16_t x, uint16_t y) {
+Color Snapshot::get_pixel(uint16_t x, uint16_t y) const {
   switch (this->pixel_format_) {
     case JPEG_PIXEL_FORMAT_RGB888: {
       const uint8_t *pos = this->data_ + ((x + (y * this->width_)) * 3);
@@ -11,3 +11,4 @@ Color Snapshot::get_pixel(uint16_t x, uint16_t y) {
     default:
       return Color();
   }
+}
