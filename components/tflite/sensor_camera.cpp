@@ -177,7 +177,7 @@ void feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, const Rect
 }
 
 void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
-  if (this->failed() || this->input_ready_)
+  if (this->is_failed() || this->input_ready_)
     // Still processing previous snapshot or in an error state.
     return;
 
