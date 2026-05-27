@@ -105,6 +105,7 @@ tflite:
 sensor:
   - &dig1
     id: "dig1"
+    name: "${i18n.aquasense.${language}.dig1}"
     accuracy_decimals: 0
     filters:
       - lambda: !lambda |
@@ -116,25 +117,31 @@ sensor:
 
   - <<: *dig1
     id: "dig2"
+    name: "${i18n.aquasense.${language}.dig2}"
     crop: "${crop_dig2}"
 
   - <<: *dig1
     id: "dig3"
+    name: "${i18n.aquasense.${language}.dig3}"
     crop: "${crop_dig3}"
 
   - <<: *dig1
     id: "dig4"
+    name: "${i18n.aquasense.${language}.dig4}"
     crop: "${crop_dig4}"
 
   - <<: *dig1
     id: "dig5"
+    name: "${i18n.aquasense.${language}.dig5}"
     crop: "${crop_dig5}"
 
   - <<: *dig1
     id: "dig6"
+    name: "${i18n.aquasense.${language}.dig6}"
     crop: "${crop_dig6}"
 
-  - id: combined
+  - id: "combined"
+    name: "${i18n.aquasense.${language}.combined}"
     unit_of_measurement: "m³"
     device_class: "water"
     state_class: "total_increasing"
