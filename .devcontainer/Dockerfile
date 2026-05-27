@@ -15,7 +15,7 @@ apt-get install -y --no-install-recommends --no-install-suggests \
     sudo
 EOF
 
-ARG ESPHOME_VERSION=2026.4.5
+ARG ESPHOME_VERSION=2026.5.1
 ARG PLATFORMIO_VERSION=6.1.19
 RUN \
     --mount=type=cache,target=/opt/pipx/.cache,sharing=locked \
