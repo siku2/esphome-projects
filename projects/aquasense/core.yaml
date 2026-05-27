@@ -3,13 +3,28 @@ substitutions:
   ota_password: "" # REQUIRED!
   git_ref: "" # REQUIRED!
 
-  crop_dig1:
+  crop_dig1: &crop_dig1
     top_left:
       x: 0
       y: 0
     bottom_right:
       x: 0
       y: 0
+
+  crop_dig2:
+    <<: *crop_dig1
+
+  crop_dig3:
+    <<: *crop_dig1
+
+  crop_dig4:
+    <<: *crop_dig1
+
+  crop_dig5:
+    <<: *crop_dig1
+
+  crop_dig6:
+    <<: *crop_dig1
 
   name: "aquasense"
   friendly_name: "Aquasense"
@@ -88,7 +103,50 @@ tflite:
       model: "analog_model"
 
 sensor:
-  - id: "dig1"
+  - &dig1
+    id: "dig1"
+    accuracy_decimals: 0
+    filters:
+      - lambda: !lambda |
+          return std::floorf(x);
+    entity_category: "diagnostic"
     platform: "tflite"
     interpreter: "digits_interpreter"
     crop: "${crop_dig1}"
+
+  - <<: *dig1
+    id: "dig2"
+    crop: "${crop_dig2}"
+
+  - <<: *dig1
+    id: "dig3"
+    crop: "${crop_dig3}"
+
+  - <<: *dig1
+    id: "dig4"
+    crop: "${crop_dig4}"
+
+  - <<: *dig1
+    id: "dig5"
+    crop: "${crop_dig5}"
+
+  - <<: *dig1
+    id: "dig6"
+    crop: "${crop_dig6}"
+
+  - id: combined
+    unit_of_measurement: "m³"
+    device_class: "water"
+    state_class: "total_increasing"
+    accuracy_decimals: 1
+    platform: "template"
+    lambda: !lambda |
+      float sum = 0.0f;
+      sum += id(dig1).state * 10000.0f;
+      sum += id(dig2).state * 1000.0f;
+      sum += id(dig3).state * 100.0f;
+      sum += id(dig4).state * 10.0f;
+      sum += id(dig5).state * 1.0f;
+      sum += id(dig6).state * 0.1f;
+      return sum;
+    update_interval: "never"
