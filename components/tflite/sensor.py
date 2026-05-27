@@ -35,11 +35,46 @@ def point_to_code(config: ConfigType) -> cg.StructInitializer:
     )
 
 
-RECT_SCHEMA = cv.Schema(
-    {
-        cv.Required("top_left"): POINT_SCHEMA,
-        cv.Required("bottom_right"): POINT_SCHEMA,
-    }
+def _validate_rect(config: ConfigType) -> ConfigType:
+    top_left = config["top_left"]
+    (tl_x, tl_y) = (top_left["x"], top_left["y"])
+    bottom_right = config["bottom_right"]
+    (br_x, br_y) = (bottom_right["x"], bottom_right["y"])
+    if tl_x == br_x or tl_y == br_y:
+        raise cv.Invalid("rect must not be empty")
+    if tl_x > br_x or tl_y > br_y:
+        raise cv.Invalid(
+            "rect's top-left point must be above and to the left of bottom-right"
+        )
+    return config
+
+
+RECT_SCHEMA = cv.All(
+    cv.Any(
+        cv.Schema(
+            {
+                cv.Required("top_left"): POINT_SCHEMA,
+                cv.Required("bottom_right"): POINT_SCHEMA,
+            }
+        ),
+        cv.All(
+            cv.Schema(
+                {
+                    cv.Required("top_left"): POINT_SCHEMA,
+                    cv.Required("width"): cv.uint16_t,
+                    cv.Required("height"): cv.uint16_t,
+                }
+            ),
+            lambda config: {
+                "top_left": config["top_left"],
+                "bottom_right": {
+                    "x": config["top_left"]["x"] + config["width"] + 1,
+                    "y": config["top_left"]["y"] + config["height"] + 1,
+                },
+            },
+        ),
+    ),
+    _validate_rect,
 )
 
 
