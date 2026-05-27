@@ -1,5 +1,6 @@
 #include "decoder.h"
 
+#include <esp_cache.h>
 #include <esp_heap_caps.h>
 
 static const char *const TAG = "camera_snapshot.decoder";
@@ -69,7 +70,11 @@ jpeg_error_t Decoder::decode(uint8_t *buf, size_t len, jpeg_rotate_t rotate) {
   }
 
   this->jpeg_io_.outbuf = this->outbuf_;
-  return jpeg_dec_process(this->jpeg_dec_, &this->jpeg_io_);
+  jpeg_error_t decode_ret = jpeg_dec_process(this->jpeg_dec_, &this->jpeg_io_);
+  // The ESP32-S3 hardware JPEG codec writes decoded pixels to outbuf_ via DMA,
+  // which bypasses the CPU data cache. Invalidate the relevant cache lines.
+  esp_cache_msync(this->outbuf_, required_len, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
+  return decode_ret;
 }
 
 Snapshot Decoder::get_snapshot() const {
