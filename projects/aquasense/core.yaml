@@ -3,28 +3,25 @@ substitutions:
   ota_password: "" # REQUIRED!
   git_ref: "" # REQUIRED!
 
-  crop_dig1: &crop_dig1
+  crop_dig_10000: &crop_dig_10000
     top_left:
       x: 0
       y: 0
     bottom_right:
       x: 0
       y: 0
-
-  crop_dig2:
-    <<: *crop_dig1
-
-  crop_dig3:
-    <<: *crop_dig1
-
-  crop_dig4:
-    <<: *crop_dig1
-
-  crop_dig5:
-    <<: *crop_dig1
-
-  crop_dig6:
-    <<: *crop_dig1
+  crop_dig_1000:
+    <<: *crop_dig_10000
+  crop_dig_100:
+    <<: *crop_dig_10000
+  crop_dig_10:
+    <<: *crop_dig_10000
+  crop_dig_1:
+    <<: *crop_dig_10000
+  crop_dig_01:
+    <<: *crop_dig_10000
+  crop_ana_0001:
+    <<: *crop_dig_10000
 
   name: "aquasense"
   friendly_name: "Aquasense"
@@ -67,14 +64,33 @@ ota:
   - platform: "esphome"
     password: "${ota_password}"
 
+esp32_camera:
+  entity_category: "diagnostic"
+  max_framerate: "1 fps"
+  idle_framerate: "0 fps"
+  resolution: "640x480"
+  jpeg_quality: 6
+  aec_mode: "manual"
+  aec_value: 200
+  agc_mode: "manual"
+  agc_value: 0
+  wb_mode: "sunny"
+  contrast: 2
+  saturation: -1
+
 camera_snapshot:
+  id: "snapshotter"
   update_interval: "10s"
   rotate: "90°"
   before_snapshot:
     - light.turn_on: "e32s3cam_flash"
-    - delay: "100ms"
+      # TODO: fix the camera_snapshot so we can guarantee the snapshot is taken after before_snapshot completes.
+      # Right now the issue is that the camera might still have a frame buffered.
+    - delay: "1200ms"
   after_snapshot:
     - light.turn_off: "e32s3cam_flash"
+  on_snapshot:
+    - component.update: "meter_raw"
 
 tflite:
   op_resolver:
@@ -102,58 +118,121 @@ tflite:
     - id: "analog_interpreter"
       model: "analog_model"
 
+button:
+  - id: "manual_snapshot"
+    name: "${i18n.aquasense.${language}.manual_snapshot}"
+    entity_category: "diagnostic"
+    platform: "template"
+    on_press:
+      - component.update: "snapshotter"
+
+  - id: "reset_meter_value"
+    name: "${i18n.aquasense.${language}.reset_meter}"
+    # Clears the stored last-reading so the next snapshot is always accepted
+    # regardless of whether it looks like a decrease or a large jump.
+    entity_category: "config"
+    icon: "mdi:counter"
+    platform: "template"
+    on_press:
+      - globals.set:
+          id: "meter_normalized_storage"
+          value: 'nanf("")'
+
+globals:
+  - id: "meter_normalized_storage"
+    type: "float"
+    restore_value: true
+    initial_value: 'nanf("")'
+
 sensor:
-  - &dig1
-    id: "dig1"
-    name: "${i18n.aquasense.${language}.dig1}"
-    accuracy_decimals: 0
-    filters:
-      - lambda: !lambda |
-          return std::floorf(x);
+  - &dig_10000
+    id: "dig_10000"
+    name: "${i18n.aquasense.${language}.dig_10000}"
+    state_class: "measurement"
+    accuracy_decimals: 1
     entity_category: "diagnostic"
     platform: "tflite"
     interpreter: "digits_interpreter"
-    crop: "${crop_dig1}"
+    crop: "${crop_dig_10000}"
+    output_format: "digit_softmax10"
 
-  - <<: *dig1
-    id: "dig2"
-    name: "${i18n.aquasense.${language}.dig2}"
-    crop: "${crop_dig2}"
+  - <<: *dig_10000
+    id: "dig_1000"
+    name: "${i18n.aquasense.${language}.dig_1000}"
+    crop: "${crop_dig_1000}"
 
-  - <<: *dig1
-    id: "dig3"
-    name: "${i18n.aquasense.${language}.dig3}"
-    crop: "${crop_dig3}"
+  - <<: *dig_10000
+    id: "dig_100"
+    name: "${i18n.aquasense.${language}.dig_100}"
+    crop: "${crop_dig_100}"
 
-  - <<: *dig1
-    id: "dig4"
-    name: "${i18n.aquasense.${language}.dig4}"
-    crop: "${crop_dig4}"
+  - <<: *dig_10000
+    id: "dig_10"
+    name: "${i18n.aquasense.${language}.dig_10}"
+    crop: "${crop_dig_10}"
 
-  - <<: *dig1
-    id: "dig5"
-    name: "${i18n.aquasense.${language}.dig5}"
-    crop: "${crop_dig5}"
+  - <<: *dig_10000
+    id: "dig_1"
+    name: "${i18n.aquasense.${language}.dig_1}"
+    crop: "${crop_dig_1}"
 
-  - <<: *dig1
-    id: "dig6"
-    name: "${i18n.aquasense.${language}.dig6}"
-    crop: "${crop_dig6}"
+  - <<: *dig_10000
+    id: "dig_01"
+    name: "${i18n.aquasense.${language}.dig_01}"
+    crop: "${crop_dig_01}"
 
-  - id: "combined"
-    name: "${i18n.aquasense.${language}.combined}"
+  - <<: *dig_10000
+    id: "ana_0001"
+    name: "${i18n.aquasense.${language}.ana_0001}"
+    crop: "${crop_ana_0001}"
+    interpreter: "analog_interpreter"
+    output_format: "analog_continuous_cw"
+
+  - &meter_raw
+    id: "meter_raw"
+    name: "${i18n.aquasense.${language}.meter_raw}"
     unit_of_measurement: "m³"
     device_class: "water"
-    state_class: "total_increasing"
-    accuracy_decimals: 1
+    state_class: "measurement"
+    accuracy_decimals: 4
+    entity_category: "diagnostic"
+    on_value:
+      - lambda: !lambda |
+          float new_value = x;
+          float &normalized_value = id(meter_normalized_storage);
+          if (!isnan(normalized_value)) {
+            float diff = new_value - normalized_value;
+            if (diff < 0.0f) {
+              ESP_LOGW("main", "Rejecting new meter value %.4f because it is smaller than the current stable value %.4f", new_value, normalized_value);
+              return;
+            }
+            if (diff > 0.5f) {
+              ESP_LOGW("main", "Rejecting new meter value %.4f because it differs too much from the current stable value %.4f", new_value, normalized_value);
+              return;
+            }
+          }
+          normalized_value = new_value;
+          id(meter)->update();
+
     platform: "template"
-    lambda: !lambda |
-      float sum = 0.0f;
-      sum += id(dig1).state * 10000.0f;
-      sum += id(dig2).state * 1000.0f;
-      sum += id(dig3).state * 100.0f;
-      sum += id(dig4).state * 10.0f;
-      sum += id(dig5).state * 1.0f;
-      sum += id(dig6).state * 0.1f;
-      return sum;
     update_interval: "never"
+    lambda: !lambda |
+      float val = 0.0f;
+      val += 10000.0f * roundf(id(dig_10000).state);
+      val += 1000.0f * roundf(id(dig_1000).state);
+      val += 100.0f * roundf(id(dig_100).state);
+      val += 10.0f * roundf(id(dig_10).state);
+      val += 1.0f * roundf(id(dig_1).state);
+      // We can't read the 0.01 analog, so instead take the precision from the last rotating digit.
+      val += 0.01f * roundf(10.0f * id(dig_01).state);
+      val += 0.0001f * roundf(10.0f * id(ana_0001).state);
+      return val;
+
+  - <<: *meter_raw
+    id: "meter"
+    name: "${i18n.aquasense.${language}.meter}"
+    state_class: "total_increasing"
+    entity_category: ""
+    on_value: []
+    lambda: !lambda |
+      return id(meter_normalized_storage);
