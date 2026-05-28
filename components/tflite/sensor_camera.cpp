@@ -65,36 +65,6 @@ std::tuple<float, float> read_output_digit_softmax10(const TfLiteTensor &output)
   return {result, fit};
 }
 
-void CameraSnapshotSensor::loop() {
-  if (!this->input_ready_)
-    return;
-
-  // SAFETY: interpreter must be valid if input_ready_ is true.
-  MicroInterpreter &interpreter = this->interpreter_component_->interpreter().value();
-  interpreter.Invoke();
-
-  TfLiteTensor *output = interpreter.output(0);
-  if (!output) {
-    ESP_LOGE(TAG, "Failed to get output tensor");
-    return;
-  }
-
-  float result, fit;
-  switch (this->output_format_) {
-    case OutputFormat::DIGIT_SOFTMAX10:
-      std::tie(result, fit) = read_output_digit_softmax10(*output);
-      break;
-    default:
-      ESP_LOGE(TAG, "Unsupported output tensor format");
-      return;
-  }
-
-  this->input_ready_ = false;
-
-  ESP_LOGI(TAG, "Model output: result=%.2f fit=%.2f", result, fit);
-  this->publish_state(result);
-}
-
 void feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, const Rect &crop) {
   if (input.type != kTfLiteFloat32) {
     ESP_LOGE(TAG, "Input tensor expected to be of type float32");
@@ -177,11 +147,11 @@ void feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, const Rect
 }
 
 void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
-  if (this->is_failed() || this->input_ready_)
-    // Still processing previous snapshot or in an error state.
+  if (this->is_failed())
     return;
 
   MicroInterpreter &interpreter = this->interpreter_component_->interpreter().value();
+
   TfLiteTensor *input = interpreter.input(0);
   if (!input) {
     ESP_LOGE(TAG, "Failed to get input tensor");
@@ -197,5 +167,23 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
       return;
   }
 
-  this->input_ready_ = true;
+  interpreter.Invoke();
+
+  TfLiteTensor *output = interpreter.output(0);
+  if (!output) {
+    ESP_LOGE(TAG, "Failed to get output tensor");
+    return;
+  }
+
+  float result, fit;
+  switch (this->output_format_) {
+    case OutputFormat::DIGIT_SOFTMAX10:
+      std::tie(result, fit) = read_output_digit_softmax10(*output);
+      break;
+    default:
+      ESP_LOGE(TAG, "Unsupported output tensor format");
+      return;
+  }
+
+  this->publish_state(result);
 }

@@ -47,10 +47,8 @@ class CameraSnapshotSensor : public sensor::Sensor, public Component, public cam
   Rect crop_{};
   InputFormat input_format_{InputFormat::NHWC3};
   OutputFormat output_format_{OutputFormat::DIGIT_SOFTMAX10};
-  bool input_ready_{false};
 
   void setup() override;
-  void loop() override;
 
   void on_snapshot(const camera::snapshot::Snapshot &snapshot) override;
 };
