@@ -10,6 +10,7 @@ CONF_SNAPSHOTTER = "snapshotter"
 CONF_INTERPRETER = "interpreter"
 CONF_CROP = "crop"
 CONF_OUTPUT_FORMAT = "output_format"
+CONF_MIN_FIT = "min_fit"
 
 CameraSnapshotSensor = tflite_ns.class_(
     "CameraSnapshotSensor",
@@ -108,6 +109,7 @@ CONFIG_SCHEMA = sensor.sensor_schema(CameraSnapshotSensor).extend(
             OUTPUT_FORMAT_OPTIONS,
             lower=True,
         ),
+        cv.Optional(CONF_MIN_FIT, default=0.0): cv.percentage,
     }
 )
 
@@ -123,3 +125,4 @@ async def to_code(config: ConfigType) -> None:
     cg.add(var.set_interpreter_component(interpreter))
     cg.add(var.set_crop(rect_to_code(config[CONF_CROP])))
     cg.add(var.set_output_format(config[CONF_OUTPUT_FORMAT]))
+    cg.add(var.set_min_fit(config[CONF_MIN_FIT]))

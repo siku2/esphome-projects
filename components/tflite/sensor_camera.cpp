@@ -58,6 +58,8 @@ static std::tuple<float, float> read_output_digit_softmax10(const TfLiteTensor &
     fit = val + val_plus;
   }
 
+  // Round to 1 decimal place
+  result = roundf(10.0f * result) / 10.0f;
   if (result >= 10.0f)
     result -= 10.0f;
   if (result < 0.0f)
@@ -83,7 +85,11 @@ static std::tuple<float, float> read_output_analog_continuous(const TfLiteTensor
   float f2 = output.data.f[1];
   float val = fmodf(atan2f(f1, f2) / (M_PI * 2.0f) + 2.0f, 1.0f);
   result = ccw ? (10.0f - val * 10.0f) : (val * 10.0f);
-  fit = sqrtf(f1 * f1 + f2 * f2);
+  // Round to 2 decimal places
+  result = roundf(100.0f * result) / 100.0f;
+  // Normalize to [0, 1]: the model outputs a [sin, cos] vector bounded to [-1, 1],
+  // so the maximum magnitude is sqrt(2).
+  fit = sqrtf(f1 * f1 + f2 * f2) / float(M_SQRT2);
   return {result, fit};
 }
 
@@ -211,7 +217,12 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
       return;
   }
 
-  ESP_LOGD(TAG, "Model output: result=%.2f fit=%.2f", result, fit);
-  if (!std::isnan(result))
-    this->publish_state(result);
+  ESP_LOGD(TAG, "Model output: result=%.6f fit=%.2f", result, fit);
+  if (std::isnan(result))
+    return;
+  if (fit < this->min_fit_) {
+    ESP_LOGW(TAG, "Rejecting result %.6f: fit %.2f is below min_fit %.2f", result, fit, this->min_fit_);
+    return;
+  }
+  this->publish_state(result);
 }

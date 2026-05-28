@@ -45,6 +45,7 @@ class CameraSnapshotSensor : public sensor::Sensor, public Component, public cam
   void set_crop(const Rect &crop) { this->crop_ = crop; }
   void set_input_format(InputFormat fmt) { this->input_format_ = fmt; }
   void set_output_format(OutputFormat fmt) { this->output_format_ = fmt; }
+  void set_min_fit(float min_fit) { this->min_fit_ = min_fit; }
 
  protected:
   InterpreterComponent *interpreter_component_{nullptr};
@@ -52,6 +53,7 @@ class CameraSnapshotSensor : public sensor::Sensor, public Component, public cam
   Rect crop_{};
   InputFormat input_format_{INPUT_FORMAT_NHWC3};
   OutputFormat output_format_{OUTPUT_FORMAT_DIGIT_SOFTMAX10};
+  float min_fit_{0.0f};
 
   void setup() override;
 
