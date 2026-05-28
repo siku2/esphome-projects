@@ -28,6 +28,13 @@ void Snapshotter::loop() {
     case Phase::IDLE:
       // Nothing to do, wait for update()
       break;
+    case Phase::PRIME:
+      if (this->pending_image_ != nullptr) {
+        this->pending_image_.reset();
+        this->pre_snapshot_.trigger();
+        this->phase_ = Phase::PRE_SNAPSHOT;
+      }
+      break;
     case Phase::PRE_SNAPSHOT:
       // Wait for the before_snapshot action to finish.
       if (!this->pre_snapshot_.is_action_running()) {
@@ -53,14 +60,18 @@ void Snapshotter::loop() {
       }
       break;
     case Phase::POST_SNAPSHOT:
-      // Wait for the after_snapshot action to finish.
       if (!this->post_snapshot_.is_action_running()) {
-        if (this->snapshot_.has_value()) {
-          for (auto *listener : this->listeners_) {
-            listener->on_snapshot(this->snapshot_.value());
-          }
+        this->notifying_index_ = 0;
+        this->phase_ = Phase::NOTIFYING;
+      }
+      break;
+    case Phase::NOTIFYING:
+      if (this->snapshot_.has_value() && this->notifying_index_ < this->listeners_.size()) {
+        this->listeners_[this->notifying_index_]->on_snapshot(this->snapshot_.value());
+        ++this->notifying_index_;
+      } else {
+        if (this->snapshot_.has_value())
           this->on_snapshot_.trigger(this->snapshot_.value());
-        }
         this->phase_ = Phase::ON_SNAPSHOT;
       }
       break;
@@ -77,12 +88,16 @@ void Snapshotter::update() {
   if (this->phase_ != Phase::IDLE)
     return;
 
-  this->pre_snapshot_.trigger();
-  this->phase_ = Phase::PRE_SNAPSHOT;
+  // The camera keeps one frame buffered at idle_framerate.  Consume and
+  // discard it now so the hardware buffer is free to capture a fresh
+  // frame.
+  if (this->camera_ != nullptr)
+    this->camera_->request_image(camera::IDLE);
+  this->phase_ = Phase::PRIME;
 }
 
 void Snapshotter::on_camera_image(const std::shared_ptr<CameraImage> &image) {
-  if (this->phase_ != Phase::WAITING_FOR_IMAGE)
+  if (this->phase_ != Phase::WAITING_FOR_IMAGE && this->phase_ != Phase::PRIME)
     return;
   this->pending_image_ = image;
 }

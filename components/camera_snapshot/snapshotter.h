@@ -15,9 +15,11 @@ class SnapshotListener {
 
 enum class Phase {
   IDLE,
+  PRIME,
   PRE_SNAPSHOT,
   WAITING_FOR_IMAGE,
   POST_SNAPSHOT,
+  NOTIFYING,
   ON_SNAPSHOT,
 };
 
@@ -37,6 +39,7 @@ class Snapshotter : public PollingComponent, public CameraListener {
   Camera *camera_{nullptr};
   jpeg_rotate_t rotate_{JPEG_ROTATE_0D};
   Phase phase_{Phase::IDLE};
+  size_t notifying_index_{0};
   std::shared_ptr<CameraImage> pending_image_{nullptr};
   std::optional<Snapshot> snapshot_{};
   std::vector<SnapshotListener *> listeners_{};
