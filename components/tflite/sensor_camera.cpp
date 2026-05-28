@@ -1,5 +1,6 @@
 #include "sensor_camera.h"
 
+#include <cmath>
 #include <esphome/core/log.h>
 
 using namespace esphome::esphome_tflite;
@@ -20,7 +21,7 @@ void CameraSnapshotSensor::setup() {
   this->snapshotter_->add_listener(this);
 }
 
-std::tuple<float, float> read_output_digit_softmax10(const TfLiteTensor &output) {
+static std::tuple<float, float> read_output_digit_softmax10(const TfLiteTensor &output) {
   float result = nanf("");
   float fit = 0.0f;
 
@@ -65,7 +66,28 @@ std::tuple<float, float> read_output_digit_softmax10(const TfLiteTensor &output)
   return {result, fit};
 }
 
-void feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, const Rect &crop) {
+static std::tuple<float, float> read_output_analog_continuous(const TfLiteTensor &output, bool ccw) {
+  float result = nanf("");
+  float fit = 0.0f;
+  if (output.type != kTfLiteFloat32) {
+    ESP_LOGE(TAG, "Analog output tensor expected to be float32");
+    return {result, fit};
+  }
+  // Expect at least 2 float elements (shape [1,2] or [2])
+  if (output.bytes < 2 * sizeof(float)) {
+    ESP_LOGE(TAG, "Analog output tensor too small (need at least 2 floats)");
+    return {result, fit};
+  }
+
+  float f1 = output.data.f[0];
+  float f2 = output.data.f[1];
+  float val = fmodf(atan2f(f1, f2) / (M_PI * 2.0f) + 2.0f, 1.0f);
+  result = ccw ? (10.0f - val * 10.0f) : (val * 10.0f);
+  fit = sqrtf(f1 * f1 + f2 * f2);
+  return {result, fit};
+}
+
+static void feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, const Rect &crop) {
   if (input.type != kTfLiteFloat32) {
     ESP_LOGE(TAG, "Input tensor expected to be of type float32");
     return;
@@ -159,7 +181,7 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
   }
 
   switch (this->input_format_) {
-    case InputFormat::NHWC3:
+    case INPUT_FORMAT_NHWC3:
       feed_tensor_nhwc3(*input, snapshot, this->crop_);
       break;
     default:
@@ -175,15 +197,21 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
     return;
   }
 
-  float result, fit;
+  float result;
+  float fit;
   switch (this->output_format_) {
-    case OutputFormat::DIGIT_SOFTMAX10:
+    case OUTPUT_FORMAT_DIGIT_SOFTMAX10:
       std::tie(result, fit) = read_output_digit_softmax10(*output);
+      break;
+    case OUTPUT_FORMAT_ANALOG_CONTINUOUS_CW:
+      std::tie(result, fit) = read_output_analog_continuous(*output, false);
       break;
     default:
       ESP_LOGE(TAG, "Unsupported output tensor format");
       return;
   }
 
-  this->publish_state(result);
+  ESP_LOGD(TAG, "Model output: result=%.2f fit=%.2f", result, fit);
+  if (!std::isnan(result))
+    this->publish_state(result);
 }

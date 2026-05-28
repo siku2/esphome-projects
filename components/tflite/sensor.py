@@ -9,6 +9,7 @@ from . import InterpreterComponent, tflite_ns
 CONF_SNAPSHOTTER = "snapshotter"
 CONF_INTERPRETER = "interpreter"
 CONF_CROP = "crop"
+CONF_OUTPUT_FORMAT = "output_format"
 
 CameraSnapshotSensor = tflite_ns.class_(
     "CameraSnapshotSensor",
@@ -18,6 +19,12 @@ CameraSnapshotSensor = tflite_ns.class_(
 )
 Point = tflite_ns.struct("Point")
 Rect = tflite_ns.struct("Rect")
+OutputFormat = tflite_ns.enum("OutputFormat")
+
+OUTPUT_FORMAT_OPTIONS = {
+    "digit_softmax10": OutputFormat.OUTPUT_FORMAT_DIGIT_SOFTMAX10,
+    "analog_continuous_cw": OutputFormat.OUTPUT_FORMAT_ANALOG_CONTINUOUS_CW,
+}
 
 POINT_SCHEMA = cv.Schema(
     {
@@ -97,6 +104,10 @@ CONFIG_SCHEMA = sensor.sensor_schema(CameraSnapshotSensor).extend(
         cv.GenerateID(CONF_SNAPSHOTTER): cv.use_id(camera_snapshot.Snapshotter),
         cv.GenerateID(CONF_INTERPRETER): cv.use_id(InterpreterComponent),
         cv.Required(CONF_CROP): RECT_SCHEMA,
+        cv.Required(CONF_OUTPUT_FORMAT): cv.enum(
+            OUTPUT_FORMAT_OPTIONS,
+            lower=True,
+        ),
     }
 )
 
@@ -111,3 +122,4 @@ async def to_code(config: ConfigType) -> None:
     interpreter = await cg.get_variable(config[CONF_INTERPRETER])
     cg.add(var.set_interpreter_component(interpreter))
     cg.add(var.set_crop(rect_to_code(config[CONF_CROP])))
+    cg.add(var.set_output_format(config[CONF_OUTPUT_FORMAT]))
