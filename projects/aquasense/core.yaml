@@ -70,27 +70,43 @@ esp32_camera:
   idle_framerate: "0 fps"
   resolution: "640x480"
   jpeg_quality: 6
+  contrast: 2
+  brightness: 1
+  saturation: -1
+  # Exposure
   aec_mode: "manual"
-  aec_value: 200
+  aec_value: 400
+  # Gain
   agc_mode: "manual"
   agc_value: 0
+  # White balance
   wb_mode: "sunny"
-  contrast: 2
-  saturation: -1
 
 camera_snapshot:
   id: "snapshotter"
   update_interval: "10s"
   rotate: "90°"
   before_snapshot:
-    - light.turn_on: "e32s3cam_flash"
-      # TODO: fix the camera_snapshot so we can guarantee the snapshot is taken after before_snapshot completes.
-      # Right now the issue is that the camera might still have a frame buffered.
-    - delay: "1200ms"
+    - if:
+        condition:
+          switch.is_on: "auto_flashlight"
+        then:
+          - light.turn_on:
+              id: "e32s3cam_flash"
+              brightness: !lambda |
+                return id(auto_flashlight_brightness).state / 100.0f;
+            # TODO: fix the camera_snapshot so we can guarantee the snapshot is taken after before_snapshot completes.
+            # Right now the issue is that the camera might still have a frame buffered.
+          - delay: "1200ms"
   after_snapshot:
-    - light.turn_off: "e32s3cam_flash"
+    - if:
+        condition:
+          switch.is_on: "auto_flashlight"
+        then:
+          - light.turn_off: "e32s3cam_flash"
   on_snapshot:
     - component.update: "meter_raw"
+    - component.update: "meter_analog"
 
 tflite:
   op_resolver:
@@ -144,17 +160,41 @@ globals:
     restore_value: true
     initial_value: 'nanf("")'
 
+switch:
+  - id: "auto_flashlight"
+    name: "${i18n.aquasense.${language}.auto_flashlight}"
+    restore_mode: "RESTORE_DEFAULT_ON"
+    entity_category: "config"
+    platform: "template"
+    optimistic: true
+
+number:
+  - id: "auto_flashlight_brightness"
+    name: "${i18n.aquasense.${language}.auto_flashlight_brightness}"
+    entity_category: "config"
+    unit_of_measurement: "%"
+    platform: "template"
+    min_value: 0.0
+    max_value: 100.0
+    step: 1.0
+    update_interval: "never"
+    optimistic: true
+    restore_value: true
+    initial_value: 80.0
+
 sensor:
   - &dig_10000
     id: "dig_10000"
     name: "${i18n.aquasense.${language}.dig_10000}"
     state_class: "measurement"
+    icon: "mdi:numeric-10-box-outline"
     accuracy_decimals: 1
     entity_category: "diagnostic"
     platform: "tflite"
     interpreter: "digits_interpreter"
     crop: "${crop_dig_10000}"
     output_format: "digit_softmax10"
+    min_fit: "50%"
 
   - <<: *dig_10000
     id: "dig_1000"
@@ -181,12 +221,34 @@ sensor:
     name: "${i18n.aquasense.${language}.dig_01}"
     crop: "${crop_dig_01}"
 
-  - <<: *dig_10000
+  - &ana_0001
+    <<: *dig_10000
     id: "ana_0001"
     name: "${i18n.aquasense.${language}.ana_0001}"
+    icon: "mdi:gauge"
+    accuracy_decimals: 2
     crop: "${crop_ana_0001}"
     interpreter: "analog_interpreter"
     output_format: "analog_continuous_cw"
+    min_fit: "40%"
+
+  - <<: *ana_0001
+    id: "ana_00001"
+    name: "${i18n.aquasense.${language}.ana_00001}"
+    crop: "${crop_ana_00001}"
+
+  - id: "meter_analog"
+    # name: "${i18n.aquasense.${language}.meter_raw}"
+    name: Test # TODO
+    unit_of_measurement: "L"
+    device_class: "water"
+    state_class: "measurement"
+    accuracy_decimals: 3
+    entity_category: "diagnostic"
+    platform: "template"
+    update_interval: "never"
+    lambda: !lambda |
+      return truncf(id(ana_0001).state) + 0.1f * id(id(ana_00001).state);
 
   - &meter_raw
     id: "meter_raw"
@@ -194,20 +256,22 @@ sensor:
     unit_of_measurement: "m³"
     device_class: "water"
     state_class: "measurement"
-    accuracy_decimals: 4
+    accuracy_decimals: 6
     entity_category: "diagnostic"
     on_value:
       - lambda: !lambda |
           float new_value = x;
+          if (isnan(new_value))
+            return;
           float &normalized_value = id(meter_normalized_storage);
           if (!isnan(normalized_value)) {
             float diff = new_value - normalized_value;
             if (diff < 0.0f) {
-              ESP_LOGW("main", "Rejecting new meter value %.4f because it is smaller than the current stable value %.4f", new_value, normalized_value);
+              ESP_LOGW("main", "Rejecting new meter value %.6f because it is smaller than the current stable value %.6f", new_value, normalized_value);
               return;
             }
             if (diff > 0.5f) {
-              ESP_LOGW("main", "Rejecting new meter value %.4f because it differs too much from the current stable value %.4f", new_value, normalized_value);
+              ESP_LOGW("main", "Rejecting new meter value %.6f because it differs too much from the current stable value %.6f", new_value, normalized_value);
               return;
             }
           }
@@ -217,15 +281,36 @@ sensor:
     platform: "template"
     update_interval: "never"
     lambda: !lambda |
+      auto correct = [](float digit_state, int lower_int) -> int {
+        int v = (int)roundf(digit_state - lower_int / 10.0f);
+        return ((v % 10) + 10) % 10;
+      };
+
+      int a00001_int = ((int)roundf(id(ana_00001).state) % 10 + 10) % 10;
+      int a0001_int = correct(id(ana_0001).state, a00001_int);
+
+      // 1e-2: no dedicated sensor; infer from dig_01's fractional part (frac * 10 ≈ 1e-2 dial).
+      float dig01_raw = id(dig_01).state;
+      float virtual_1e2_raw = (dig01_raw - floorf(dig01_raw)) * 10.0f;
+      int virtual_1e2_int = correct(virtual_1e2_raw, a0001_int);
+
+      int d01_int = correct(dig01_raw, virtual_1e2_int);
+      int d1_int     = correct(id(dig_1).state,     d01_int);
+      int d10_int    = correct(id(dig_10).state,    d1_int);
+      int d100_int   = correct(id(dig_100).state,   d10_int);
+      int d1000_int  = correct(id(dig_1000).state,  d100_int);
+      int d10000_int = correct(id(dig_10000).state, d1000_int);
+
       float val = 0.0f;
-      val += 10000.0f * roundf(id(dig_10000).state);
-      val += 1000.0f * roundf(id(dig_1000).state);
-      val += 100.0f * roundf(id(dig_100).state);
-      val += 10.0f * roundf(id(dig_10).state);
-      val += 1.0f * roundf(id(dig_1).state);
-      // We can't read the 0.01 analog, so instead take the precision from the last rotating digit.
-      val += 0.01f * roundf(10.0f * id(dig_01).state);
-      val += 0.0001f * roundf(10.0f * id(ana_0001).state);
+      val += 10000.0f * (float)d10000_int;
+      val +=  1000.0f * (float)d1000_int;
+      val +=   100.0f * (float)d100_int;
+      val +=    10.0f * (float)d10_int;
+      val +=     1.0f * (float)d1_int;
+      val +=    0.1f  * (float)d01_int;
+      val +=    0.01f * (float)virtual_1e2_int;
+      val +=   0.001f * (float)a0001_int;
+      val +=  0.0001f * id(ana_00001).state;
       return val;
 
   - <<: *meter_raw
