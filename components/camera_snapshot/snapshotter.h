@@ -15,7 +15,6 @@ class SnapshotListener {
 
 enum class Phase {
   IDLE,
-  PRIME,
   PRE_SNAPSHOT,
   WAITING_FOR_IMAGE,
   POST_SNAPSHOT,
@@ -26,6 +25,7 @@ enum class Phase {
 class Snapshotter : public PollingComponent, public CameraListener {
  public:
   void set_rotate(jpeg_rotate_t rotate) { this->rotate_ = rotate; }
+  void set_drain_frame_buffer_count(size_t count) { this->drain_frame_buffer_count_ = count; }
 
   Trigger<> *get_pre_snapshot_trigger() { return &pre_snapshot_; }
   Trigger<> *get_post_snapshot_trigger() { return &post_snapshot_; }
@@ -38,6 +38,8 @@ class Snapshotter : public PollingComponent, public CameraListener {
 
   Camera *camera_{nullptr};
   jpeg_rotate_t rotate_{JPEG_ROTATE_0D};
+  size_t drain_frame_buffer_count_{0};
+  size_t remaining_drain_frame_buffer_count_{0};
   Phase phase_{Phase::IDLE};
   size_t notifying_index_{0};
   std::shared_ptr<CameraImage> pending_image_{nullptr};

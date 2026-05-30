@@ -28,22 +28,18 @@ void Snapshotter::loop() {
     case Phase::IDLE:
       // Nothing to do, wait for update()
       break;
-    case Phase::PRIME:
-      if (this->pending_image_ != nullptr) {
-        this->pending_image_.reset();
-        this->pre_snapshot_.trigger();
-        this->phase_ = Phase::PRE_SNAPSHOT;
-      }
-      break;
     case Phase::PRE_SNAPSHOT:
       // Wait for the before_snapshot action to finish.
       if (!this->pre_snapshot_.is_action_running()) {
-        if (this->camera_ != nullptr)
-          this->camera_->request_image(IDLE);
+        this->remaining_drain_frame_buffer_count_ = this->drain_frame_buffer_count_;
         this->phase_ = Phase::WAITING_FOR_IMAGE;
       }
       break;
     case Phase::WAITING_FOR_IMAGE:
+      // Continuously request images from the camera.
+      if (this->camera_ != nullptr)
+        this->camera_->request_image(IDLE);
+
       // Wait for the camera to give us an image.
       if (this->pending_image_ != nullptr) {
         jpeg_error_t ret = Snapshotter::global_decoder.decode(this->pending_image_->get_data_buffer(),
@@ -87,18 +83,18 @@ void Snapshotter::loop() {
 void Snapshotter::update() {
   if (this->phase_ != Phase::IDLE)
     return;
-
-  // The camera keeps one frame buffered at idle_framerate.  Consume and
-  // discard it now so the hardware buffer is free to capture a fresh
-  // frame.
-  if (this->camera_ != nullptr)
-    this->camera_->request_image(camera::IDLE);
-  this->phase_ = Phase::PRIME;
+  this->pre_snapshot_.trigger();
+  this->phase_ = Phase::PRE_SNAPSHOT;
 }
 
 void Snapshotter::on_camera_image(const std::shared_ptr<CameraImage> &image) {
-  if (this->phase_ != Phase::WAITING_FOR_IMAGE && this->phase_ != Phase::PRIME)
+  if (this->phase_ != Phase::WAITING_FOR_IMAGE)
     return;
+  if (this->remaining_drain_frame_buffer_count_ > 0) {
+    // We're still draining the frame buffer, discard this image and wait for the next one.
+    this->remaining_drain_frame_buffer_count_ -= 1;
+    return;
+  }
   this->pending_image_ = image;
 }
 
