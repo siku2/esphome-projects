@@ -19,6 +19,7 @@ void CameraSnapshotSensor::setup() {
     return;
   }
   this->snapshotter_->add_listener(this);
+  this->disable_loop();
 }
 
 static std::tuple<float, float> read_output_digit_softmax10(const TfLiteTensor &output) {
@@ -174,6 +175,12 @@ static void feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, con
   }
 }
 
+bool CameraSnapshotSensor::is_listening() const {
+  if (this->max_update_interval_ == 0 || this->last_update_ == 0)
+    return true;
+  return (millis() - this->last_update_) >= this->max_update_interval_;
+}
+
 void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
   if (this->is_failed())
     return;
@@ -225,4 +232,5 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
     return;
   }
   this->publish_state(result);
+  this->last_update_ = millis();
 }

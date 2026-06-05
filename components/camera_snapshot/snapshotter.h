@@ -10,6 +10,7 @@ namespace esphome::camera::snapshot {
 
 class SnapshotListener {
  public:
+  virtual bool is_listening() const;
   virtual void on_snapshot(const Snapshot &snapshot) {}
 };
 
@@ -58,5 +59,7 @@ class Snapshotter : public PollingComponent, public CameraListener {
   void on_camera_image(const std::shared_ptr<CameraImage> &image) override;
   void on_stream_start() override;
   void on_stream_stop() override;
+
+  bool notify_next();
 };
 }  // namespace esphome::camera::snapshot

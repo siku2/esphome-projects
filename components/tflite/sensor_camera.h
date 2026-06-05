@@ -46,6 +46,7 @@ class CameraSnapshotSensor : public sensor::Sensor, public Component, public cam
   void set_input_format(InputFormat fmt) { this->input_format_ = fmt; }
   void set_output_format(OutputFormat fmt) { this->output_format_ = fmt; }
   void set_min_fit(float min_fit) { this->min_fit_ = min_fit; }
+  void set_max_update_interval(uint32_t max_update_interval) { this->max_update_interval_ = max_update_interval; }
 
  protected:
   InterpreterComponent *interpreter_component_{nullptr};
@@ -54,9 +55,12 @@ class CameraSnapshotSensor : public sensor::Sensor, public Component, public cam
   InputFormat input_format_{INPUT_FORMAT_NHWC3};
   OutputFormat output_format_{OUTPUT_FORMAT_DIGIT_SOFTMAX10};
   float min_fit_{0.0f};
+  uint32_t max_update_interval_{0};
+  uint32_t last_update_{0};
 
   void setup() override;
 
+  bool is_listening() const override;
   void on_snapshot(const camera::snapshot::Snapshot &snapshot) override;
 };
 }  // namespace esphome::esphome_tflite

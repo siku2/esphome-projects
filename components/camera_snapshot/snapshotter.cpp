@@ -27,6 +27,7 @@ void Snapshotter::loop() {
   switch (this->phase_) {
     case Phase::IDLE:
       // Nothing to do, wait for update()
+      this->disable_loop();
       break;
     case Phase::PRE_SNAPSHOT:
       // Wait for the before_snapshot action to finish.
@@ -62,10 +63,7 @@ void Snapshotter::loop() {
       }
       break;
     case Phase::NOTIFYING:
-      if (this->snapshot_.has_value() && this->notifying_index_ < this->listeners_.size()) {
-        this->listeners_[this->notifying_index_]->on_snapshot(this->snapshot_.value());
-        ++this->notifying_index_;
-      } else {
+      if (!this->notify_next()) {
         if (this->snapshot_.has_value())
           this->on_snapshot_.trigger(this->snapshot_.value());
         this->phase_ = Phase::ON_SNAPSHOT;
@@ -75,16 +73,34 @@ void Snapshotter::loop() {
       // Wait for the on_snapshot action to finish.
       if (!this->on_snapshot_.is_action_running()) {
         this->phase_ = Phase::IDLE;
+        this->disable_loop();
       }
       break;
   }
 }
 
+bool Snapshotter::notify_next() {
+  if (!this->snapshot_.has_value())
+    return false;
+  for (; this->notifying_index_ < this->listeners_.size(); ++this->notifying_index_) {
+    auto &listener = *this->listeners_[this->notifying_index_];
+    if (!listener.is_listening())
+      continue;
+    listener.on_snapshot(this->snapshot_.value());
+    ++this->notifying_index_;
+    return true;
+  }
+  return false;
+}
+
 void Snapshotter::update() {
-  if (this->phase_ != Phase::IDLE)
+  if (this->phase_ != Phase::IDLE) {
+    ESP_LOGW(TAG, "Snapshotter is busy, ignoring update request.");
     return;
+  }
   this->pre_snapshot_.trigger();
   this->phase_ = Phase::PRE_SNAPSHOT;
+  this->enable_loop();
 }
 
 void Snapshotter::on_camera_image(const std::shared_ptr<CameraImage> &image) {

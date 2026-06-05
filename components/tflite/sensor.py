@@ -11,6 +11,7 @@ CONF_INTERPRETER = "interpreter"
 CONF_CROP = "crop"
 CONF_OUTPUT_FORMAT = "output_format"
 CONF_MIN_FIT = "min_fit"
+CONF_MAX_UPDATE_INTERVAL = "max_update_interval"
 
 CameraSnapshotSensor = tflite_ns.class_(
     "CameraSnapshotSensor",
@@ -110,6 +111,9 @@ CONFIG_SCHEMA = sensor.sensor_schema(CameraSnapshotSensor).extend(
             lower=True,
         ),
         cv.Optional(CONF_MIN_FIT, default=0.0): cv.percentage,
+        cv.Optional(
+            CONF_MAX_UPDATE_INTERVAL, default=0
+        ): cv.positive_time_period_milliseconds,
     }
 )
 
@@ -126,3 +130,4 @@ async def to_code(config: ConfigType) -> None:
     cg.add(var.set_crop(rect_to_code(config[CONF_CROP])))
     cg.add(var.set_output_format(config[CONF_OUTPUT_FORMAT]))
     cg.add(var.set_min_fit(config[CONF_MIN_FIT]))
+    cg.add(var.set_max_update_interval(config[CONF_MAX_UPDATE_INTERVAL]))
