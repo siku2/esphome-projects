@@ -1,0 +1,76 @@
+# Namespace: aqss
+
+esp32_camera:
+  entity_category: "diagnostic"
+  max_framerate: "2 fps"
+  idle_framerate: "0 fps"
+  frame_buffer_count: 1 # Ideally 0, but not supported :(
+  # Image settings
+  resolution: "640x480"
+  jpeg_quality: 6
+  contrast: 2
+  brightness: 1
+  saturation: -1
+  # Exposure
+  aec_mode: "manual"
+  aec_value: 400
+  # Gain
+  agc_mode: "manual"
+  agc_value: 0
+  # White balance
+  wb_mode: "sunny"
+
+camera_snapshot:
+  id: "aqss_snapshot"
+  update_interval: "2s"
+  rotate: "90°"
+  drain_frame_buffer_count: 1
+  before_snapshot:
+    - if:
+        condition:
+          switch.is_on: "aqss_auto_flashlight"
+        then:
+          - light.turn_on:
+              id: "e32s3cam_flash"
+              brightness: !lambda |
+                return id(aqss_auto_flashlight_brightness).state / 100.0f;
+          - delay: "100ms"
+  after_snapshot:
+    - if:
+        condition:
+          switch.is_on: "aqss_auto_flashlight"
+        then:
+          - light.turn_off: "e32s3cam_flash"
+  on_snapshot:
+    - component.update: "aqcsmp_m3"
+    - component.update: "aqcsmp_10_liters"
+
+button:
+  - id: "aqss_manual_snapshot"
+    name: "${i18n.aquasense[language].aqss_manual_snapshot}"
+    entity_category: "diagnostic"
+    platform: "template"
+    on_press:
+      - component.update: "aqss_snapshot"
+
+switch:
+  - id: "aqss_auto_flashlight"
+    name: "${i18n.aquasense[language].aqss_auto_flashlight}"
+    restore_mode: "RESTORE_DEFAULT_ON"
+    entity_category: "config"
+    platform: "template"
+    optimistic: true
+
+number:
+  - id: "aqss_auto_flashlight_brightness"
+    name: "${i18n.aquasense[language].aqss_auto_flashlight_brightness}"
+    entity_category: "config"
+    unit_of_measurement: "%"
+    platform: "template"
+    min_value: 0.0
+    max_value: 100.0
+    step: 1.0
+    update_interval: "never"
+    optimistic: true
+    restore_value: true
+    initial_value: 80.0

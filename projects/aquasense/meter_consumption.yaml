@@ -1,0 +1,128 @@
+# Namespace: aqcsmp
+
+globals:
+  - id: "aqcsmp_prev_tick_ms"
+    type: "uint32_t"
+    restore_value: true
+    initial_value: "0"
+
+  - id: "aqcsmp_sum_ml"
+    type: "uint32_t"
+    restore_value: true
+    initial_value: "0"
+
+  - id: "aqcsmp_m3_prev"
+    type: "uint32_t"
+    restore_value: true
+    initial_value: "0"
+
+sensor:
+  - id: "aqcsmp_10_liters"
+    name: "${i18n.aquasense[language].aqcsmp_10_liters}"
+    unit_of_measurement: "L"
+    device_class: "water"
+    state_class: "measurement"
+    icon: "mdi:gauge"
+    accuracy_decimals: 3
+    entity_category: "diagnostic"
+    on_value:
+      - lambda: !lambda |
+          if (isnan(x)) return;
+
+          uint32_t &prev_tick_ms = id(aqcsmp_prev_tick_ms);
+          uint32_t &sum_ml = id(aqcsmp_sum_ml);
+
+          uint16_t new_10l_ml = (uint16_t)(1000.0f * x);
+          uint16_t sum_10l_ml = sum_ml % 10000;
+          int16_t diff_10l_ml = new_10l_ml - sum_10l_ml;
+          // Adjust for rollover.
+          if (diff_10l_ml <= -5000) diff_10l_ml += 10000;
+          // Smaller negative diffs can be caused by noise, ignore them.
+          if (diff_10l_ml < 0) diff_10l_ml = 0;
+
+          sum_ml += diff_10l_ml;
+          id(aqcsmp_total)->update();
+          float per_second = (float)diff_10l_ml / (float)(millis() - prev_tick_ms);
+          id(aqcsmp_consumption)->publish_state(per_second);
+          prev_tick_ms = millis();
+
+    platform: "template"
+    update_interval: "never"
+    lambda: !lambda |
+      auto correct = [](float digit_state, int lower_int) -> int {
+        int v = (int)roundf(digit_state - lower_int / 10.0f);
+        return ((v % 10) + 10) % 10;
+      };
+      float dl = truncf(id(aqdig_00001).state);
+      int whole_liters = correct(id(aqdig_0001).state, (int)dl);
+      return (float)whole_liters + 0.1f * dl;
+
+  - id: "aqcsmp_m3"
+    name: "${i18n.aquasense[language].aqcsmp_m3}"
+    unit_of_measurement: "m³"
+    device_class: "water"
+    state_class: "measurement"
+    icon: "mdi:numeric-10-box-outline"
+    accuracy_decimals: 0
+    entity_category: "diagnostic"
+    on_value:
+      - lambda: !lambda |
+          if (isnan(x)) return;
+          uint32_t &sum_ml = id(aqcsmp_sum_ml);
+          uint32_t &prev = id(aqcsmp_m3_prev);
+
+          uint32_t new_value = (uint32_t)x;
+          if (prev == 0) {
+            prev = new_value;
+            return;
+          }
+          int32_t diff = (int32_t)new_value - (int32_t)prev;
+          prev = new_value;
+          if (diff != 1) return;
+
+          // We jumped by 1000L, reset the ml counter.
+          sum_ml = sum_ml % 10000;
+          id(aqcsmp_total)->update();
+
+    platform: "template"
+    update_interval: "never"
+    lambda: !lambda |
+      auto correct = [](float digit_state, uint8_t lower_int) -> uint8_t {
+        int8_t v = (int8_t)roundf(digit_state - lower_int / 10.0f);
+        return ((v % 10) + 10) % 10;
+      };
+
+      uint8_t d01_int    = correct(id(aqdig_01).state,    0);
+      uint8_t d1_int     = correct(id(aqdig_1).state,     d01_int);
+      uint8_t d10_int    = correct(id(aqdig_10).state,    d1_int);
+      uint8_t d100_int   = correct(id(aqdig_100).state,   d10_int);
+      uint8_t d1000_int  = correct(id(aqdig_1000).state,  d100_int);
+      uint8_t d10000_int = correct(id(aqdig_10000).state, d1000_int);
+
+      float val = 0.0f;
+      val += 10000.0f * d10000_int;
+      val +=  1000.0f * d1000_int;
+      val +=   100.0f * d100_int;
+      val +=    10.0f * d10_int;
+      val +=     1.0f * d1_int;
+      return val;
+
+  - id: "aqcsmp_total"
+    name: "${i18n.aquasense[language].aqcsmp_total}"
+    unit_of_measurement: "L"
+    device_class: "water"
+    state_class: "total_increasing"
+    accuracy_decimals: 2
+    platform: "template"
+    update_interval: "never"
+    lambda: !lambda |
+      return 1000.0f * id(aqcsmp_m3).state + 0.001f * id(aqcsmp_sum_ml);
+
+  - id: "aqcsmp_consumption"
+    name: "${i18n.aquasense[language].aqcsmp_consumption}"
+    unit_of_measurement: "L/s"
+    device_class: "volume_flow_rate"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    platform: "template"
+    update_interval: "never"

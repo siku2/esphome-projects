@@ -1,0 +1,114 @@
+# Namespace: aqdig
+
+substitutions:
+  aqdig_crop_10000: &aqdig_crop_10000
+    top_left:
+      x: 0
+      y: 0
+    bottom_right:
+      x: 0
+      y: 0
+  aqdig_crop_1000:
+    <<: *aqdig_crop_10000
+  aqdig_crop_100:
+    <<: *aqdig_crop_10000
+  aqdig_crop_10:
+    <<: *aqdig_crop_10000
+  aqdig_crop_1:
+    <<: *aqdig_crop_10000
+  aqdig_crop_01:
+    <<: *aqdig_crop_10000
+  aqdig_crop_0001:
+    <<: *aqdig_crop_10000
+  aqdig_crop_00001:
+    <<: *aqdig_crop_10000
+
+tflite:
+  op_resolver:
+    builtin:
+      - "add"
+      - "conv_2d"
+      - "dequantize"
+      - "fully_connected"
+      - "leaky_relu"
+      - "max_pool_2d"
+      - "mul"
+      - "quantize"
+      - "reshape"
+      - "softmax"
+  allocator:
+    size: "150 kB"
+  model:
+    - id: "aqdig_digits_model"
+      file: "https://github.com/jomjol/AI-on-the-edge-device/raw/refs/heads/main/sd-card/config/dig-cont_0900_s3_q.tflite"
+    - id: "aqdig_analog_model"
+      file: "https://github.com/jomjol/neural-network-analog-needle-readout/raw/9e2179294ac1beaeeacf0d9cb5384791fe47b8b5/models/ana-cont/ana-cont_1901_s0_q.tflite"
+  interpreter:
+    - id: "aqdig_digits_interpreter"
+      model: "aqdig_digits_model"
+    - id: "aqdig_analog_interpreter"
+      model: "aqdig_analog_model"
+
+sensor:
+  - &aqdig_10000
+    id: "aqdig_10000"
+    internal: true
+    name: "${i18n.aquasense[language].aqdig_10000}"
+    state_class: "measurement"
+    icon: "mdi:numeric-10-box-outline"
+    accuracy_decimals: 1
+    entity_category: "diagnostic"
+    platform: "tflite"
+    interpreter: "aqdig_digits_interpreter"
+    crop: "${aqdig_crop_10000}"
+    output_format: "digit_softmax10"
+    min_fit: "60%"
+    max_update_interval: "5h"
+
+  - <<: *aqdig_10000
+    id: "aqdig_1000"
+    name: "${i18n.aquasense[language].aqdig_1000}"
+    crop: "${aqdig_crop_1000}"
+    max_update_interval: "4h"
+
+  - <<: *aqdig_10000
+    id: "aqdig_100"
+    name: "${i18n.aquasense[language].aqdig_100}"
+    crop: "${aqdig_crop_100}"
+    max_update_interval: "3h"
+
+  - <<: *aqdig_10000
+    id: "aqdig_10"
+    name: "${i18n.aquasense[language].aqdig_10}"
+    crop: "${aqdig_crop_10}"
+    max_update_interval: "2h"
+
+  - <<: *aqdig_10000
+    id: "aqdig_1"
+    name: "${i18n.aquasense[language].aqdig_1}"
+    crop: "${aqdig_crop_1}"
+    max_update_interval: "1h"
+
+  - <<: *aqdig_10000
+    id: "aqdig_01"
+    name: "${i18n.aquasense[language].aqdig_01}"
+    crop: "${aqdig_crop_01}"
+    max_update_interval: "1min"
+
+  - &aqdig_0001
+    <<: *aqdig_10000
+    id: "aqdig_0001"
+    name: "${i18n.aquasense[language].aqdig_0001}"
+    icon: "mdi:gauge"
+    accuracy_decimals: 2
+    crop: "${aqdig_crop_0001}"
+    interpreter: "aqdig_analog_interpreter"
+    output_format: "analog_continuous_cw"
+    min_fit: "60%"
+    max_update_interval: "0s"
+
+  - <<: *aqdig_0001
+    id: "aqdig_00001"
+    name: "${i18n.aquasense[language].aqdig_00001}"
+    crop: "${aqdig_crop_00001}"
+    max_update_interval: "0s"
