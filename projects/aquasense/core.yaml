@@ -43,5 +43,6 @@ api:
     key: "${api_encryption_key}"
 
 ota:
-  - platform: "esphome"
+  - id: "aq_ota"
+    platform: "esphome"
     password: "${ota_password}"
