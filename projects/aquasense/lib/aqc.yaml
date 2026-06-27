@@ -8,16 +8,14 @@ substitutions:
   language: "en"
   i18n:
     aquasense:
-      de: !include i18n/de.yaml
-      en: !include i18n/en.yaml
+      de: !include ../i18n/de.yaml
+      en: !include ../i18n/en.yaml
 
 packages:
-  base: !include ../../packages/base.yaml
-  e32s3cam: !include ../../packages/esp32_s3_cam.yaml
+  base: !include ../../../packages/base.yaml
+  e32s3cam: !include ../../../packages/esp32_s3_cam.yaml
   #
-  dig: !include ./digits.yaml
-  aqcsmp: !include ./meter_consumption.yaml
-  aqss: !include ./snapshot.yaml
+  aqss: !include ./aqss.yaml
 
 esphome:
   name: "${name}"
@@ -25,10 +23,6 @@ esphome:
   project:
     name: "siku2.aquasense"
     version: "0.1.0"
-
-dashboard_import:
-  package_import_url: "github://siku2/esphome-projects/projects/aquasense/core.yaml@main"
-  import_full_config: false
 
 external_components:
   - source:
@@ -43,6 +37,6 @@ api:
     key: "${api_encryption_key}"
 
 ota:
-  - id: "aq_ota"
+  - id: "aqc_ota"
     platform: "esphome"
     password: "${ota_password}"

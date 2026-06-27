@@ -22,8 +22,6 @@ esp32_camera:
 
 camera_snapshot:
   id: "aqss_snapshot"
-  update_interval: "2s"
-  rotate: "90°"
   drain_frame_buffer_count: 1
   before_snapshot:
     - if:
@@ -41,9 +39,6 @@ camera_snapshot:
           switch.is_on: "aqss_auto_flashlight"
         then:
           - light.turn_off: "e32s3cam_flash"
-  on_snapshot:
-    - component.update: "aqcsmp_m3"
-    - component.update: "aqcsmp_10_liters"
 
 button:
   - id: "aqss_manual_snapshot"

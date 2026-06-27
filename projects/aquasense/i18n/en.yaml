@@ -4,6 +4,7 @@ aqdig_100: "Digit 1e2"
 aqdig_10: "Digit 1e1"
 aqdig_1: "Digit 1e0"
 aqdig_01: "Digit 1e-1"
+aqdig_001: "Digit 1e-2"
 aqdig_0001: "Digit 1e-3"
 aqdig_00001: "Digit 1e-4"
 

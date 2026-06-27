@@ -87,24 +87,12 @@ sensor:
     platform: "template"
     update_interval: "never"
     lambda: !lambda |
-      auto correct = [](float digit_state, uint8_t lower_int) -> uint8_t {
-        int8_t v = (int8_t)roundf(digit_state - lower_int / 10.0f);
-        return ((v % 10) + 10) % 10;
-      };
-
-      uint8_t d01_int    = correct(id(aqdig_01).state,    0);
-      uint8_t d1_int     = correct(id(aqdig_1).state,     d01_int);
-      uint8_t d10_int    = correct(id(aqdig_10).state,    d1_int);
-      uint8_t d100_int   = correct(id(aqdig_100).state,   d10_int);
-      uint8_t d1000_int  = correct(id(aqdig_1000).state,  d100_int);
-      uint8_t d10000_int = correct(id(aqdig_10000).state, d1000_int);
-
       float val = 0.0f;
-      val += 10000.0f * d10000_int;
-      val +=  1000.0f * d1000_int;
-      val +=   100.0f * d100_int;
-      val +=    10.0f * d10_int;
-      val +=     1.0f * d1_int;
+      val += 10000.0f * roundf(id(aqdig_10000).state);
+      val +=  1000.0f * roundf(id(aqdig_1000).state);
+      val +=   100.0f * roundf(id(aqdig_100).state);
+      val +=    10.0f * roundf(id(aqdig_10).state);
+      val +=     1.0f * roundf(id(aqdig_1).state);
       return val;
 
   - id: "aqcsmp_total"

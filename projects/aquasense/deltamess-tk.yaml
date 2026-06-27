@@ -1,0 +1,14 @@
+packages:
+  aqc: !include lib/aqc.yaml
+  aqdig: !include lib/deltamess-tk/aqdig.yaml
+  aqcsmp: !include lib/deltamess-tk/aqcsmp.yaml
+
+dashboard_import:
+  package_import_url: "github://siku2/esphome-projects/projects/aquasense/deltamess-tk.yaml@main"
+  import_full_config: false
+
+camera_snapshot:
+  rotate: "180°"
+  update_interval: "5s"
+  on_snapshot:
+    - component.update: "aqcsmp_m3"

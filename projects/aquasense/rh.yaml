@@ -1,0 +1,15 @@
+packages:
+  aqc: !include lib/aqc.yaml
+  aqdig: !include lib/rh/aqdig.yaml
+  aqcsmp: !include lib/rh/aqcsmp.yaml
+
+dashboard_import:
+  package_import_url: "github://siku2/esphome-projects/projects/aquasense/rh.yaml@main"
+  import_full_config: false
+
+camera_snapshot:
+  rotate: "90°"
+  update_interval: "2s"
+  on_snapshot:
+    - component.update: "aqcsmp_m3"
+    - component.update: "aqcsmp_10_liters"

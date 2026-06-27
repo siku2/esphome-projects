@@ -62,7 +62,7 @@ sensor:
     interpreter: "aqdig_digits_interpreter"
     crop: "${aqdig_crop_10000}"
     output_format: "digit_softmax10"
-    min_fit: "60%"
+    min_fit: "80%"
     max_update_interval: "5h"
 
   - <<: *aqdig_10000

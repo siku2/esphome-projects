@@ -1,0 +1,96 @@
+# Namespace: aqdig
+
+substitutions:
+  aqdig_crop_10000: &aqdig_crop_10000
+    top_left:
+      x: 0
+      y: 0
+    bottom_right:
+      x: 0
+      y: 0
+  aqdig_crop_1000:
+    <<: *aqdig_crop_10000
+  aqdig_crop_100:
+    <<: *aqdig_crop_10000
+  aqdig_crop_10:
+    <<: *aqdig_crop_10000
+  aqdig_crop_1:
+    <<: *aqdig_crop_10000
+  aqdig_crop_01:
+    <<: *aqdig_crop_10000
+  aqdig_crop_001:
+    <<: *aqdig_crop_10000
+  aqdig_crop_0001:
+    <<: *aqdig_crop_10000
+
+tflite:
+  op_resolver:
+    builtin:
+      - "add"
+      - "conv_2d"
+      - "dequantize"
+      - "fully_connected"
+      - "leaky_relu"
+      - "max_pool_2d"
+      - "mul"
+      - "quantize"
+      - "reshape"
+      - "softmax"
+  allocator:
+    size: "150 kB"
+  model:
+    - id: "aqdig_digits_model"
+      file: "https://github.com/jomjol/AI-on-the-edge-device/raw/38d94475e18e744ba6d5e4458fb0717c0753cbb3/sd-card/config/dig-cont_0900_s3_q.tflite"
+  interpreter:
+    - id: "aqdig_digits_interpreter"
+      model: "aqdig_digits_model"
+
+sensor:
+  - &aqdig_10000
+    id: "aqdig_10000"
+    internal: true
+    name: "${i18n.aquasense[language].aqdig_10000}"
+    state_class: "measurement"
+    icon: "mdi:numeric-10-box-outline"
+    accuracy_decimals: 1
+    entity_category: "diagnostic"
+    platform: "tflite"
+    interpreter: "aqdig_digits_interpreter"
+    crop: "${aqdig_crop_10000}"
+    output_format: "digit_softmax10"
+    min_fit: "80%"
+
+  - <<: *aqdig_10000
+    id: "aqdig_1000"
+    name: "${i18n.aquasense[language].aqdig_1000}"
+    crop: "${aqdig_crop_1000}"
+
+  - <<: *aqdig_10000
+    id: "aqdig_100"
+    name: "${i18n.aquasense[language].aqdig_100}"
+    crop: "${aqdig_crop_100}"
+
+  - <<: *aqdig_10000
+    id: "aqdig_10"
+    name: "${i18n.aquasense[language].aqdig_10}"
+    crop: "${aqdig_crop_10}"
+
+  - <<: *aqdig_10000
+    id: "aqdig_1"
+    name: "${i18n.aquasense[language].aqdig_1}"
+    crop: "${aqdig_crop_1}"
+
+  - <<: *aqdig_10000
+    id: "aqdig_01"
+    name: "${i18n.aquasense[language].aqdig_01}"
+    crop: "${aqdig_crop_01}"
+
+  - <<: *aqdig_10000
+    id: "aqdig_001"
+    name: "${i18n.aquasense[language].aqdig_001}"
+    crop: "${aqdig_crop_001}"
+
+  - <<: *aqdig_10000
+    id: "aqdig_0001"
+    name: "${i18n.aquasense[language].aqdig_0001}"
+    crop: "${aqdig_crop_0001}"

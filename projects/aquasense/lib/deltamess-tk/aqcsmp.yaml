@@ -1,0 +1,61 @@
+# Namespace: aqcsmp
+
+globals:
+  - id: "aqcsmp_prev_tick_ms"
+    type: "uint32_t"
+    restore_value: true
+    initial_value: "0"
+
+  - id: "aqcsmp_l_prev"
+    type: "uint32_t"
+    restore_value: true
+    initial_value: "0"
+
+sensor:
+  - id: "aqcsmp_m3"
+    name: "${i18n.aquasense[language].aqcsmp_total}"
+    unit_of_measurement: "m³"
+    device_class: "water"
+    state_class: "total_increasing"
+    accuracy_decimals: 3
+    on_value:
+      - lambda: !lambda |
+          if (isnan(x)) return;
+          uint32_t new_value = (uint32_t)(x * 1000.0f);
+          uint32_t &prev = id(aqcsmp_l_prev);
+          uint32_t &prev_tick_ms = id(aqcsmp_prev_tick_ms);
+
+          if (prev == 0) {
+            prev = new_value;
+            return;
+          }
+          int32_t diff = (int32_t)new_value - (int32_t)prev;
+          prev = new_value;
+          if (diff < 0) diff = 0;
+
+          float per_second = (float)diff / (float)(millis() - prev_tick_ms);
+          id(aqcsmp_consumption)->publish_state(per_second);
+          prev_tick_ms = millis();
+
+    platform: "template"
+    update_interval: "never"
+    lambda: !lambda |
+      float val = 0.0f;
+      val += 10000.0f * roundf(id(aqdig_10000).state);
+      val +=  1000.0f * roundf(id(aqdig_1000).state);
+      val +=   100.0f * roundf(id(aqdig_100).state);
+      val +=    10.0f * roundf(id(aqdig_10).state);
+      val +=     1.0f * roundf(id(aqdig_1).state);
+      val +=     0.1f * roundf(id(aqdig_01).state);
+      val +=    0.01f * roundf(id(aqdig_001).state);
+      val +=   0.001f * roundf(id(aqdig_0001).state);
+      return val;
+
+  - id: "aqcsmp_consumption"
+    name: "${i18n.aquasense[language].aqcsmp_consumption}"
+    unit_of_measurement: "L/s"
+    device_class: "volume_flow_rate"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    platform: "template"
+    update_interval: "never"
