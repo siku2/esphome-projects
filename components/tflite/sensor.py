@@ -112,7 +112,7 @@ CONFIG_SCHEMA = sensor.sensor_schema(CameraSnapshotSensor).extend(
         ),
         cv.Optional(CONF_MIN_FIT, default=0.0): cv.percentage,
         cv.Optional(
-            CONF_MAX_UPDATE_INTERVAL, default=0
+            CONF_MAX_UPDATE_INTERVAL, default="0s"
         ): cv.positive_time_period_milliseconds,
     }
 )
