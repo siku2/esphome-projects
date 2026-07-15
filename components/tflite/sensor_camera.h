@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 #include <esphome/components/camera/buffer_impl.h>
 #include <esphome/components/camera/camera.h>
 #include <esphome/components/camera_snapshot/snapshot.h>
@@ -48,6 +50,9 @@ class CameraSnapshotSensor : public sensor::Sensor, public Component, public cam
   void set_min_fit(float min_fit) { this->min_fit_ = min_fit; }
   void set_max_update_interval(uint32_t max_update_interval) { this->max_update_interval_ = max_update_interval; }
 
+  float get_last_fit() const { return this->last_fit_; }
+  float get_published_fit() const { return this->published_fit_; }
+
  protected:
   InterpreterComponent *interpreter_component_{nullptr};
   camera::snapshot::Snapshotter *snapshotter_{nullptr};
@@ -57,6 +62,8 @@ class CameraSnapshotSensor : public sensor::Sensor, public Component, public cam
   float min_fit_{0.0f};
   uint32_t max_update_interval_{0};
   uint32_t last_update_{0};
+  float last_fit_{NAN};
+  float published_fit_{NAN};
 
   void setup() override;
 

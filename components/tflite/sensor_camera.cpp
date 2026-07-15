@@ -227,10 +227,12 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
   ESP_LOGD(TAG, "Model output: result=%.6f fit=%.2f", result, fit);
   if (std::isnan(result))
     return;
+  this->last_fit_ = fit;
   if (fit < this->min_fit_) {
     ESP_LOGW(TAG, "Rejecting result %.6f: fit %.2f is below min_fit %.2f", result, fit, this->min_fit_);
     return;
   }
+  this->published_fit_ = fit;
   this->publish_state(result);
   this->last_update_ = millis();
 }
