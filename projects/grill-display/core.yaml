@@ -29,12 +29,12 @@ dashboard_import:
   import_full_config: false
 
 external_components:
-- source:
-    type: git
-    url: "https://github.com/siku2/esphome-projects"
-    ref: "${git_ref}"
-    path: "components"
-  components: [ "grill_thermal_model" ]
+  - source:
+      type: git
+      url: "https://github.com/siku2/esphome-projects"
+      ref: "${git_ref}"
+      path: "components"
+    components: ["grill_thermal_model"]
 
 logger:
   logs:
@@ -46,268 +46,297 @@ api:
     key: "${api_encryption_key}"
 
 ota:
-- platform: "esphome"
-  password: "${ota_password}"
+  - platform: "esphome"
+    password: "${ota_password}"
 
 spi:
   miso_pin: "GPIO18"
   clk_pin: "GPIO19"
 
 sensor:
-- &probe_west_temperature_raw
-  id: "probe_west_temperature_raw"
-  internal: true
-  filters:
-  - round: 1
-  # Don't report error values (they happen fairly often)
-  - filter_out: "NaN"
-  # Only resort to NaN after 5s of no new value
-  - timeout: "5s"
-  - delta: 0.5
-  # If the value doesn't change still emit a value every 5s
-  - timeout:
-      timeout: "5s"
-      value: "last"
-  on_value:
-    then:
-    - lambda: !lambda |
-        id(probe_west_temperature_public)->publish_state(x);
-    - lambda: !lambda |
-        if (id(grill_active_side).current_option() == "west") {
-          id(grill_selected_grill_temperature).publish_state(x);
-        }
-  platform: "max31855"
-  update_interval: "500ms"
-  cs_pin: "GPIO20"
+  - &probe_west_temperature_raw
+    id: "probe_west_temperature_raw"
+    internal: true
+    filters:
+      - round: 1
+      # Don't report error values (they happen fairly often)
+      - filter_out: "NaN"
+      # Only resort to NaN after 5s of no new value
+      - timeout: "5s"
+      - delta: 0.5
+      # If the value doesn't change still emit a value every 5s
+      - timeout:
+          timeout: "5s"
+          value: "last"
+    on_value:
+      then:
+        - lambda: !lambda |
+            id(probe_west_temperature_public)->publish_state(x);
+        - lambda: !lambda |
+            if (id(grill_active_side).current_option() == "west") {
+              id(grill_selected_grill_temperature).publish_state(x);
+            }
+    platform: "max31855"
+    update_interval: "500ms"
+    cs_pin: "GPIO20"
 
-- <<: *probe_west_temperature_raw
-  id: "probe_east_temperature_raw"
-  name: "${i18n.grilldisplay[language].probe_east_temperature_raw}"
-  on_value:
-    then:
-    - lambda: !lambda |
-        id(probe_east_temperature_public)->publish_state(x);
-    - lambda: !lambda |
-        if (id(grill_active_side).current_option() == "east") {
-          id(grill_selected_grill_temperature).publish_state(x);
-        }
-  cs_pin: "GPIO38"
+  - <<: *probe_west_temperature_raw
+    id: "probe_east_temperature_raw"
+    name: "${i18n.grilldisplay[language].probe_east_temperature_raw}"
+    on_value:
+      then:
+        - lambda: !lambda |
+            id(probe_east_temperature_public)->publish_state(x);
+        - lambda: !lambda |
+            if (id(grill_active_side).current_option() == "east") {
+              id(grill_selected_grill_temperature).publish_state(x);
+            }
+    cs_pin: "GPIO38"
 
-- <<: *probe_west_temperature_raw
-  id: "probe_grey_temperature_raw"
-  name: "${i18n.grilldisplay[language].probe_grey_temperature_raw}"
-  on_value:
-    then:
-    - lambda: !lambda |
-        id(probe_grey_temperature_public)->publish_state(x);
-  cs_pin: "GPIO21"
+  - <<: *probe_west_temperature_raw
+    id: "probe_grey_temperature_raw"
+    name: "${i18n.grilldisplay[language].probe_grey_temperature_raw}"
+    on_value:
+      then:
+        - lambda: !lambda |
+            id(probe_grey_temperature_public)->publish_state(x);
+    cs_pin: "GPIO21"
 
-# Public temperature sensors exposed to HA
+  # Public temperature sensors exposed to HA
 
-- &probe_west_temperature_public
-  id: "probe_west_temperature_public"
-  name: "${i18n.grilldisplay[language].probe_west_temperature_public}"
-  unit_of_measurement: "°C"
-  device_class: "temperature"
-  state_class: "measurement"
-  accuracy_decimals: 0
-  filters:
-  - delta: 0.5
-  platform: "template"
-  update_interval: "never"
+  - &probe_west_temperature_public
+    id: "probe_west_temperature_public"
+    name: "${i18n.grilldisplay[language].probe_west_temperature_public}"
+    unit_of_measurement: "°C"
+    device_class: "temperature"
+    state_class: "measurement"
+    accuracy_decimals: 0
+    filters:
+      - delta: 0.5
+    platform: "template"
+    update_interval: "never"
 
-- <<: *probe_west_temperature_public
-  id: "probe_east_temperature_public"
-  name: "${i18n.grilldisplay[language].probe_east_temperature_public}"
+  - <<: *probe_west_temperature_public
+    id: "probe_east_temperature_public"
+    name: "${i18n.grilldisplay[language].probe_east_temperature_public}"
 
-- <<: *probe_west_temperature_public
-  id: "probe_grey_temperature_public"
-  name: "${i18n.grilldisplay[language].probe_grey_temperature_public}"
+  - <<: *probe_west_temperature_public
+    id: "probe_grey_temperature_public"
+    name: "${i18n.grilldisplay[language].probe_grey_temperature_public}"
 
-- platform: "template"
-  id: "grill_selected_grill_temperature"
-  internal: true
-  update_interval: "never"
+  - platform: "template"
+    id: "grill_selected_grill_temperature"
+    internal: true
+    update_interval: "never"
+
+  - platform: "template"
+    id: "grill_selected_target_temperature"
+    internal: true
+    update_interval: "never"
 
 time:
-- id: !extend "base_homeassistant_time"
-  on_time_sync:
-    then:
-    - script.execute: "update_display_time"
-  on_time:
-  # Every 5 minutes, offset by 2:30
-  - seconds: "30"
-    minutes: "2/5"
-    then:
-    - script.execute: "update_display_time"
+  - id: !extend "base_homeassistant_time"
+    on_time_sync:
+      then:
+        - script.execute: "update_display_time"
+    on_time:
+      # Every 5 minutes, offset by 2:30
+      - seconds: "30"
+        minutes: "2/5"
+        then:
+          - script.execute: "update_display_time"
 
 font:
-# gfonts://family[@weight]
-- file: "gfonts://Roboto@400"
-  id: "roboto_14"
-  size: 14
-- file: "gfonts://Roboto@400"
-  id: "roboto_20"
-  size: 30
-- file: "gfonts://Roboto@700"
-  id: "roboto_24_bold"
-  size: 24
+  # gfonts://family[@weight]
+  - file: "gfonts://Roboto@400"
+    id: "roboto_14"
+    size: 14
+  - file: "gfonts://Roboto@400"
+    id: "roboto_20"
+    size: 30
+  - file: "gfonts://Roboto@700"
+    id: "roboto_24_bold"
+    size: 24
 
 switch:
-- &heater_east
-  id: "heater_east"
-  restore_mode: "ALWAYS_OFF"
-  platform: "homeassistant"
-  entity_id: "switch.on_off_light_31"
+  - &heater_east
+    id: "heater_east"
+    restore_mode: "ALWAYS_OFF"
+    platform: "homeassistant"
+    entity_id: "switch.on_off_light_31"
 
-- <<: *heater_east
-  id: "heater_west"
-  entity_id: "switch.terrasse_grill_west"
+  - <<: *heater_east
+    id: "heater_west"
+    entity_id: "switch.terrasse_grill_west"
 
 select:
-- platform: "template"
-  id: "grill_active_side"
-  name: "${i18n.grilldisplay[language].grill_side_selector}"
-  optimistic: true
-  restore_value: true
-  initial_option: "west"
-  options:
-  - "east"
-  - "west"
-  set_action:
-  - lambda: !lambda |
-      float value;
-      if (x == "east") {
-        value = id(probe_east_temperature_raw).state;
-      } else {
-        value = id(probe_west_temperature_raw).state;
-      }
-      id(grill_selected_grill_temperature).publish_state(value);
+  - platform: "template"
+    id: "grill_active_side"
+    name: "${i18n.grilldisplay[language].grill_side_selector}"
+    optimistic: true
+    restore_value: true
+    initial_option: "west"
+    options:
+      - "east"
+      - "west"
+    set_action:
+      - lambda: !lambda |-
+          if (x == "east") {
+            id(grill_selected_grill_temperature).publish_state(id(probe_east_temperature_raw).state);
+          } else {
+            id(grill_selected_grill_temperature).publish_state(id(probe_west_temperature_raw).state);
+          }
+          id(grill_thermal_model_main).start_new_cook();
+      - script.execute: "handle_climate_state"
 
 number:
-- platform: "template"
-  id: "target_meat_core_temperature"
-  name: "${i18n.grilldisplay[language].grill_target_temperature}"
-  optimistic: true
-  restore_value: true
-  initial_value: 93
-  min_value: 40
-  max_value: 300
-  step: 0.5
-  mode: "box"
+  - platform: "template"
+    id: "target_meat_core_temperature"
+    name: "${i18n.grilldisplay[language].grill_target_temperature}"
+    optimistic: true
+    restore_value: true
+    initial_value: 93
+    min_value: 40
+    max_value: 300
+    step: 0.5
+    mode: "box"
 
 script:
-- id: "update_display_time"
-  mode: "single"
-  then:
-  - logger.log:
-      level: "DEBUG"
-      format: "Updating display time"
-  - lambda: !lambda |
-      const uint32_t five_minutes_in_seconds = 5 * 60;
-      const uint32_t twelve_hours_in_seconds = 12 * 60 * 60;
+  - id: "update_display_time"
+    mode: "single"
+    then:
+      - logger.log:
+          level: "DEBUG"
+          format: "Updating display time"
+      - lambda: !lambda |
+          const uint32_t five_minutes_in_seconds = 5 * 60;
+          const uint32_t twelve_hours_in_seconds = 12 * 60 * 60;
 
-      auto now = id(base_homeassistant_time).now();
-      uint32_t seconds = now.second + 60 * now.minute + 3600 * now.hour;
-      // Round to the nearest 5 minutes
-      seconds = (seconds + five_minutes_in_seconds / 2) / five_minutes_in_seconds * five_minutes_in_seconds;
+          auto now = id(base_homeassistant_time).now();
+          uint32_t seconds = now.second + 60 * now.minute + 3600 * now.hour;
+          // Round to the nearest 5 minutes
+          seconds = (seconds + five_minutes_in_seconds / 2) / five_minutes_in_seconds * five_minutes_in_seconds;
 
-      auto meter_widget = id(lvgl_meter_time);
+          auto meter_widget = id(lvgl_meter_time);
 
-      id(lvgl_minute_hand)->set_value((seconds % 3600) / 60.0);
-      // Only divide by 60 instead of 3600 because the hour hand is still resolved in minute resolution.
-      id(lvgl_hour_hand)->set_value((seconds % twelve_hours_in_seconds) / 60.0);
+          id(lvgl_minute_hand)->set_value((seconds % 3600) / 60.0);
+          // Only divide by 60 instead of 3600 because the hour hand is still resolved in minute resolution.
+          id(lvgl_hour_hand)->set_value((seconds % twelve_hours_in_seconds) / 60.0);
 
-  - component.update: "cp579epd_display"
-
-- id: "refresh_page_selection"
-  mode: "restart"
-  then:
-  - if:
-      condition:
-        lambda: return id(climate_pid_east).mode == CLIMATE_MODE_OFF && id(climate_pid_west).mode == CLIMATE_MODE_OFF;
-      then:
-      - lvgl.page.show: "lvgl_pg_clock"
       - component.update: "cp579epd_display"
-      else:
-      - lvgl.page.show: "lvgl_pg_cooking"
-      - script.execute: "update_cooking_page"
 
-- id: "update_cooking_page"
-  mode: "restart"
-  then:
-  - lvgl.label.update:
-      id: "lbl_east_status"
-      text: !lambda |-
-        const bool mode_on = id(climate_pid_east).mode != CLIMATE_MODE_OFF;
-        const bool selected = id(grill_active_side).current_option() == "east";
-        if (mode_on && selected) return std::string("${i18n.grilldisplay[language].ui_status_east_on_selected}");
-        if (mode_on) return std::string("${i18n.grilldisplay[language].ui_status_east_on}");
-        if (selected) return std::string("${i18n.grilldisplay[language].ui_status_east_off_selected}");
-        return std::string("${i18n.grilldisplay[language].ui_status_east_off}");
-  - lvgl.label.update:
-      id: "lbl_west_status"
-      text: !lambda |-
-        const bool mode_on = id(climate_pid_west).mode != CLIMATE_MODE_OFF;
-        const bool selected = id(grill_active_side).current_option() == "west";
-        if (mode_on && selected) return std::string("${i18n.grilldisplay[language].ui_status_west_on_selected}");
-        if (mode_on) return std::string("${i18n.grilldisplay[language].ui_status_west_on}");
-        if (selected) return std::string("${i18n.grilldisplay[language].ui_status_west_off_selected}");
-        return std::string("${i18n.grilldisplay[language].ui_status_west_off}");
-  - lvgl.label.update:
-      id: "lbl_east_current"
-      text:
-        format: "${i18n.grilldisplay[language].ui_current_format}"
-        args: [ "id(probe_east_temperature_public).state" ]
-  - lvgl.label.update:
-      id: "lbl_west_current"
-      text:
-        format: "${i18n.grilldisplay[language].ui_current_format}"
-        args: [ "id(probe_west_temperature_public).state" ]
-  - lvgl.label.update:
-      id: "lbl_east_target_heat"
-      text: !lambda |-
-        char buf[40];
-        const bool heating = id(climate_pid_east).action == CLIMATE_ACTION_HEATING;
-        snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_target_heat_format}", id(climate_pid_east).target_temperature,
-                 heating ? "${i18n.grilldisplay[language].ui_state_on}" : "${i18n.grilldisplay[language].ui_state_off}");
-        return std::string(buf);
-  - lvgl.label.update:
-      id: "lbl_west_target_heat"
-      text: !lambda |-
-        char buf[40];
-        const bool heating = id(climate_pid_west).action == CLIMATE_ACTION_HEATING;
-        snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_target_heat_format}", id(climate_pid_west).target_temperature,
-                 heating ? "${i18n.grilldisplay[language].ui_state_on}" : "${i18n.grilldisplay[language].ui_state_off}");
-        return std::string(buf);
-  - lvgl.label.update:
-      id: "lbl_meat_caption"
-      text: !lambda |-
-        return id(probe_grey_temperature_public).state > 35.0f ? std::string("${i18n.grilldisplay[language].ui_meat_label}") : std::string("");
-  - if:
-      condition:
-        lambda: return id(probe_grey_temperature_public).state > 35.0f;
-      then:
+  - id: "refresh_page_selection"
+    mode: "restart"
+    then:
+      - if:
+          condition:
+            lambda: return id(climate_pid_east).mode == CLIMATE_MODE_OFF && id(climate_pid_west).mode == CLIMATE_MODE_OFF;
+          then:
+            - lvgl.page.show: "lvgl_pg_clock"
+            - component.update: "cp579epd_display"
+          else:
+            - lvgl.page.show: "lvgl_pg_cooking"
+            - script.execute: "update_cooking_page"
+
+  - id: "handle_climate_state"
+    mode: "single"
+    then:
+      - lambda: !lambda |-
+          std::string side = id(grill_active_side).current_option();
+          bool active = false;
+          if (side == "east") {
+            active = id(climate_pid_east).mode != CLIMATE_MODE_OFF;
+            if (active) {
+              id(grill_selected_target_temperature).publish_state(id(climate_pid_east).target_temperature);
+            } else {
+              id(grill_selected_target_temperature).publish_state(NAN);
+            }
+          } else {
+            active = id(climate_pid_west).mode != CLIMATE_MODE_OFF;
+            if (active) {
+              id(grill_selected_target_temperature).publish_state(id(climate_pid_west).target_temperature);
+            } else {
+              id(grill_selected_target_temperature).publish_state(NAN);
+            }
+          }
+          id(grill_thermal_model_main).on_climate_active_changed(active);
+      - script.execute: "refresh_page_selection"
+
+  - id: "update_cooking_page"
+    mode: "restart"
+    then:
       - lvgl.label.update:
-          id: "lbl_meat_temp"
+          id: "lbl_east_status"
+          text: !lambda |-
+            const bool mode_on = id(climate_pid_east).mode != CLIMATE_MODE_OFF;
+            const bool selected = id(grill_active_side).current_option() == "east";
+            if (mode_on && selected) return std::string("${i18n.grilldisplay[language].ui_status_east_on_selected}");
+            if (mode_on) return std::string("${i18n.grilldisplay[language].ui_status_east_on}");
+            if (selected) return std::string("${i18n.grilldisplay[language].ui_status_east_off_selected}");
+            return std::string("${i18n.grilldisplay[language].ui_status_east_off}");
+      - lvgl.label.update:
+          id: "lbl_west_status"
+          text: !lambda |-
+            const bool mode_on = id(climate_pid_west).mode != CLIMATE_MODE_OFF;
+            const bool selected = id(grill_active_side).current_option() == "west";
+            if (mode_on && selected) return std::string("${i18n.grilldisplay[language].ui_status_west_on_selected}");
+            if (mode_on) return std::string("${i18n.grilldisplay[language].ui_status_west_on}");
+            if (selected) return std::string("${i18n.grilldisplay[language].ui_status_west_off_selected}");
+            return std::string("${i18n.grilldisplay[language].ui_status_west_off}");
+      - lvgl.label.update:
+          id: "lbl_east_current"
           text:
-            format: "%.1fC"
-            args: [ "id(probe_grey_temperature_public).state" ]
-      else:
+            format: "${i18n.grilldisplay[language].ui_current_format}"
+            args: ["id(probe_east_temperature_public).state"]
       - lvgl.label.update:
-          id: "lbl_meat_temp"
-          text: ""
-  - component.update: "cp579epd_display"
+          id: "lbl_west_current"
+          text:
+            format: "${i18n.grilldisplay[language].ui_current_format}"
+            args: ["id(probe_west_temperature_public).state"]
+      - lvgl.label.update:
+          id: "lbl_east_target_heat"
+          text: !lambda |-
+            char buf[40];
+            const bool heating = id(climate_pid_east).action == CLIMATE_ACTION_HEATING;
+            snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_target_heat_format}", id(climate_pid_east).target_temperature,
+                     heating ? "${i18n.grilldisplay[language].ui_state_on}" : "${i18n.grilldisplay[language].ui_state_off}");
+            return std::string(buf);
+      - lvgl.label.update:
+          id: "lbl_west_target_heat"
+          text: !lambda |-
+            char buf[40];
+            const bool heating = id(climate_pid_west).action == CLIMATE_ACTION_HEATING;
+            snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_target_heat_format}", id(climate_pid_west).target_temperature,
+                     heating ? "${i18n.grilldisplay[language].ui_state_on}" : "${i18n.grilldisplay[language].ui_state_off}");
+            return std::string(buf);
+      - lvgl.label.update:
+          id: "lbl_meat_caption"
+          text: !lambda |-
+            return id(probe_grey_temperature_public).state > 35.0f ? std::string("${i18n.grilldisplay[language].ui_meat_label}") : std::string("");
+      - if:
+          condition:
+            lambda: return id(probe_grey_temperature_public).state > 35.0f;
+          then:
+            - lvgl.label.update:
+                id: "lbl_meat_temp"
+                text:
+                  format: "%.1fC"
+                  args: ["id(probe_grey_temperature_public).state"]
+          else:
+            - lvgl.label.update:
+                id: "lbl_meat_temp"
+                text: ""
+      - component.update: "cp579epd_display"
 
 color:
-- id: "color_white"
-  hex: "000000"
-- id: "color_black"
-  hex: "FFFFFF"
+  - id: "color_white"
+    hex: "000000"
+  - id: "color_black"
+    hex: "FFFFFF"
 
 lvgl:
   displays:
-  - "cp579epd_display"
+    - "cp579epd_display"
   buffer_size: "12%"
   log_level: "info"
   theme:
@@ -316,218 +345,230 @@ lvgl:
   bg_color: "color_white"
 
   pages:
-  # ========== IDLE - CLOCK PAGE ==========
-  - id: "lvgl_pg_clock"
-    on_load:
-      then:
-      - logger.log:
-          level: "DEBUG"
-          format: "Clock page loaded"
-    widgets:
-    - obj:
-        # clock container
-        height: "SIZE_CONTENT"
-        width: 240
-        align: "CENTER"
-        pad_all: 0
-        border_width: 0
-        bg_color: "color_white"
-        widgets:
-        - meter:
-            id: "lvgl_meter_time"
-            # clock face
-            height: 220
-            width: 220
+    # ========== IDLE - CLOCK PAGE ==========
+    - id: "lvgl_pg_clock"
+      on_load:
+        then:
+          - logger.log:
+              level: "DEBUG"
+              format: "Clock page loaded"
+      widgets:
+        - obj:
+            # clock container
+            height: "SIZE_CONTENT"
+            width: 240
             align: "CENTER"
-            bg_opa: "TRANSP"
+            pad_all: 0
             border_width: 0
-            text_color: "color_black"
-            scales:
-            - range_from: 0 # minutes scale
-              range_to: 60
-              angle_range: 360
-              rotation: 270
-              ticks:
-                width: 1
-                count: 61
-                length: 10
-                color: "color_black"
-              indicators:
-              - line:
-                  id: "lvgl_minute_hand"
-                  width: 3
-                  color: "color_black"
-                  length: 96%
-                  value: 0
-            - range_from: 1 # hours scale for labels
-              range_to: 12
-              angle_range: 330
-              rotation: 300
-              ticks:
-                width: 1
-                count: 12
-                length: 1
-                major:
-                  stride: 1
-                  width: 4
-                  length: 10
-                  color: "color_black"
-                  label_gap: 12
-            - range_from: 0 # hi-res hours scale for hand
-              range_to: 720
-              angle_range: 360
-              rotation: 270
-              indicators:
-              - line:
-                  id: "lvgl_hour_hand"
-                  width: 5
-                  color: "color_black"
-                  length: 70%
-                  value: 0
+            bg_color: "color_white"
+            widgets:
+              - meter:
+                  id: "lvgl_meter_time"
+                  # clock face
+                  height: 220
+                  width: 220
+                  align: "CENTER"
+                  bg_opa: "TRANSP"
+                  border_width: 0
+                  text_color: "color_black"
+                  scales:
+                    - range_from: 0 # minutes scale
+                      range_to: 60
+                      angle_range: 360
+                      rotation: 270
+                      ticks:
+                        width: 1
+                        count: 61
+                        length: 10
+                        color: "color_black"
+                      indicators:
+                        - line:
+                            id: "lvgl_minute_hand"
+                            width: 3
+                            color: "color_black"
+                            length: 96%
+                            value: 0
+                    - range_from: 1 # hours scale for labels
+                      range_to: 12
+                      angle_range: 330
+                      rotation: 300
+                      ticks:
+                        width: 1
+                        count: 12
+                        length: 1
+                        major:
+                          stride: 1
+                          width: 4
+                          length: 10
+                          color: "color_black"
+                          label_gap: 12
+                    - range_from: 0 # hi-res hours scale for hand
+                      range_to: 720
+                      angle_range: 360
+                      rotation: 270
+                      indicators:
+                        - line:
+                            id: "lvgl_hour_hand"
+                            width: 5
+                            color: "color_black"
+                            length: 70%
+                            value: 0
 
-  # ========== COOKING DETAILS PAGE ==========
-  - id: "lvgl_pg_cooking"
-    on_load:
-      then:
-      - logger.log:
-          level: "DEBUG"
-          format: "Cooking page loaded"
-    widgets:
-    - obj:
-        # Clean EPD dashboard: per-side status + target/current/heating + optional meat line.
-        width: 792
-        height: 272
-        pad_all: 4
-        border_width: 0
-        bg_color: "color_white"
-        layout:
-          type: grid
-          grid_rows: [ "40px", "84px", "84px", "40px" ]
-          grid_columns: [ "392px", "392px" ]
-          pad_row: 6px
-          pad_column: 8px
-        widgets:
-        # --- ROW 0: side status (active/enabled) ---
-        - label:
-            id: "lbl_east_status"
-            text: "${i18n.grilldisplay[language].ui_status_east_off}"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            grid_cell_row_pos: 0
-            grid_cell_column_pos: 0
-            grid_cell_x_align: "CENTER"
-        - label:
-            id: "lbl_west_status"
-            text: "${i18n.grilldisplay[language].ui_status_west_off}"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            grid_cell_row_pos: 0
-            grid_cell_column_pos: 1
-            grid_cell_x_align: "CENTER"
+    # ========== COOKING DETAILS PAGE ==========
+    - id: "lvgl_pg_cooking"
+      on_load:
+        then:
+          - logger.log:
+              level: "DEBUG"
+              format: "Cooking page loaded"
+      widgets:
+        - obj:
+            # Clean EPD dashboard: per-side status + target/current/heating + optional meat line.
+            width: 792
+            height: 272
+            pad_all: 4
+            border_width: 0
+            bg_color: "color_white"
+            layout:
+              type: grid
+              grid_rows: ["40px", "84px", "84px", "40px"]
+              grid_columns: ["392px", "392px"]
+              pad_row: 6px
+              pad_column: 8px
+            widgets:
+              # --- ROW 0: side status (active/enabled) ---
+              - label:
+                  id: "lbl_east_status"
+                  text: "${i18n.grilldisplay[language].ui_status_east_off}"
+                  text_font: "roboto_14"
+                  text_align: "CENTER"
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  grid_cell_x_align: "CENTER"
+              - label:
+                  id: "lbl_west_status"
+                  text: "${i18n.grilldisplay[language].ui_status_west_off}"
+                  text_font: "roboto_14"
+                  text_align: "CENTER"
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 1
+                  grid_cell_x_align: "CENTER"
 
-        # --- ROW 1: current grill temperatures ---
-        - label:
-            id: "lbl_east_current"
-            text: "${i18n.grilldisplay[language].ui_current_placeholder}"
-            text_font: "roboto_24_bold"
-            text_align: "CENTER"
-            grid_cell_row_pos: 1
-            grid_cell_column_pos: 0
-            grid_cell_x_align: "CENTER"
-        - label:
-            id: "lbl_west_current"
-            text: "${i18n.grilldisplay[language].ui_current_placeholder}"
-            text_font: "roboto_24_bold"
-            text_align: "CENTER"
-            grid_cell_row_pos: 1
-            grid_cell_column_pos: 1
-            grid_cell_x_align: "CENTER"
+              # --- ROW 1: current grill temperatures ---
+              - label:
+                  id: "lbl_east_current"
+                  text: "${i18n.grilldisplay[language].ui_current_placeholder}"
+                  text_font: "roboto_24_bold"
+                  text_align: "CENTER"
+                  grid_cell_row_pos: 1
+                  grid_cell_column_pos: 0
+                  grid_cell_x_align: "CENTER"
+              - label:
+                  id: "lbl_west_current"
+                  text: "${i18n.grilldisplay[language].ui_current_placeholder}"
+                  text_font: "roboto_24_bold"
+                  text_align: "CENTER"
+                  grid_cell_row_pos: 1
+                  grid_cell_column_pos: 1
+                  grid_cell_x_align: "CENTER"
 
-        # --- ROW 2: target and heater element state ---
-        - label:
-            id: "lbl_east_target_heat"
-            text: "${i18n.grilldisplay[language].ui_target_heat_placeholder}"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            grid_cell_row_pos: 2
-            grid_cell_column_pos: 0
-            grid_cell_x_align: "CENTER"
-        - label:
-            id: "lbl_west_target_heat"
-            text: "${i18n.grilldisplay[language].ui_target_heat_placeholder}"
-            text_font: "roboto_14"
-            text_align: "CENTER"
-            grid_cell_row_pos: 2
-            grid_cell_column_pos: 1
-            grid_cell_x_align: "CENTER"
+              # --- ROW 2: target and heater element state ---
+              - label:
+                  id: "lbl_east_target_heat"
+                  text: "${i18n.grilldisplay[language].ui_target_heat_placeholder}"
+                  text_font: "roboto_14"
+                  text_align: "CENTER"
+                  grid_cell_row_pos: 2
+                  grid_cell_column_pos: 0
+                  grid_cell_x_align: "CENTER"
+              - label:
+                  id: "lbl_west_target_heat"
+                  text: "${i18n.grilldisplay[language].ui_target_heat_placeholder}"
+                  text_font: "roboto_14"
+                  text_align: "CENTER"
+                  grid_cell_row_pos: 2
+                  grid_cell_column_pos: 1
+                  grid_cell_x_align: "CENTER"
 
-        # --- ROW 3: meat probe (shown only if active) ---
-        - label:
-            id: "lbl_meat_caption"
-            text: ""
-            text_font: "roboto_14"
-            text_align: "RIGHT"
-            grid_cell_row_pos: 3
-            grid_cell_column_pos: 0
-            grid_cell_x_align: "END"
-        - label:
-            id: "lbl_meat_temp"
-            text: ""
-            text_font: "roboto_14"
-            text_align: "LEFT"
-            grid_cell_row_pos: 3
-            grid_cell_column_pos: 1
-            grid_cell_x_align: "START"
+              # --- ROW 3: meat probe (shown only if active) ---
+              - label:
+                  id: "lbl_meat_caption"
+                  text: ""
+                  text_font: "roboto_14"
+                  text_align: "RIGHT"
+                  grid_cell_row_pos: 3
+                  grid_cell_column_pos: 0
+                  grid_cell_x_align: "END"
+              - label:
+                  id: "lbl_meat_temp"
+                  text: ""
+                  text_font: "roboto_14"
+                  text_align: "LEFT"
+                  grid_cell_row_pos: 3
+                  grid_cell_column_pos: 1
+                  grid_cell_x_align: "START"
+
+globals:
+  - id: "pwm_cycle_start"
+    type: "uint32_t"
+    restore_value: no
+    initial_value: "0"
+  - id: "pwm_duty_east"
+    type: "float"
+    restore_value: no
+    initial_value: "0.0f"
+  - id: "pwm_duty_west"
+    type: "float"
+    restore_value: no
+    initial_value: "0.0f"
+  - id: "pwm_relay_east_on"
+    type: "bool"
+    restore_value: no
+    initial_value: "false"
+  - id: "pwm_relay_west_on"
+    type: "bool"
+    restore_value: no
+    initial_value: "false"
 
 output:
-- &heater_east_float
-  id: "heater_east_float"
-  platform: "template"
-  type: "float"
-  write_action:
-  - lambda: !lambda |
-      auto sw = id(heater_east);
-      if (state > 0.5) {
-        sw->turn_on();
-      } else {
-        sw->turn_off();
-      }
+  - id: "heater_east_float"
+    platform: "template"
+    type: "float"
+    write_action:
+      - lambda: !lambda |-
+          id(pwm_duty_east) = state;
 
-- <<: *heater_east_float
-  id: heater_west_float
-  write_action:
-  - lambda: !lambda |
-      auto sw = id(heater_west);
-      if (state > 0.5) {
-        sw->turn_on();
-      } else {
-        sw->turn_off();
-      }
+  - id: "heater_west_float"
+    platform: "template"
+    type: "float"
+    write_action:
+      - lambda: !lambda |-
+          id(pwm_duty_west) = state;
 
 climate:
-- &climate_pid_east
-  id: "climate_pid_east"
-  name: "${i18n.grilldisplay[language].climate_pid_east}"
-  visual:
-    min_temperature: 40
-    max_temperature: 300
-    temperature_step: 5
-  platform: "pid"
-  sensor: "probe_east_temperature_raw"
-  default_target_temperature: 0.0
-  heat_output: "heater_east_float"
-  control_parameters:
-    kp: 0.02829
-    ki: 0.00016
-    kd: 1.21726
-  on_state:
-  - script.execute: "refresh_page_selection"
+  - &climate_pid_east
+    id: "climate_pid_east"
+    name: "${i18n.grilldisplay[language].climate_pid_east}"
+    visual:
+      min_temperature: 40
+      max_temperature: 300
+      temperature_step: 5
+    platform: "pid"
+    sensor: "probe_east_temperature_raw"
+    default_target_temperature: 0.0
+    heat_output: "heater_east_float"
+    control_parameters:
+      kp: 0.02829
+      ki: 0.00016
+      kd: 1.21726
+    on_state:
+      - script.execute: "handle_climate_state"
 
-- <<: *climate_pid_east
-  id: "climate_pid_west"
-  name: "${i18n.grilldisplay[language].climate_pid_west}"
-  sensor: "probe_west_temperature_raw"
-  heat_output: "heater_west_float"
+  - <<: *climate_pid_east
+    id: "climate_pid_west"
+    name: "${i18n.grilldisplay[language].climate_pid_west}"
+    sensor: "probe_west_temperature_raw"
+    heat_output: "heater_west_float"
 
 grill_thermal_model:
   id: "grill_thermal_model_main"
@@ -535,6 +576,7 @@ grill_thermal_model:
   grill_probe: "grill_selected_grill_temperature"
   meat_probe: "probe_grey_temperature_raw"
   target_number: "target_meat_core_temperature"
+  lid_reference_temperature: "grill_selected_target_temperature"
   rest_duration_min: 30
   finish_time:
     id: "grill_finish_time"
@@ -553,36 +595,79 @@ grill_thermal_model:
     id: "grill_cook_phase"
     name: "${i18n.grilldisplay[language].grill_cook_phase}"
     filters:
-    - lambda: !lambda |
-        if (x == "IDLE") return std::string("${i18n.grilldisplay[language].grill_phase_idle}");
-        if (x == "LEARNING") return std::string("${i18n.grilldisplay[language].grill_phase_learning}");
-        if (x == "ACTIVE") return std::string("${i18n.grilldisplay[language].grill_phase_active}");
-        if (x == "STALL") return std::string("${i18n.grilldisplay[language].grill_phase_stall}");
-        if (x == "STRETCH") return std::string("${i18n.grilldisplay[language].grill_phase_stretch}");
-        if (x == "PULL") return std::string("${i18n.grilldisplay[language].grill_phase_pull}");
-        if (x == "RESTING") return std::string("${i18n.grilldisplay[language].grill_phase_resting}");
-        if (x == "PAUSE") return std::string("${i18n.grilldisplay[language].grill_phase_pause}");
-        return x;
+      - lambda: !lambda |
+          if (x == "IDLE") return std::string("${i18n.grilldisplay[language].grill_phase_idle}");
+          if (x == "LEARNING") return std::string("${i18n.grilldisplay[language].grill_phase_learning}");
+          if (x == "ACTIVE") return std::string("${i18n.grilldisplay[language].grill_phase_active}");
+          if (x == "STALL") return std::string("${i18n.grilldisplay[language].grill_phase_stall}");
+          if (x == "STRETCH") return std::string("${i18n.grilldisplay[language].grill_phase_stretch}");
+          if (x == "PULL") return std::string("${i18n.grilldisplay[language].grill_phase_pull}");
+          if (x == "RESTING") return std::string("${i18n.grilldisplay[language].grill_phase_resting}");
+          if (x == "COMPLETE") return std::string("${i18n.grilldisplay[language].grill_phase_complete}");
+          if (x == "PAUSE") return std::string("${i18n.grilldisplay[language].grill_phase_pause}");
+          return x;
   thermal_mass_index:
     id: "grill_thermal_mass_index"
     name: "${i18n.grilldisplay[language].grill_thermal_mass_index}"
     accuracy_decimals: 2
     on_value:
-    - if:
-        condition:
-          lambda: return x != 0.0; # Any value means not idle
-        then:
-        # Page switch will be handled by interval automation
-        - logger.log:
-            level: "DEBUG"
-            format: "Thermal mass: %.2f"
-            args: [ "x" ]
+      - if:
+          condition:
+            lambda: return x != 0.0; # Any value means not idle
+          then:
+            # Page switch will be handled by interval automation
+            - logger.log:
+                level: "DEBUG"
+                format: "Thermal mass: %.2f"
+                args: ["x"]
+
+button:
+  - id: "grill_start_new_cook"
+    name: "${i18n.grilldisplay[language].start_new_cook}"
+    platform: "template"
+    on_press:
+      - lambda: !lambda |-
+          id(grill_thermal_model_main).start_new_cook();
 
 interval:
-- interval: 5s
-  then:
-  - if:
-      condition:
-        lvgl.page.is_showing: "lvgl_pg_cooking"
-      then:
-      - script.execute: "update_cooking_page"
+  - interval: 1s
+    then:
+      - lambda: !lambda |-
+          const uint32_t PERIOD_MS = 30000;
+          uint32_t now = millis();
+          if (id(pwm_cycle_start) == 0 || now - id(pwm_cycle_start) >= PERIOD_MS) {
+            id(pwm_cycle_start) = now;
+          }
+          uint32_t elapsed = now - id(pwm_cycle_start);
+
+          {
+            float duty = id(pwm_duty_east);
+            bool want_on = duty > 0.0f && (duty >= 1.0f || (float) elapsed < duty * (float) PERIOD_MS);
+            if (want_on && !id(pwm_relay_east_on)) {
+              id(heater_east)->turn_on();
+              id(pwm_relay_east_on) = true;
+            } else if (!want_on && id(pwm_relay_east_on)) {
+              id(heater_east)->turn_off();
+              id(pwm_relay_east_on) = false;
+            }
+          }
+
+          {
+            float duty = id(pwm_duty_west);
+            bool want_on = duty > 0.0f && (duty >= 1.0f || (float) elapsed < duty * (float) PERIOD_MS);
+            if (want_on && !id(pwm_relay_west_on)) {
+              id(heater_west)->turn_on();
+              id(pwm_relay_west_on) = true;
+            } else if (!want_on && id(pwm_relay_west_on)) {
+              id(heater_west)->turn_off();
+              id(pwm_relay_west_on) = false;
+            }
+          }
+
+  - interval: 5s
+    then:
+      - if:
+          condition:
+            lvgl.page.is_showing: "lvgl_pg_cooking"
+          then:
+            - script.execute: "update_cooking_page"

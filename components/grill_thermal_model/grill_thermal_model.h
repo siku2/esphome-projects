@@ -20,6 +20,7 @@ enum class CookPhase : uint8_t {
   STRETCH,
   PULL,
   RESTING,
+  COMPLETE,
   PAUSE,
 };
 
@@ -34,6 +35,7 @@ class GrillThermalModel : public PollingComponent {
   void set_meat_probe(sensor::Sensor *sensor) { this->meat_probe_ = sensor; }
   void set_target_number(number::Number *number) { this->target_number_ = number; }
   void set_humidity_sensor(sensor::Sensor *sensor) { this->humidity_sensor_ = sensor; }
+  void set_lid_reference_sensor(sensor::Sensor *sensor) { this->lid_reference_sensor_ = sensor; }
 
   void set_finish_time_sensor(text_sensor::TextSensor *sensor) { this->finish_time_sensor_ = sensor; }
   void set_pull_time_sensor(text_sensor::TextSensor *sensor) { this->pull_time_sensor_ = sensor; }
@@ -42,6 +44,10 @@ class GrillThermalModel : public PollingComponent {
   void set_rest_end_time_sensor(text_sensor::TextSensor *sensor) { this->rest_end_time_sensor_ = sensor; }
   void set_rest_remaining_min_sensor(sensor::Sensor *sensor) { this->rest_remaining_min_sensor_ = sensor; }
   void set_rest_duration_minutes(uint32_t minutes) { this->rest_duration_s_ = minutes * 60U; }
+
+  void start_new_cook();
+  void trigger_pull();
+  void on_climate_active_changed(bool active);
 
  protected:
   struct RegressionPoint {
@@ -62,6 +68,7 @@ class GrillThermalModel : public PollingComponent {
   sensor::Sensor *meat_probe_{nullptr};
   number::Number *target_number_{nullptr};
   sensor::Sensor *humidity_sensor_{nullptr};
+  sensor::Sensor *lid_reference_sensor_{nullptr};
 
   text_sensor::TextSensor *finish_time_sensor_{nullptr};
   text_sensor::TextSensor *pull_time_sensor_{nullptr};
@@ -78,8 +85,10 @@ class GrillThermalModel : public PollingComponent {
   CookPhase phase_{CookPhase::IDLE};
   CookPhase last_non_pause_phase_{CookPhase::IDLE};
 
+  uint32_t session_start_ms_{0};
   uint32_t last_update_ms_{0};
   uint32_t learning_start_ms_{0};
+  bool learning_started_{false};
   float learning_baseline_internal_c_{0.0f};
   bool lag_measured_{false};
   float lag_seconds_{0.0f};
@@ -94,13 +103,18 @@ class GrillThermalModel : public PollingComponent {
   bool stall_penalty_seeded_{false};
   float stall_penalty_s_{0.0f};
   uint32_t rest_duration_s_{1800};
+  bool rest_started_{false};
   uint32_t rest_start_ms_{0};
   float pull_peak_internal_c_{0.0f};
+
+  bool climate_active_{false};
+  bool probe_fault_{false};
 
   std::string last_finish_time_text_;
   std::string last_pull_time_text_;
   std::string last_phase_text_;
   std::string last_rest_end_time_text_;
+  float last_rest_remaining_min_{NAN};
 
   static constexpr float AB_ALPHA = 0.32f;
   static constexpr float AB_BETA = 0.06f;
@@ -117,7 +131,9 @@ class GrillThermalModel : public PollingComponent {
   bool inputs_ready_() const;
   float get_target_temperature_() const;
   float get_humidity_() const;
-  bool is_lid_open_(float filtered_ambient, float target_temp) const;
+  float get_lid_reference_() const;
+  float get_session_elapsed_s_() const;
+  bool is_lid_open_(float filtered_ambient, float lid_reference) const;
 
   void update_phase_(float filtered_ambient, float filtered_internal, float dt_s, bool lid_open);
   void push_regression_point_(float t_s, float filtered_ambient, float filtered_internal);
@@ -130,6 +146,8 @@ class GrillThermalModel : public PollingComponent {
   std::string format_clock_from_eta_(float eta_s) const;
   void publish_if_changed_(text_sensor::TextSensor *sensor, const std::string &value, std::string *memo);
   void publish_phase_();
+  void clear_time_entities_();
+  void reset_session_();
   const char *phase_to_str_(CookPhase phase) const;
 };
 

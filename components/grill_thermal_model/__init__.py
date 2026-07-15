@@ -14,6 +14,7 @@ CONF_GRILL_PROBE = "grill_probe"
 CONF_MEAT_PROBE = "meat_probe"
 CONF_TARGET_NUMBER = "target_number"
 CONF_HUMIDITY_SENSOR = "humidity_sensor"
+CONF_LID_REFERENCE_TEMPERATURE = "lid_reference_temperature"
 CONF_FINISH_TIME = "finish_time"
 CONF_PULL_TIME = "pull_time"
 CONF_COOK_PHASE = "cook_phase"
@@ -36,6 +37,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_MEAT_PROBE): cv.use_id(sensor.Sensor),
         cv.Required(CONF_TARGET_NUMBER): cv.use_id(number.Number),
         cv.Optional(CONF_HUMIDITY_SENSOR): cv.use_id(sensor.Sensor),
+        cv.Optional(CONF_LID_REFERENCE_TEMPERATURE): cv.use_id(sensor.Sensor),
         cv.Required(CONF_FINISH_TIME): text_sensor.text_sensor_schema(),
         cv.Required(CONF_PULL_TIME): text_sensor.text_sensor_schema(),
         cv.Required(CONF_COOK_PHASE): text_sensor.text_sensor_schema(),
@@ -72,6 +74,10 @@ async def to_code(config):
     if humidity_sensor_config := config.get(CONF_HUMIDITY_SENSOR):
         humidity_sensor = await cg.get_variable(humidity_sensor_config)
         cg.add(var.set_humidity_sensor(humidity_sensor))
+
+    if lid_ref_config := config.get(CONF_LID_REFERENCE_TEMPERATURE):
+        lid_ref = await cg.get_variable(lid_ref_config)
+        cg.add(var.set_lid_reference_sensor(lid_ref))
 
     finish_time = await text_sensor.new_text_sensor(config[CONF_FINISH_TIME])
     cg.add(var.set_finish_time_sensor(finish_time))

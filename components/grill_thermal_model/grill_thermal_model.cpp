@@ -28,6 +28,7 @@ void GrillThermalModel::AlphaBetaFilter::update(float sample, float dt_s, float 
 void GrillThermalModel::setup() {
   this->phase_ = CookPhase::IDLE;
   this->last_non_pause_phase_ = CookPhase::IDLE;
+  this->session_start_ms_ = millis();
 }
 
 void GrillThermalModel::dump_config() {
@@ -36,6 +37,7 @@ void GrillThermalModel::dump_config() {
   ESP_LOGCONFIG(TAG, "  Meat probe: %p", static_cast<void *>(this->meat_probe_));
   ESP_LOGCONFIG(TAG, "  Target number: %p", static_cast<void *>(this->target_number_));
   ESP_LOGCONFIG(TAG, "  Humidity sensor: %p", static_cast<void *>(this->humidity_sensor_));
+  ESP_LOGCONFIG(TAG, "  Lid reference sensor: %p", static_cast<void *>(this->lid_reference_sensor_));
   ESP_LOGCONFIG(TAG, "  Finish time sensor: %p", static_cast<void *>(this->finish_time_sensor_));
   ESP_LOGCONFIG(TAG, "  Pull time sensor: %p", static_cast<void *>(this->pull_time_sensor_));
   ESP_LOGCONFIG(TAG, "  Cook phase sensor: %p", static_cast<void *>(this->cook_phase_sensor_));
@@ -48,13 +50,14 @@ void GrillThermalModel::dump_config() {
 }
 
 bool GrillThermalModel::inputs_ready_() const {
-  return this->grill_probe_ != nullptr && this->meat_probe_ != nullptr && this->grill_probe_->has_state() &&
-         this->meat_probe_->has_state();
+  if (this->grill_probe_ == nullptr || this->meat_probe_ == nullptr)
+    return false;
+  if (!this->grill_probe_->has_state() || !this->meat_probe_->has_state())
+    return false;
+  return std::isfinite(this->grill_probe_->state) && std::isfinite(this->meat_probe_->state);
 }
 
-float GrillThermalModel::get_target_temperature_() const {
-  return this->target_number_->state;
-}
+float GrillThermalModel::get_target_temperature_() const { return this->target_number_->state; }
 
 float GrillThermalModel::get_humidity_() const {
   if (this->humidity_sensor_ != nullptr && this->humidity_sensor_->has_state()) {
@@ -63,8 +66,21 @@ float GrillThermalModel::get_humidity_() const {
   return NAN;
 }
 
-bool GrillThermalModel::is_lid_open_(float filtered_ambient, float target_temp) const {
-  return filtered_ambient < (target_temp * LID_DROP_RATIO);
+float GrillThermalModel::get_lid_reference_() const {
+  if (this->lid_reference_sensor_ != nullptr && this->lid_reference_sensor_->has_state()) {
+    float v = this->lid_reference_sensor_->state;
+    if (std::isfinite(v))
+      return v;
+  }
+  return NAN;
+}
+
+float GrillThermalModel::get_session_elapsed_s_() const { return (millis() - this->session_start_ms_) / 1000.0f; }
+
+bool GrillThermalModel::is_lid_open_(float filtered_ambient, float lid_reference) const {
+  if (!std::isfinite(lid_reference))
+    return false;
+  return filtered_ambient < (lid_reference * LID_DROP_RATIO);
 }
 
 void GrillThermalModel::push_regression_point_(float t_s, float filtered_ambient, float filtered_internal) {
@@ -141,7 +157,6 @@ float GrillThermalModel::compute_wet_bulb_temperature_(float ambient_c, float hu
   if (!std::isfinite(humidity_percent))
     return NAN;
   const float rh = clamp(humidity_percent, 0.0f, 100.0f);
-  // Stull (2011) approximation, valid for common ambient grill conditions.
   return ambient_c * atanf(0.151977f * sqrtf(rh + 8.313659f)) + atanf(ambient_c + rh) - atanf(rh - 1.676331f) +
          0.00391838f * powf(rh, 1.5f) * atanf(0.023101f * rh) - 4.686035f;
 }
@@ -183,7 +198,8 @@ std::string GrillThermalModel::format_clock_from_eta_(float eta_s) const {
   return std::string(buffer);
 }
 
-void GrillThermalModel::publish_if_changed_(text_sensor::TextSensor *sensor, const std::string &value, std::string *memo) {
+void GrillThermalModel::publish_if_changed_(text_sensor::TextSensor *sensor, const std::string &value,
+                                            std::string *memo) {
   if (sensor == nullptr)
     return;
   if (*memo == value)
@@ -208,6 +224,8 @@ const char *GrillThermalModel::phase_to_str_(CookPhase phase) const {
       return "PULL";
     case CookPhase::RESTING:
       return "RESTING";
+    case CookPhase::COMPLETE:
+      return "COMPLETE";
     case CookPhase::PAUSE:
       return "PAUSE";
     default:
@@ -219,6 +237,80 @@ void GrillThermalModel::publish_phase_() {
   this->publish_if_changed_(this->cook_phase_sensor_, this->phase_to_str_(this->phase_), &this->last_phase_text_);
 }
 
+void GrillThermalModel::clear_time_entities_() {
+  this->publish_if_changed_(this->finish_time_sensor_, "", &this->last_finish_time_text_);
+  this->publish_if_changed_(this->pull_time_sensor_, "", &this->last_pull_time_text_);
+  this->publish_if_changed_(this->rest_end_time_sensor_, "", &this->last_rest_end_time_text_);
+  if (this->rest_remaining_min_sensor_ != nullptr && !std::isnan(this->last_rest_remaining_min_)) {
+    this->rest_remaining_min_sensor_->publish_state(NAN);
+    this->last_rest_remaining_min_ = NAN;
+  }
+}
+
+void GrillThermalModel::reset_session_() {
+  ESP_LOGI(TAG, "Resetting cook session");
+
+  this->phase_ = CookPhase::IDLE;
+  this->last_non_pause_phase_ = CookPhase::IDLE;
+
+  this->ambient_filter_.initialized = false;
+  this->internal_filter_.initialized = false;
+
+  this->regression_points_.clear();
+  this->regression_valid_ = false;
+  this->regression_slope_ = 0.0f;
+  this->regression_intercept_ = 0.0f;
+  this->regression_r2_ = 0.0f;
+  this->last_regression_ms_ = 0;
+
+  this->learning_started_ = false;
+  this->lag_measured_ = false;
+  this->lag_seconds_ = 0.0f;
+  this->thermal_mass_index_ = 0.0f;
+
+  this->stall_penalty_seeded_ = false;
+  this->stall_penalty_s_ = 0.0f;
+
+  this->rest_started_ = false;
+  this->rest_start_ms_ = 0;
+  this->pull_peak_internal_c_ = 0.0f;
+
+  this->session_start_ms_ = millis();
+  this->last_update_ms_ = 0;
+  this->probe_fault_ = false;
+
+  this->clear_time_entities_();
+  if (this->thermal_mass_index_sensor_ != nullptr) {
+    this->thermal_mass_index_sensor_->publish_state(NAN);
+  }
+  this->publish_phase_();
+}
+
+void GrillThermalModel::start_new_cook() {
+  ESP_LOGI(TAG, "Starting new cook session");
+  this->reset_session_();
+}
+
+void GrillThermalModel::trigger_pull() {
+  if (this->phase_ == CookPhase::IDLE || this->phase_ == CookPhase::COMPLETE || this->phase_ == CookPhase::PAUSE) {
+    return;
+  }
+  ESP_LOGI(TAG, "Triggering pull phase");
+  this->phase_ = CookPhase::PULL;
+  if (this->internal_filter_.initialized) {
+    this->pull_peak_internal_c_ = std::max(this->pull_peak_internal_c_, this->internal_filter_.value);
+  }
+}
+
+void GrillThermalModel::on_climate_active_changed(bool active) {
+  if (active && !this->climate_active_) {
+    this->start_new_cook();
+  } else if (!active && this->climate_active_) {
+    this->trigger_pull();
+  }
+  this->climate_active_ = active;
+}
+
 void GrillThermalModel::update_phase_(float filtered_ambient, float filtered_internal, float dt_s, bool lid_open) {
   const float target_temp = this->get_target_temperature_();
   const float humidity = this->get_humidity_();
@@ -226,12 +318,11 @@ void GrillThermalModel::update_phase_(float filtered_ambient, float filtered_int
 
   if (filtered_internal < 30.0f) {
     this->phase_ = CookPhase::IDLE;
-    this->regression_points_.clear();
+    this->learning_started_ = false;
     this->lag_measured_ = false;
     this->stall_penalty_s_ = 0.0f;
     this->stall_penalty_seeded_ = false;
-    this->learning_start_ms_ = 0;
-    this->rest_start_ms_ = 0;
+    this->rest_started_ = false;
     this->pull_peak_internal_c_ = 0.0f;
     return;
   }
@@ -248,14 +339,19 @@ void GrillThermalModel::update_phase_(float filtered_ambient, float filtered_int
     this->phase_ = this->last_non_pause_phase_;
   }
 
-  if (this->learning_start_ms_ == 0 && filtered_ambient >= target_temp * 0.97f) {
+  if (this->phase_ == CookPhase::COMPLETE) {
+    return;
+  }
+
+  if (!this->learning_started_ && filtered_ambient >= target_temp * 0.97f) {
+    this->learning_started_ = true;
     this->learning_start_ms_ = millis();
     this->learning_baseline_internal_c_ = filtered_internal;
     this->phase_ = CookPhase::LEARNING;
     return;
   }
 
-  if (this->learning_start_ms_ != 0 && !this->lag_measured_) {
+  if (this->learning_started_ && !this->lag_measured_) {
     const float rise = filtered_internal - this->learning_baseline_internal_c_;
     if (rise >= LEARNING_DELTA_C) {
       this->lag_seconds_ = (millis() - this->learning_start_ms_) / 1000.0f;
@@ -273,13 +369,19 @@ void GrillThermalModel::update_phase_(float filtered_ambient, float filtered_int
   const float slope_c_per_min = this->internal_filter_.velocity * 60.0f;
 
   if (this->phase_ == CookPhase::RESTING) {
+    const float rest_elapsed_s = (millis() - this->rest_start_ms_) / 1000.0f;
+    if (rest_elapsed_s >= static_cast<float>(this->rest_duration_s_)) {
+      this->phase_ = CookPhase::COMPLETE;
+      this->rest_started_ = false;
+    }
     return;
   }
 
   if (this->phase_ == CookPhase::PULL) {
     this->pull_peak_internal_c_ = std::max(this->pull_peak_internal_c_, filtered_internal);
-    if (this->rest_start_ms_ == 0 && filtered_internal <= (this->pull_peak_internal_c_ - 0.3f)) {
+    if (!this->rest_started_ && filtered_internal <= (this->pull_peak_internal_c_ - 0.3f)) {
       this->phase_ = CookPhase::RESTING;
+      this->rest_started_ = true;
       this->rest_start_ms_ = millis();
       return;
     }
@@ -299,10 +401,10 @@ void GrillThermalModel::update_phase_(float filtered_ambient, float filtered_int
     return;
   }
 
-  const bool near_wet_bulb = std::isfinite(wet_bulb_c) && filtered_internal >= (wet_bulb_c - 0.7f) &&
-                             filtered_internal >= ACTIVE_LIMIT_C;
-  const bool stalled = (filtered_internal >= ACTIVE_LIMIT_C && fabsf(slope_c_per_min) <= STALL_SLOPE_C_PER_MIN) ||
-                       near_wet_bulb;
+  const bool near_wet_bulb =
+      std::isfinite(wet_bulb_c) && filtered_internal >= (wet_bulb_c - 0.7f) && filtered_internal >= ACTIVE_LIMIT_C;
+  const bool stalled =
+      (filtered_internal >= ACTIVE_LIMIT_C && fabsf(slope_c_per_min) <= STALL_SLOPE_C_PER_MIN) || near_wet_bulb;
 
   if (stalled) {
     this->phase_ = CookPhase::STALL;
@@ -319,8 +421,30 @@ void GrillThermalModel::update_phase_(float filtered_ambient, float filtered_int
 
 void GrillThermalModel::update() {
   if (!this->inputs_ready_()) {
-    ESP_LOGV(TAG, "Waiting for probe states");
+    if (!this->probe_fault_) {
+      this->probe_fault_ = true;
+      if (this->phase_ != CookPhase::PAUSE && this->phase_ != CookPhase::IDLE && this->phase_ != CookPhase::COMPLETE) {
+        this->last_non_pause_phase_ = this->phase_;
+      }
+      this->phase_ = CookPhase::PAUSE;
+      this->clear_time_entities_();
+      this->publish_phase_();
+      ESP_LOGW(TAG, "Probe fault detected");
+    }
     return;
+  }
+
+  if (this->probe_fault_) {
+    this->probe_fault_ = false;
+    this->ambient_filter_.initialized = false;
+    this->internal_filter_.initialized = false;
+    this->regression_points_.clear();
+    this->regression_valid_ = false;
+    this->last_update_ms_ = 0;
+    if (this->phase_ == CookPhase::PAUSE) {
+      this->phase_ = this->last_non_pause_phase_;
+    }
+    ESP_LOGI(TAG, "Probe recovered, reinitializing filters");
   }
 
   const uint32_t now_ms = millis();
@@ -332,15 +456,16 @@ void GrillThermalModel::update() {
   }
   this->last_update_ms_ = now_ms;
 
-  const float ambient_sample = this->grill_probe_->get_state();
-  const float internal_sample = this->meat_probe_->get_state();
+  const float ambient_sample = this->grill_probe_->state;
+  const float internal_sample = this->meat_probe_->state;
 
   this->ambient_filter_.update(ambient_sample, dt_s, AB_ALPHA, AB_BETA);
   this->internal_filter_.update(internal_sample, dt_s, AB_ALPHA, AB_BETA);
 
-  float target_temp = this->get_target_temperature_();
+  const float target_temp = this->get_target_temperature_();
+  const float lid_ref = this->get_lid_reference_();
+  const bool lid_open = this->is_lid_open_(this->ambient_filter_.value, lid_ref);
 
-  const bool lid_open = this->is_lid_open_(this->ambient_filter_.value, target_temp);
   this->update_phase_(this->ambient_filter_.value, this->internal_filter_.value, dt_s, lid_open);
   this->publish_phase_();
 
@@ -349,17 +474,19 @@ void GrillThermalModel::update() {
     this->stall_penalty_s_ *= decay;
   }
 
-  if (this->phase_ == CookPhase::IDLE || this->phase_ == CookPhase::LEARNING) {
-    this->publish_if_changed_(this->finish_time_sensor_, "", &this->last_finish_time_text_);
-    this->publish_if_changed_(this->pull_time_sensor_, "", &this->last_pull_time_text_);
-    this->publish_if_changed_(this->rest_end_time_sensor_, "", &this->last_rest_end_time_text_);
+  if (this->phase_ == CookPhase::IDLE || this->phase_ == CookPhase::LEARNING || this->phase_ == CookPhase::PAUSE) {
+    this->clear_time_entities_();
     return;
   }
 
-  if (this->phase_ == CookPhase::PAUSE) {
+  if (this->phase_ == CookPhase::COMPLETE) {
     this->publish_if_changed_(this->finish_time_sensor_, "", &this->last_finish_time_text_);
     this->publish_if_changed_(this->pull_time_sensor_, "", &this->last_pull_time_text_);
     this->publish_if_changed_(this->rest_end_time_sensor_, "", &this->last_rest_end_time_text_);
+    if (this->rest_remaining_min_sensor_ != nullptr && this->last_rest_remaining_min_ != 0.0f) {
+      this->rest_remaining_min_sensor_->publish_state(0.0f);
+      this->last_rest_remaining_min_ = 0.0f;
+    }
     return;
   }
 
@@ -371,14 +498,18 @@ void GrillThermalModel::update() {
                                 &this->last_rest_end_time_text_);
     }
     if (this->rest_remaining_min_sensor_ != nullptr) {
-      this->rest_remaining_min_sensor_->publish_state(roundf(remaining_s / 60.0f));
+      float remaining_min = roundf(remaining_s / 60.0f);
+      if (remaining_min != this->last_rest_remaining_min_) {
+        this->rest_remaining_min_sensor_->publish_state(remaining_min);
+        this->last_rest_remaining_min_ = remaining_min;
+      }
     }
     this->publish_if_changed_(this->finish_time_sensor_, "", &this->last_finish_time_text_);
     this->publish_if_changed_(this->pull_time_sensor_, "", &this->last_pull_time_text_);
     return;
   }
 
-  const float now_s = now_ms / 1000.0f;
+  const float now_s = this->get_session_elapsed_s_();
   if (this->phase_ != CookPhase::STALL) {
     this->push_regression_point_(now_s, this->ambient_filter_.value, this->internal_filter_.value);
 
@@ -391,7 +522,6 @@ void GrillThermalModel::update() {
   if (!this->regression_valid_ || this->regression_r2_ < MIN_R2) {
     this->publish_if_changed_(this->finish_time_sensor_, "", &this->last_finish_time_text_);
     this->publish_if_changed_(this->pull_time_sensor_, "", &this->last_pull_time_text_);
-    this->publish_if_changed_(this->rest_end_time_sensor_, "", &this->last_rest_end_time_text_);
     return;
   }
 
@@ -406,12 +536,13 @@ void GrillThermalModel::update() {
   if (!finish_ok || !pull_ok) {
     this->publish_if_changed_(this->finish_time_sensor_, "", &this->last_finish_time_text_);
     this->publish_if_changed_(this->pull_time_sensor_, "", &this->last_pull_time_text_);
-    this->publish_if_changed_(this->rest_end_time_sensor_, "", &this->last_rest_end_time_text_);
     return;
   }
 
-  this->publish_if_changed_(this->finish_time_sensor_, this->format_clock_from_eta_(finish_eta_s), &this->last_finish_time_text_);
-  this->publish_if_changed_(this->pull_time_sensor_, this->format_clock_from_eta_(pull_eta_s), &this->last_pull_time_text_);
+  this->publish_if_changed_(this->finish_time_sensor_, this->format_clock_from_eta_(finish_eta_s),
+                            &this->last_finish_time_text_);
+  this->publish_if_changed_(this->pull_time_sensor_, this->format_clock_from_eta_(pull_eta_s),
+                            &this->last_pull_time_text_);
 }
 
 }  // namespace grill_thermal_model
