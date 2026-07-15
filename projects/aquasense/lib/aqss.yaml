@@ -48,6 +48,17 @@ button:
     on_press:
       - component.update: "aqss_snapshot"
 
+  - id: "aqss_flashlight_on"
+    name: "${i18n.aquasense[language].aqss_flashlight_on}"
+    entity_category: "config"
+    platform: "template"
+    on_press:
+      - switch.turn_off: "aqss_auto_flashlight"
+      - light.turn_on:
+          id: "e32s3cam_flash"
+          brightness: !lambda |
+            return id(aqss_auto_flashlight_brightness).state / 100.0f;
+
 switch:
   - id: "aqss_auto_flashlight"
     name: "${i18n.aquasense[language].aqss_auto_flashlight}"
