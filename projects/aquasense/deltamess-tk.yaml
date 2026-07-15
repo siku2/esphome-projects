@@ -12,3 +12,5 @@ camera_snapshot:
   update_interval: "5s"
   on_snapshot:
     - component.update: "aqcsmp_m3"
+    - component.update: "aqcsmp_confidence_snapshot"
+    - component.update: "aqcsmp_confidence_reading"

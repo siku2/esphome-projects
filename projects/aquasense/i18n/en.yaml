@@ -12,6 +12,8 @@ aqcsmp_total: "Reading"
 aqcsmp_consumption: "Consumption"
 aqcsmp_m3: "Digits"
 aqcsmp_10_liters: "Analog"
+aqcsmp_confidence_snapshot: "Snapshot confidence"
+aqcsmp_confidence_reading: "Reading confidence"
 
 aqss_manual_snapshot: "Manual snapshot"
 aqss_auto_flashlight: "Auto flashlight"

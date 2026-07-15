@@ -59,3 +59,46 @@ sensor:
     accuracy_decimals: 2
     platform: "template"
     update_interval: "never"
+
+  - &aqcsmp_confidence_snapshot
+    id: "aqcsmp_confidence_snapshot"
+    name: "${i18n.aquasense[language].aqcsmp_confidence_snapshot}"
+    unit_of_measurement: "%"
+    entity_category: "diagnostic"
+    accuracy_decimals: 0
+    platform: "template"
+    update_interval: "never"
+    lambda: !lambda |
+      float min_fit = NAN;
+      auto check = [&](float fit) {
+        if (isnan(fit)) return;
+        if (isnan(min_fit) || fit < min_fit) min_fit = fit;
+      };
+      check(id(aqdig_10000).get_last_fit());
+      check(id(aqdig_1000).get_last_fit());
+      check(id(aqdig_100).get_last_fit());
+      check(id(aqdig_10).get_last_fit());
+      check(id(aqdig_1).get_last_fit());
+      check(id(aqdig_01).get_last_fit());
+      check(id(aqdig_001).get_last_fit());
+      check(id(aqdig_0001).get_last_fit());
+      return min_fit * 100.0f;
+
+  - <<: *aqcsmp_confidence_snapshot
+    id: "aqcsmp_confidence_reading"
+    name: "${i18n.aquasense[language].aqcsmp_confidence_reading}"
+    lambda: !lambda |
+      float min_fit = NAN;
+      auto check = [&](float fit) {
+        if (isnan(fit)) return;
+        if (isnan(min_fit) || fit < min_fit) min_fit = fit;
+      };
+      check(id(aqdig_10000).get_published_fit());
+      check(id(aqdig_1000).get_published_fit());
+      check(id(aqdig_100).get_published_fit());
+      check(id(aqdig_10).get_published_fit());
+      check(id(aqdig_1).get_published_fit());
+      check(id(aqdig_01).get_published_fit());
+      check(id(aqdig_001).get_published_fit());
+      check(id(aqdig_0001).get_published_fit());
+      return min_fit * 100.0f;

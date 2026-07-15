@@ -12,6 +12,8 @@ aqcsmp_total: "Stand"
 aqcsmp_consumption: "Verbrauch"
 aqcsmp_m3: "Ziffern"
 aqcsmp_10_liters: "Analog"
+aqcsmp_confidence_snapshot: "Schnappschuss-Konfidenz"
+aqcsmp_confidence_reading: "Zählerstand-Konfidenz"
 
 aqss_manual_snapshot: "Manueller Schnappschuss"
 aqss_auto_flashlight: "Automatischer Blitz"
