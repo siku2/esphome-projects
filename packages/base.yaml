@@ -9,6 +9,7 @@ substitutions:
         last_restart: "Letzter Neustart"
         wifi_signal: "WiFi Signal"
         restart_reason: "Neustart Grund"
+        cpu_temperature: "CPU Temperatur"
 
       en:
         restart: "Restart"
@@ -16,6 +17,7 @@ substitutions:
         last_restart: "Last Restart"
         wifi_signal: "WiFi Signal"
         restart_reason: "Restart Reason"
+        cpu_temperature: "CPU Temperature"
 
 wifi:
   ssid: !secret wifi_ssid
@@ -60,6 +62,18 @@ sensor:
     - delta: 5.0
   platform: "wifi_signal"
   update_interval: "5min"
+
+- id: "base_cpu_temperature"
+  name: "${i18n.base[language].cpu_temperature}"
+  entity_category: "DIAGNOSTIC"
+  platform: "internal_temperature"
+  update_interval: "5min"
+  filters:
+  - round: 1
+  # Only send significant changes or every 24h
+  - or:
+    - throttle: "24h"
+    - delta: 5.0
 
 text_sensor:
 - platform: "debug"
