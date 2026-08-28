@@ -30,7 +30,7 @@ external_components:
       url: "https://github.com/siku2/esphome-projects"
       ref: "${git_ref}"
       path: "components"
-    components: ["camera_snapshot", "tflite"]
+    components: ["camera_snapshot", "meter_reader", "tflite"]
 
 api:
   encryption:
