@@ -64,8 +64,10 @@ void Snapshotter::loop() {
       break;
     case Phase::NOTIFYING:
       if (!this->notify_next()) {
-        if (this->snapshot_.has_value())
+        if (this->snapshot_.has_value()) {
+          this->cycle_end_callbacks_.call();
           this->on_snapshot_.trigger(this->snapshot_.value());
+        }
         this->phase_ = Phase::ON_SNAPSHOT;
       }
       break;

@@ -33,6 +33,19 @@ static float dial_of(uint64_t u, uint8_t level) {
 }
 
 void MeterReader::setup() {
+  if (this->snapshotter_ == nullptr || this->wheels_.empty()) {
+    this->mark_failed();
+    return;
+  }
+  // The snapshotter notifies one wheel sensor per loop pass, with
+  // arbitrarily long stalls in between. Processing on the cycle-end
+  // callback is the only way to see one complete observation set.
+  this->snapshotter_->add_cycle_end_callback([this]() {
+    this->process_cycle_(millis());
+    for (auto &w : this->wheels_)
+      w.present = false;
+  });
+
   this->rtc_ = global_preferences->make_preference<uint64_t>(PREF_KEY);
   uint64_t stored = 0;
   this->has_saved_ = this->rtc_.load(&stored);
@@ -64,24 +77,11 @@ void MeterReader::loop() {
     this->stale_ = stale;
     this->update_status_();
   }
-
-  bool buffered = false;
-  for (const auto &w : this->wheels_)
-    buffered = buffered || w.present;
-  if (!buffered || this->seq_ == this->last_seq_) {
-    this->last_seq_ = this->seq_;
-    return;
-  }
-  this->last_seq_ = this->seq_;
-  this->process_cycle_(now);
-  for (auto &w : this->wheels_)
-    w.present = false;
 }
 
 void MeterReader::on_observation(uint8_t level, float result, float fit, bool accepted) {
   if (this->is_failed() || level >= this->wheels_.size())
     return;
-  this->seq_++;
   if (!accepted)
     return;
   Wheel &w = this->wheels_[level];
@@ -92,6 +92,19 @@ void MeterReader::on_observation(uint8_t level, float result, float fit, bool ac
 }
 
 void MeterReader::process_cycle_(uint32_t now) {
+  char wheels_buf[96];
+  size_t pos = 0;
+  for (const auto &w : this->wheels_) {
+    if (w.resolution == 0.0f)
+      continue;
+    if (w.present)
+      pos += snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u=%.2f ", w.level,
+                      (double) w.result);
+    else
+      pos += snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u:- ", w.level);
+  }
+  ESP_LOGD(TAG, "Cycle wheels: %s", wheels_buf);
+
   if (!this->wheels_[0].present) {
     if (this->confidence_sensor_ != nullptr)
       this->confidence_sensor_->publish_state(NAN);
@@ -111,19 +124,6 @@ void MeterReader::process_cycle_(uint32_t now) {
   }
   if (this->confidence_sensor_ != nullptr)
     this->confidence_sensor_->publish_state(100.0f * min_fit);
-
-  char wheels_buf[96];
-  size_t pos = 0;
-  for (const auto &w : this->wheels_) {
-    if (w.resolution == 0.0f)
-      continue;
-    if (w.present)
-      pos += snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u=%.2f ", w.level,
-                      (double) w.result);
-    else
-      pos += snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u:- ", w.level);
-  }
-  ESP_LOGD(TAG, "Cycle wheels: %s", wheels_buf);
 
   const bool u_consistent = this->consistent_(this->u_);
   if (u_consistent) {

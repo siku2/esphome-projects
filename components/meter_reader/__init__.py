@@ -2,7 +2,7 @@ import math
 
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import number, sensor, text_sensor
+from esphome.components import camera_snapshot, number, sensor, text_sensor
 from esphome.const import (
     CONF_ACCURACY_DECIMALS,
     CONF_ID,
@@ -28,10 +28,12 @@ from esphome.const import (
 from esphome.components.number import NUMBER_MODES
 
 AUTO_LOAD = ["number", "sensor", "text_sensor"]
+DEPENDENCIES = ["camera_snapshot"]
 
 CONF_MAX_FLOW = "max_flow"
 CONF_WHEELS = "wheels"
 CONF_LEVEL = "level"
+CONF_SNAPSHOTTER = "snapshotter"
 CONF_CORROBORATIONS = "corroborations"
 CONF_PENDING_WINDOW = "pending_window"
 CONF_STALE_AFTER = "stale_after"
@@ -163,8 +165,9 @@ def _validate_wheels(config):
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(MeterReader),
-            cv.Optional(CONF_MAX_FLOW, default=1.5): cv.positive_float,
+        cv.GenerateID(): cv.declare_id(MeterReader),
+        cv.Required(CONF_SNAPSHOTTER): cv.use_id(camera_snapshot.Snapshotter),
+        cv.Optional(CONF_MAX_FLOW, default=1.5): cv.positive_float,
             cv.Optional(CONF_CORROBORATIONS, default=1): cv.int_range(min=1),
             cv.Optional(
                 CONF_PENDING_WINDOW, default="6s"
@@ -205,6 +208,9 @@ CONFIG_SCHEMA = cv.All(
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
+
+    snapshotter = await cg.get_variable(config[CONF_SNAPSHOTTER])
+    cg.add(var.set_snapshotter(snapshotter))
 
     reading = await sensor.new_sensor(config[CONF_READING])
     cg.add(var.set_reading_sensor(reading))

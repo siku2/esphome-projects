@@ -2,6 +2,7 @@
 
 #include <esphome/components/camera/camera.h>
 #include <esphome/core/component.h>
+#include <esphome/core/helpers.h>
 
 #include "decoder.h"
 #include "esp_jpeg_common.h"
@@ -34,6 +35,12 @@ class Snapshotter : public PollingComponent, public CameraListener {
 
   void add_listener(SnapshotListener *listener) { this->listeners_.push_back(listener); }
 
+  // Fired when the notify phase has served every listener for one snapshot,
+  // so consumers can process a complete observation set.
+  template<typename F> void add_cycle_end_callback(F &&callback) {
+    this->cycle_end_callbacks_.add(std::forward<F>(callback));
+  }
+
  protected:
   static Decoder global_decoder;
 
@@ -46,6 +53,7 @@ class Snapshotter : public PollingComponent, public CameraListener {
   std::shared_ptr<CameraImage> pending_image_{nullptr};
   std::optional<Snapshot> snapshot_{};
   std::vector<SnapshotListener *> listeners_{};
+  LazyCallbackManager<void()> cycle_end_callbacks_{};
   Trigger<> pre_snapshot_;
   Trigger<> post_snapshot_;
   Trigger<const Snapshot &> on_snapshot_;

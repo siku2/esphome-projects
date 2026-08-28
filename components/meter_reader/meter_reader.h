@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "esphome/components/camera_snapshot/snapshotter.h"
 #include "esphome/components/number/number.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
@@ -55,6 +56,7 @@ class MeterReader : public Component {
   void set_pending_window_ms(uint32_t ms) { this->pending_window_ms_ = ms; }
   void set_stale_after_ms(uint32_t ms) { this->stale_after_ms_ = ms; }
   void set_reanchor_tolerance(float liters) { this->reanchor_tolerance_ = liters; }
+  void set_snapshotter(camera::snapshot::Snapshotter *snapshotter) { this->snapshotter_ = snapshotter; }
   void add_wheel(uint8_t level, float resolution, float tolerance);
 
   void set_reading_sensor(sensor::Sensor *sensor) { this->reading_sensor_ = sensor; }
@@ -84,6 +86,7 @@ class MeterReader : public Component {
   void save_pref_(uint32_t now);
 
   std::vector<Wheel> wheels_{};
+  camera::snapshot::Snapshotter *snapshotter_{nullptr};
   float max_flow_{1.5f};
   uint32_t corroborations_{1};
   uint32_t pending_window_ms_{6000};
@@ -99,8 +102,6 @@ class MeterReader : public Component {
   MeterRebaseNumber *rebase_number_{nullptr};
 
   uint64_t u_{0};
-  uint32_t seq_{0};
-  uint32_t last_seq_{0};
   bool has_saved_{false};
   bool anchored_{false};
   bool stale_{false};
