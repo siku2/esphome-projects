@@ -53,10 +53,10 @@ static std::tuple<float, float> read_output_digit_softmax10(const TfLiteTensor &
 
   if (val_plus > val_minus) {
     result = static_cast<float>(max_idx) + (val_plus / (val + val_plus));
-    fit = val + val_minus;
+    fit = val + val_plus;
   } else {
     result = static_cast<float>(max_idx) - (val_minus / (val + val_minus));
-    fit = val + val_plus;
+    fit = val + val_minus;
   }
 
   // Round to 1 decimal place
@@ -202,7 +202,10 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
       return;
   }
 
-  interpreter.Invoke();
+  if (interpreter.Invoke() != kTfLiteOk) {
+    ESP_LOGE(TAG, "Failed to invoke interpreter");
+    return;
+  }
 
   TfLiteTensor *output = interpreter.output(0);
   if (!output) {
