@@ -231,6 +231,7 @@ async def to_code(config):
         step=config[CONF_QUANTUM],
     )
     cg.add(var.set_rebase_number(rebase))
+    cg.add(rebase.set_parent(var))
 
     cg.add(var.set_max_flow(config[CONF_MAX_FLOW]))
     cg.add(var.set_corroborations(config[CONF_CORROBORATIONS]))
