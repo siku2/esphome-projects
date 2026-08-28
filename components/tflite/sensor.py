@@ -77,8 +77,8 @@ RECT_SCHEMA = cv.All(
             lambda config: {
                 "top_left": config["top_left"],
                 "bottom_right": {
-                    "x": config["top_left"]["x"] + config["width"] + 1,
-                    "y": config["top_left"]["y"] + config["height"] + 1,
+                    "x": config["top_left"]["x"] + config["width"],
+                    "y": config["top_left"]["y"] + config["height"],
                 },
             },
         ),
