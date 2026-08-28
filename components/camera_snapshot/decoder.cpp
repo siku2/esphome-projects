@@ -2,6 +2,7 @@
 
 #include <esp_cache.h>
 #include <esp_heap_caps.h>
+#include <esp_private/esp_cache_private.h>
 
 static const char *const TAG = "camera_snapshot.decoder";
 
@@ -60,20 +61,39 @@ jpeg_error_t Decoder::decode(uint8_t *buf, size_t len, jpeg_rotate_t rotate) {
       return JPEG_ERR_INVALID_PARAM;
   }
 
+  size_t alignment = 0;
+  esp_err_t err = esp_cache_get_alignment(MALLOC_CAP_SPIRAM, &alignment);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to get cache alignment: %s", esp_err_to_name(err));
+    return JPEG_ERR_FAIL;
+  }
+
+  size_t aligned_len = (required_len + alignment - 1) / alignment * alignment;
+
   if (this->outbuf_len_ < required_len) {
     if (this->outbuf_ != nullptr) {
-      ESP_LOGI(TAG, "Re-allocating output buffer from %zu to %zu bytes", this->outbuf_len_, required_len);
+      ESP_LOGI(TAG, "Re-allocating output buffer from %zu to %zu bytes", this->outbuf_len_, aligned_len);
       heap_caps_free(this->outbuf_);
+      this->outbuf_ = nullptr;
+      this->outbuf_len_ = 0;
     }
-    this->outbuf_ = (uint8_t *) heap_caps_aligned_alloc(16, required_len, MALLOC_CAP_SPIRAM);
-    this->outbuf_len_ = required_len;
+    this->outbuf_ = (uint8_t *) heap_caps_aligned_alloc(alignment, aligned_len, MALLOC_CAP_SPIRAM);
+    if (this->outbuf_ == nullptr) {
+      this->outbuf_len_ = 0;
+      return JPEG_ERR_NO_MEM;
+    }
+    this->outbuf_len_ = aligned_len;
   }
 
   this->jpeg_io_.outbuf = this->outbuf_;
   jpeg_error_t decode_ret = jpeg_dec_process(this->jpeg_dec_, &this->jpeg_io_);
   // The ESP32-S3 hardware JPEG codec writes decoded pixels to outbuf_ via DMA,
   // which bypasses the CPU data cache. Invalidate the relevant cache lines.
-  esp_cache_msync(this->outbuf_, required_len, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
+  esp_err_t msync_ret =
+      esp_cache_msync(this->outbuf_, aligned_len, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
+  if (msync_ret != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to invalidate output buffer cache: %s", esp_err_to_name(msync_ret));
+  }
   return decode_ret;
 }
 
