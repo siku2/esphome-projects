@@ -63,37 +63,31 @@ sensor:
     crop: "${aqdig_crop_10000}"
     output_format: "digit_softmax10"
     min_fit: "80%"
-    max_update_interval: "5h"
 
   - <<: *aqdig_10000
     id: "aqdig_1000"
     name: "${i18n.aquasense[language].aqdig_1000}"
     crop: "${aqdig_crop_1000}"
-    max_update_interval: "4h"
 
   - <<: *aqdig_10000
     id: "aqdig_100"
     name: "${i18n.aquasense[language].aqdig_100}"
     crop: "${aqdig_crop_100}"
-    max_update_interval: "3h"
 
   - <<: *aqdig_10000
     id: "aqdig_10"
     name: "${i18n.aquasense[language].aqdig_10}"
     crop: "${aqdig_crop_10}"
-    max_update_interval: "2h"
 
   - <<: *aqdig_10000
     id: "aqdig_1"
     name: "${i18n.aquasense[language].aqdig_1}"
     crop: "${aqdig_crop_1}"
-    max_update_interval: "1h"
 
   - <<: *aqdig_10000
     id: "aqdig_01"
     name: "${i18n.aquasense[language].aqdig_01}"
     crop: "${aqdig_crop_01}"
-    max_update_interval: "1min"
 
   - &aqdig_0001
     <<: *aqdig_10000
