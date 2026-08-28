@@ -55,6 +55,8 @@ void MeterReader::loop() {
 
   bool stale = false;
   for (const auto &w : this->wheels_) {
+    if (w.resolution == 0.0f)
+      continue;  // unoccupied level slot
     if (now - w.last_accepted_ms > this->stale_after_ms_)
       stale = true;
   }
@@ -98,7 +100,8 @@ void MeterReader::process_cycle_(uint32_t now) {
 
   const float err = this->consistency_error_(this->u_);
   this->last_consistency_error_ = err;
-  if (this->consistency_sensor_ != nullptr)
+  // Pre-anchor the reading is meaningless, so only publish once anchored.
+  if (this->anchored_ && this->consistency_sensor_ != nullptr)
     this->consistency_sensor_->publish_state(err);
 
   float min_fit = 1.0f;
@@ -108,6 +111,19 @@ void MeterReader::process_cycle_(uint32_t now) {
   }
   if (this->confidence_sensor_ != nullptr)
     this->confidence_sensor_->publish_state(100.0f * min_fit);
+
+  char wheels_buf[96];
+  size_t pos = 0;
+  for (const auto &w : this->wheels_) {
+    if (w.resolution == 0.0f)
+      continue;
+    if (w.present)
+      pos += snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u=%.2f ", w.level,
+                      (double) w.result);
+    else
+      pos += snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u:- ", w.level);
+  }
+  ESP_LOGD(TAG, "Cycle wheels: %s", wheels_buf);
 
   const bool u_consistent = this->consistent_(this->u_);
   if (u_consistent) {
@@ -245,11 +261,13 @@ void MeterReader::apply_rebase(float liters) {
 }
 
 void MeterReader::add_wheel(uint8_t level, float resolution, float tolerance) {
+  if (level >= this->wheels_.size())
+    this->wheels_.resize(level + 1);
   Wheel w{};
   w.level = level;
   w.resolution = resolution;
   w.tolerance = tolerance;
-  this->wheels_.push_back(w);
+  this->wheels_[level] = w;
 }
 
 float MeterReader::quantum_() const {
@@ -371,6 +389,8 @@ void MeterReader::dump_config() {
   ESP_LOGCONFIG(TAG, "  Reanchor tolerance: %.1f L", this->reanchor_tolerance_);
   ESP_LOGCONFIG(TAG, "  Quantum: %g L", (double) this->quantum_());
   for (const auto &w : this->wheels_) {
+    if (w.resolution == 0.0f)
+      continue;  // unoccupied level slot
     ESP_LOGCONFIG(TAG, "  Wheel level %u: %.1f L/rev, tolerance %.2f", (unsigned) w.level,
                   (double) w.resolution, (double) w.tolerance);
   }

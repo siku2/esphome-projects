@@ -31,6 +31,7 @@ AUTO_LOAD = ["number", "sensor", "text_sensor"]
 
 CONF_MAX_FLOW = "max_flow"
 CONF_WHEELS = "wheels"
+CONF_LEVEL = "level"
 CONF_CORROBORATIONS = "corroborations"
 CONF_PENDING_WINDOW = "pending_window"
 CONF_STALE_AFTER = "stale_after"
@@ -134,18 +135,25 @@ REBASE_SCHEMA = number.number_schema(
 )
 
 
+def _wheel_level(resolution: float, quantum: float) -> int:
+    exact = math.log10(resolution / quantum) - 1.0
+    level = round(exact)
+    if level < 0 or abs(exact - level) > 1e-6:
+        raise cv.Invalid(
+            f"wheel resolution {resolution} must be a power-of-ten multiple of the finest resolution"
+        )
+    return level
+
+
 def _validate_wheels(config):
     wheels = sorted(config[CONF_WHEELS], key=lambda w: w[CONF_RESOLUTION])
-    prev = None
-    for wheel in wheels:
-        res = wheel[CONF_RESOLUTION]
-        if prev is not None and abs(math.log10(res / prev) - 1.0) > 1e-6:
-            raise cv.Invalid(
-                f"wheel resolutions must increase by exactly a factor of 10, got {prev} and {res}"
-            )
-        prev = res
     quantum = wheels[0][CONF_RESOLUTION] / 10.0
+    levels = [_wheel_level(w[CONF_RESOLUTION], quantum) for w in wheels]
+    if len(set(levels)) != len(levels):
+        raise cv.Invalid("wheel resolutions must be distinct")
     decimals = max(0, round(-math.log10(quantum)))
+    for wheel, level in zip(wheels, levels):
+        wheel[CONF_LEVEL] = level
     config[CONF_WHEELS] = wheels
     config[CONF_QUANTUM] = quantum
     config[CONF_READING].setdefault(CONF_ACCURACY_DECIMALS, decimals)
@@ -224,11 +232,11 @@ async def to_code(config):
     cg.add(var.set_stale_after_ms(config[CONF_STALE_AFTER]))
     cg.add(var.set_reanchor_tolerance(config[CONF_REANCHOR_TOLERANCE]))
 
-    for level, wheel in enumerate(config[CONF_WHEELS]):
-        cg.add(var.add_wheel(level, wheel[CONF_RESOLUTION], wheel[CONF_TOLERANCE]))
+    for wheel in config[CONF_WHEELS]:
+        cg.add(var.add_wheel(wheel[CONF_LEVEL], wheel[CONF_RESOLUTION], wheel[CONF_TOLERANCE]))
         source = await cg.get_variable(wheel[CONF_SOURCE])
         callback = cg.RawExpression(
             f"[{var}](float result, float fit, bool accepted) {{ "
-            f"{var}->on_observation({level}, result, fit, accepted); }}"
+            f"{var}->on_observation({wheel[CONF_LEVEL]}, result, fit, accepted); }}"
         )
         cg.add(source.add_on_inference_callback(callback))
