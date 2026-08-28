@@ -16,6 +16,21 @@ globals:
     restore_value: true
     initial_value: "0"
 
+  - id: "aqcsmp_pending_10l_ml"
+    type: "uint16_t"
+    restore_value: false
+    initial_value: "65535"
+
+  - id: "aqcsmp_m3_last_raw"
+    type: "uint32_t"
+    restore_value: false
+    initial_value: "0"
+
+  - id: "aqcsmp_m3_stable"
+    type: "bool"
+    restore_value: false
+    initial_value: "false"
+
 sensor:
   - id: "aqcsmp_10_liters"
     name: "${i18n.aquasense[language].aqcsmp_10_liters}"
@@ -31,14 +46,26 @@ sensor:
 
           uint32_t &prev_tick_ms = id(aqcsmp_prev_tick_ms);
           uint32_t &sum_ml = id(aqcsmp_sum_ml);
+          uint16_t &pending_ml = id(aqcsmp_pending_10l_ml);
 
           uint16_t new_10l_ml = (uint16_t)(1000.0f * x);
           uint16_t sum_10l_ml = sum_ml % 10000;
           int16_t diff_10l_ml = new_10l_ml - sum_10l_ml;
           // Adjust for rollover.
           if (diff_10l_ml <= -5000) diff_10l_ml += 10000;
-          // Smaller negative diffs can be caused by noise, ignore them.
-          if (diff_10l_ml < 0) diff_10l_ml = 0;
+
+          // Diffs below 200 ml are noise.
+          if (diff_10l_ml < 200) {
+            pending_ml = 65535;
+            return;
+          }
+          if (pending_ml != 65535 &&
+              (int32_t)new_10l_ml >= (int32_t)pending_ml - 100) {
+            pending_ml = 65535;
+          } else {
+            pending_ml = new_10l_ml;
+            return;
+          }
 
           sum_ml += diff_10l_ml;
           id(aqcsmp_total)->update();
@@ -50,11 +77,14 @@ sensor:
     update_interval: "never"
     lambda: !lambda |
       auto correct = [](float digit_state, int lower_int) -> int {
+        if (isnan(digit_state) || digit_state < 0.0f || digit_state >= 10.0f) return -1;
         int v = (int)roundf(digit_state - lower_int / 10.0f);
         return ((v % 10) + 10) % 10;
       };
       float dl = truncf(id(aqdig_00001).state);
+      if (correct(dl, 0) < 0) return NAN;
       int whole_liters = correct(id(aqdig_0001).state, (int)dl);
+      if (whole_liters < 0) return NAN;
       return (float)whole_liters + 0.1f * dl;
 
   - id: "aqcsmp_m3"
@@ -70,17 +100,34 @@ sensor:
           if (isnan(x)) return;
           uint32_t &sum_ml = id(aqcsmp_sum_ml);
           uint32_t &prev = id(aqcsmp_m3_prev);
+          uint32_t &last_raw = id(aqcsmp_m3_last_raw);
+          bool &stable = id(aqcsmp_m3_stable);
 
           uint32_t new_value = (uint32_t)x;
+          if (!stable) {
+            if (last_raw != new_value) {
+              last_raw = new_value;
+              return;
+            }
+            stable = true;
+          }
+
           if (prev == 0) {
             prev = new_value;
             return;
           }
           int32_t diff = (int32_t)new_value - (int32_t)prev;
           prev = new_value;
-          if (diff != 1) return;
+          if (diff < 0) {
+            ESP_LOGW("aqcsmp", "m3 reading did not increase, diff %d", diff);
+            return;
+          }
+          if (diff == 0) return;
+          if (diff > 1) {
+            ESP_LOGW("aqcsmp", "m3 jumped by %d", diff);
+          }
 
-          // We jumped by 1000L, reset the ml counter.
+          // We passed a 1000L boundary, reset the ml counter.
           sum_ml = sum_ml % 10000;
           id(aqcsmp_total)->update();
 
@@ -88,15 +135,22 @@ sensor:
     update_interval: "never"
     lambda: !lambda |
       auto digit = [](float state) -> int {
-        int v = (int) roundf(state);
+        if (isnan(state) || state < 0.0f || state >= 10.0f) return -1;
+        int v = (int)roundf(state);
         return ((v % 10) + 10) % 10;
       };
+      int d10000 = digit(id(aqdig_10000).state);
+      int d1000 = digit(id(aqdig_1000).state);
+      int d100 = digit(id(aqdig_100).state);
+      int d10 = digit(id(aqdig_10).state);
+      int d1 = digit(id(aqdig_1).state);
+      if (d10000 < 0 || d1000 < 0 || d100 < 0 || d10 < 0 || d1 < 0) return NAN;
       float val = 0.0f;
-      val += 10000.0f * digit(id(aqdig_10000).state);
-      val +=  1000.0f * digit(id(aqdig_1000).state);
-      val +=   100.0f * digit(id(aqdig_100).state);
-      val +=    10.0f * digit(id(aqdig_10).state);
-      val +=     1.0f * digit(id(aqdig_1).state);
+      val += 10000.0f * d10000;
+      val +=  1000.0f * d1000;
+      val +=   100.0f * d100;
+      val +=    10.0f * d10;
+      val +=     1.0f * d1;
       return val;
 
   - id: "aqcsmp_total"

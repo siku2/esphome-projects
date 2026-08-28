@@ -41,18 +41,31 @@ sensor:
     update_interval: "never"
     lambda: !lambda |
       auto digit = [](float state) -> int {
-        int v = (int) roundf(state);
+        if (isnan(state) || state < 0.0f || state >= 10.0f) return -1;
+        int v = (int)roundf(state);
         return ((v % 10) + 10) % 10;
       };
+      int d10000 = digit(id(aqdig_10000).state);
+      int d1000 = digit(id(aqdig_1000).state);
+      int d100 = digit(id(aqdig_100).state);
+      int d10 = digit(id(aqdig_10).state);
+      int d1 = digit(id(aqdig_1).state);
+      int d01 = digit(id(aqdig_01).state);
+      int d001 = digit(id(aqdig_001).state);
+      int d0001 = digit(id(aqdig_0001).state);
+      if (d10000 < 0 || d1000 < 0 || d100 < 0 || d10 < 0 || d1 < 0 ||
+          d01 < 0 || d001 < 0 || d0001 < 0) {
+        return NAN;
+      }
       float val = 0.0f;
-      val += 10000.0f * digit(id(aqdig_10000).state);
-      val +=  1000.0f * digit(id(aqdig_1000).state);
-      val +=   100.0f * digit(id(aqdig_100).state);
-      val +=    10.0f * digit(id(aqdig_10).state);
-      val +=     1.0f * digit(id(aqdig_1).state);
-      val +=     0.1f * digit(id(aqdig_01).state);
-      val +=    0.01f * digit(id(aqdig_001).state);
-      val +=   0.001f * digit(id(aqdig_0001).state);
+      val += 10000.0f * d10000;
+      val +=  1000.0f * d1000;
+      val +=   100.0f * d100;
+      val +=    10.0f * d10;
+      val +=     1.0f * d1;
+      val +=     0.1f * d01;
+      val +=    0.01f * d001;
+      val +=   0.001f * d0001;
       return val;
 
   - id: "aqcsmp_consumption"
