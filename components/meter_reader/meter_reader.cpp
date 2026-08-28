@@ -66,10 +66,17 @@ void MeterReader::setup() {
 void MeterReader::loop() {
   const uint32_t now = millis();
 
+  // Only the finest occupied wheels gate staleness: the reading machinery
+  // cannot advance without them. Absent coarse wheels reduce cross-checking
+  // but are common in practice (permanently mid-roll digits).
   bool stale = false;
+  uint8_t checked = 0;
   for (const auto &w : this->wheels_) {
     if (w.resolution == 0.0f)
       continue;  // unoccupied level slot
+    if (checked >= 2)
+      break;
+    checked++;
     if (now - w.last_accepted_ms > this->stale_after_ms_)
       stale = true;
   }
