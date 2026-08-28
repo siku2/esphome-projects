@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <functional>
 
 #include <esphome/components/camera/buffer_impl.h>
 #include <esphome/components/camera/camera.h>
@@ -8,6 +9,7 @@
 #include <esphome/components/camera_snapshot/snapshotter.h>
 #include <esphome/components/sensor/sensor.h>
 #include <esphome/core/component.h>
+#include <esphome/core/helpers.h>
 
 #include "interpreter.h"
 
@@ -53,7 +55,13 @@ class CameraSnapshotSensor : public sensor::Sensor, public Component, public cam
   float get_last_fit() const { return this->last_fit_; }
   float get_published_fit() const { return this->published_fit_; }
 
- protected:
+  // Fired for every completed inference, before the min_fit gate, so
+  // consumers see rejected observations too.
+  template<typename F> void add_on_inference_callback(F &&callback) {
+    this->inference_callbacks_.add(std::forward<F>(callback));
+  }
+
+protected:
   InterpreterComponent *interpreter_component_{nullptr};
   camera::snapshot::Snapshotter *snapshotter_{nullptr};
   Rect crop_{};
@@ -64,6 +72,7 @@ class CameraSnapshotSensor : public sensor::Sensor, public Component, public cam
   uint32_t last_update_{0};
   float last_fit_{NAN};
   float published_fit_{NAN};
+  LazyCallbackManager<void(float, float, bool)> inference_callbacks_{};
 
   void setup() override;
 

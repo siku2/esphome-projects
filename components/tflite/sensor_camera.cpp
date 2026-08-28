@@ -231,6 +231,7 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
   if (std::isnan(result))
     return;
   this->last_fit_ = fit;
+  this->inference_callbacks_.call(result, fit, fit >= this->min_fit_);
   if (fit < this->min_fit_) {
     ESP_LOGW(TAG, "Rejecting result %.6f: fit %.2f is below min_fit %.2f", result, fit, this->min_fit_);
     return;
