@@ -56,6 +56,7 @@ class MeterReader : public Component {
   void set_pending_window_ms(uint32_t ms) { this->pending_window_ms_ = ms; }
   void set_stale_after_ms(uint32_t ms) { this->stale_after_ms_ = ms; }
   void set_reanchor_tolerance(float liters) { this->reanchor_tolerance_ = liters; }
+  void set_back_tolerance(float liters) { this->back_tolerance_ = liters; }
   void set_snapshotter(camera::snapshot::Snapshotter *snapshotter) { this->snapshotter_ = snapshotter; }
   void add_wheel(uint8_t level, float resolution, float tolerance);
 
@@ -71,11 +72,12 @@ class MeterReader : public Component {
   float quantum_() const;
   float reading_liters_() const;
   uint64_t reanchor_span_u_() const;
+  uint64_t back_span_u_() const;
   float consistency_error_(uint64_t u) const;
-  float coarse_error_(uint64_t u) const;
+  float dial_error_(uint64_t u) const;
   bool consistent_(uint64_t u) const;
   bool coarse_consistent_(uint64_t u) const;
-  bool find_consistent_(uint64_t start, uint64_t span, uint64_t *out) const;
+  bool find_consistent_(uint64_t lo, uint64_t span, uint64_t *out) const;
 
   void process_cycle_(uint32_t now);
   void commit_(uint64_t u, uint32_t now);
@@ -92,6 +94,7 @@ class MeterReader : public Component {
   uint32_t pending_window_ms_{6000};
   uint32_t stale_after_ms_{60000};
   float reanchor_tolerance_{100.0f};
+  float back_tolerance_{20.0f};
 
   sensor::Sensor *reading_sensor_{nullptr};
   sensor::Sensor *consumption_sensor_{nullptr};

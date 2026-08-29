@@ -21,6 +21,7 @@ from esphome.const import (
     ICON_RESTART_ALERT,
     ICON_WATER,
     STATE_CLASS_MEASUREMENT,
+    STATE_CLASS_TOTAL,
     STATE_CLASS_TOTAL_INCREASING,
     UNIT_LITRE_PER_SECOND,
     UNIT_PERCENT,
@@ -38,6 +39,7 @@ CONF_CORROBORATIONS = "corroborations"
 CONF_PENDING_WINDOW = "pending_window"
 CONF_STALE_AFTER = "stale_after"
 CONF_REANCHOR_TOLERANCE = "reanchor_tolerance"
+CONF_BACK_TOLERANCE = "back_tolerance"
 CONF_READING = "reading"
 CONF_CONSUMPTION = "consumption"
 CONF_CONFIDENCE = "confidence"
@@ -63,7 +65,7 @@ READING_SCHEMA = sensor.sensor_schema(
     unit_of_measurement="L",
     icon=ICON_WATER,
     device_class=DEVICE_CLASS_WATER,
-    state_class=STATE_CLASS_TOTAL_INCREASING,
+    state_class=STATE_CLASS_TOTAL,
 ).extend(
     {
         cv.Optional(CONF_NAME, default="Meter Reading"): cv.string,
@@ -176,6 +178,7 @@ CONFIG_SCHEMA = cv.All(
                 CONF_STALE_AFTER, default="60s"
             ): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_REANCHOR_TOLERANCE, default=100.0): cv.positive_float,
+            cv.Optional(CONF_BACK_TOLERANCE, default=20.0): cv.positive_float,
             cv.Required(CONF_WHEELS): cv.All(
                 cv.ensure_list(WHEEL_SCHEMA),
                 cv.Length(min=2),
@@ -238,6 +241,7 @@ async def to_code(config):
     cg.add(var.set_pending_window_ms(config[CONF_PENDING_WINDOW]))
     cg.add(var.set_stale_after_ms(config[CONF_STALE_AFTER]))
     cg.add(var.set_reanchor_tolerance(config[CONF_REANCHOR_TOLERANCE]))
+    cg.add(var.set_back_tolerance(config[CONF_BACK_TOLERANCE]))
 
     for wheel in config[CONF_WHEELS]:
         cg.add(var.add_wheel(wheel[CONF_LEVEL], wheel[CONF_RESOLUTION], wheel[CONF_TOLERANCE]))

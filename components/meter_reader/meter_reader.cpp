@@ -22,15 +22,15 @@ static float circdist(float a, float b) {
   return d > DIAL_PERIOD / 2.0f ? DIAL_PERIOD - d : d;
 }
 
-// A wheel at level k knows the integer digit (u / 10^k) mod 10. Mechanical
-// wheels do not track the linear fraction of the finer digits: they sit at
-// N.0 and creep only near a roll, so comparisons use the digit only and
-// leave the tolerance for roll ambiguity and OCR noise.
-static float digit_of(uint64_t u, uint8_t level) {
+// Wheel at level k shows (u / 10^k) mod 10 with the fraction of the finer
+// digits as decimals. The linear fraction runs ahead of mechanical reality
+// (wheels creep only near a roll), which the tolerance absorbs.
+static float dial_of(uint64_t u, uint8_t level) {
   uint64_t p = 1;
   for (uint8_t i = 0; i < level && i < 18; ++i)
     p *= 10U;
-  return static_cast<float>((u / p) % 10ULL);
+  const uint64_t digit = (u / p) % 10ULL;
+  return static_cast<float>(static_cast<double>(digit) + static_cast<double>(u % p) / static_cast<double>(p));
 }
 
 void MeterReader::setup() {
@@ -149,45 +149,47 @@ void MeterReader::process_cycle_(uint32_t now) {
 
   if (!this->anchored_) {
     if (this->has_saved_) {
-      if (u_consistent) {
-        this->anchor_(false, now);
-      } else {
-        uint64_t candidate = 0;
-        if (this->find_consistent_(this->u_ + 1, this->reanchor_span_u_(), &candidate)) {
-          ESP_LOGW(TAG, "Reanchoring: adopting %llu (+%llu quanta)", (unsigned long long) candidate,
-                   (unsigned long long) (candidate - this->u_));
-          this->u_ = candidate;
-          this->anchor_(true, now);
-        }
+      uint64_t candidate = 0;
+      if (this->find_consistent_(this->u_, this->reanchor_span_u_(), &candidate)) {
+        if (candidate != this->u_)
+          ESP_LOGW(TAG, "Reanchoring: adopting %llu (%+lld quanta)", (unsigned long long) candidate,
+                   (long long) (candidate - this->u_));
+        this->u_ = candidate;
+        this->anchor_(true, now);
       }
     }
     return;
   }
 
   const float quantum = this->quantum_();
-  const uint64_t cap =
-      static_cast<uint64_t>(std::ceil(this->max_flow_ * (now - this->last_commit_ms_) / 1000.0f / quantum)) + 1;
+  // Clamped so a long freeze cannot starve the CPU with an ever growing
+  // search window.
+  static constexpr uint64_t MAX_SEARCH_QUANTA = 100000;
+  uint64_t cap = static_cast<uint64_t>(std::ceil(this->max_flow_ * (now - this->last_commit_ms_) / 1000.0f / quantum)) + 1;
+  cap = std::min(cap, MAX_SEARCH_QUANTA);
+  const uint64_t back = this->back_span_u_();
+  const uint64_t lo = this->u_ > back ? this->u_ - back : 0;
 
-  // The finest wheel selects the candidate closest to its observed position.
-  // Coarse wheels veto out-of-tolerance candidates and break ties on equal
-  // finest distance, so the dial periodicity cannot leave the reading a full
-  // revolution behind.
+  // The best candidate minimizes the joint dial error across all present
+  // wheels, preferring values close to the committed reading. The bounded
+  // backward window lets OCR jitter overshoots self-heal; real meters do
+  // not roll back beyond it.
   const Wheel &finest = this->wheels_[0];
   uint64_t u_star = this->u_;
   bool found = false;
-  float best_finest = 0.0f;
-  float best_coarse = 0.0f;
-  for (uint64_t c = this->u_; c <= this->u_ + cap; ++c) {
-    const float d0 = circdist(digit_of(c, 0), finest.result);
-    if (d0 > finest.tolerance)
+  float best_err = 0.0f;
+  uint64_t best_dist = 0;
+  for (uint64_t c = lo; c <= this->u_ + cap; ++c) {
+    if (circdist(dial_of(c, 0), finest.result) > finest.tolerance)
       continue;
     if (!this->coarse_consistent_(c))
       continue;
-    const float dc = this->coarse_error_(c);
-    if (!found || d0 < best_finest || (d0 == best_finest && dc < best_coarse)) {
+    const float err = this->dial_error_(c);
+    const uint64_t dist = c >= this->u_ ? c - this->u_ : this->u_ - c;
+    if (!found || err < best_err || (err == best_err && dist < best_dist)) {
       found = true;
-      best_finest = d0;
-      best_coarse = dc;
+      best_err = err;
+      best_dist = dist;
       u_star = c;
     }
   }
@@ -195,10 +197,13 @@ void MeterReader::process_cycle_(uint32_t now) {
   if (!found) {
     this->rejected_++;
     this->publish_rejected_();
-    ESP_LOGD(TAG, "Veto: no consistent value in [U, U+%llu]", (unsigned long long) cap);
+    ESP_LOGD(TAG, "Veto: no consistent value in [U-%llu, U+%llu]", (unsigned long long) (this->u_ - lo),
+             (unsigned long long) cap);
   } else {
     if (this->has_pending_) {
-      if (u_star >= this->pending_u_) {
+      const bool confirms =
+          this->pending_u_ > this->u_ ? u_star >= this->pending_u_ : u_star <= this->pending_u_;
+      if (confirms) {
         this->pending_confirmed_++;
         if (this->pending_confirmed_ >= this->corroborations_)
           this->commit_(this->pending_u_, now);
@@ -209,7 +214,7 @@ void MeterReader::process_cycle_(uint32_t now) {
         ESP_LOGD(TAG, "Phantom pending value %llu rejected", (unsigned long long) this->pending_u_);
       }
     }
-    if (!this->has_pending_ && u_star > this->u_) {
+    if (!this->has_pending_ && u_star != this->u_) {
       this->pending_u_ = u_star;
       this->pending_confirmed_ = 0;
       this->pending_ms_ = now;
@@ -295,26 +300,31 @@ uint64_t MeterReader::reanchor_span_u_() const {
   return static_cast<uint64_t>(std::ceil(this->reanchor_tolerance_ / quantum));
 }
 
+uint64_t MeterReader::back_span_u_() const {
+  const float quantum = this->quantum_();
+  if (quantum <= 0.0f)
+    return 0;
+  return static_cast<uint64_t>(std::ceil(this->back_tolerance_ / quantum));
+}
+
 float MeterReader::consistency_error_(uint64_t u) const {
   float err = 0.0f;
   for (const auto &w : this->wheels_) {
     if (!w.present)
       continue;
-    const float d = circdist(digit_of(u, w.level), w.result);
+    const float d = circdist(dial_of(u, w.level), w.result);
     if (d > err)
       err = d;
   }
   return err;
 }
 
-float MeterReader::coarse_error_(uint64_t u) const {
+float MeterReader::dial_error_(uint64_t u) const {
   float err = 0.0f;
   for (const auto &w : this->wheels_) {
-    if (w.level == 0 || !w.present)
+    if (!w.present)
       continue;
-    const float d = circdist(digit_of(u, w.level), w.result);
-    if (d > err)
-      err = d;
+    err += circdist(dial_of(u, w.level), w.result);
   }
   return err;
 }
@@ -323,7 +333,7 @@ bool MeterReader::coarse_consistent_(uint64_t u) const {
   for (const auto &w : this->wheels_) {
     if (w.level == 0 || !w.present)
       continue;
-    if (circdist(digit_of(u, w.level), w.result) > w.tolerance)
+    if (circdist(dial_of(u, w.level), w.result) > w.tolerance)
       return false;
   }
   return true;
@@ -333,17 +343,27 @@ bool MeterReader::consistent_(uint64_t u) const {
   for (const auto &w : this->wheels_) {
     if (!w.present)
       continue;
-    if (circdist(digit_of(u, w.level), w.result) > w.tolerance)
+    if (circdist(dial_of(u, w.level), w.result) > w.tolerance)
       return false;
   }
   return true;
 }
 
-bool MeterReader::find_consistent_(uint64_t start, uint64_t span, uint64_t *out) const {
-  for (uint64_t c = start; c <= start + span; ++c) {
-    if (this->consistent_(c)) {
-      *out = c;
+bool MeterReader::find_consistent_(uint64_t center, uint64_t span, uint64_t *out) const {
+  // Closest-first scan around the stored reading: the first consistent
+  // candidate is also the most conservative adoption.
+  for (uint64_t off = 0; off <= span; ++off) {
+    const uint64_t forward = center + off;
+    if (this->consistent_(forward)) {
+      *out = forward;
       return true;
+    }
+    if (off > 0 && center >= off) {
+      const uint64_t backward = center - off;
+      if (this->consistent_(backward)) {
+        *out = backward;
+        return true;
+      }
     }
   }
   return false;
@@ -395,6 +415,7 @@ void MeterReader::dump_config() {
   ESP_LOGCONFIG(TAG, "  Pending window: %.1f s", this->pending_window_ms_ / 1000.0f);
   ESP_LOGCONFIG(TAG, "  Stale after: %.1f s", this->stale_after_ms_ / 1000.0f);
   ESP_LOGCONFIG(TAG, "  Reanchor tolerance: %.1f L", this->reanchor_tolerance_);
+  ESP_LOGCONFIG(TAG, "  Back tolerance: %.1f L", this->back_tolerance_);
   ESP_LOGCONFIG(TAG, "  Quantum: %g L", (double) this->quantum_());
   for (const auto &w : this->wheels_) {
     if (w.resolution == 0.0f)
