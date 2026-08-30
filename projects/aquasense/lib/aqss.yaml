@@ -1,4 +1,4 @@
-# Namespace: aqss
+# Namespace: aqss (snapshot)
 
 esp32_camera:
   entity_category: "diagnostic"

@@ -1,4 +1,4 @@
-# Namespace: aqdig
+# Namespace: aqdig (digits)
 
 substitutions:
   aqdig_crop_10000: &aqdig_crop_10000

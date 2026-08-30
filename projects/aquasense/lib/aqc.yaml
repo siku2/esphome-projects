@@ -1,3 +1,5 @@
+# Namespace: aqc (core)
+
 substitutions:
   api_encryption_key: "" # REQUIRED!
   ota_password: "" # REQUIRED!
