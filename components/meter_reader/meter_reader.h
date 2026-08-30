@@ -36,6 +36,7 @@ struct Wheel {
   uint8_t level;
   float resolution;
   float tolerance;
+  bool linear;
   float result{0.0f};
   float fit{0.0f};
   bool present{false};
@@ -58,7 +59,7 @@ class MeterReader : public Component {
   void set_reanchor_tolerance(float liters) { this->reanchor_tolerance_ = liters; }
   void set_back_tolerance(float liters) { this->back_tolerance_ = liters; }
   void set_snapshotter(camera::snapshot::Snapshotter *snapshotter) { this->snapshotter_ = snapshotter; }
-  void add_wheel(uint8_t level, float resolution, float tolerance);
+  void add_wheel(uint8_t level, float resolution, float tolerance, bool linear);
 
   void set_reading_sensor(sensor::Sensor *sensor) { this->reading_sensor_ = sensor; }
   void set_consumption_sensor(sensor::Sensor *sensor) { this->consumption_sensor_ = sensor; }

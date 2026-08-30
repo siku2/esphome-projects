@@ -40,6 +40,7 @@ CONF_PENDING_WINDOW = "pending_window"
 CONF_STALE_AFTER = "stale_after"
 CONF_REANCHOR_TOLERANCE = "reanchor_tolerance"
 CONF_BACK_TOLERANCE = "back_tolerance"
+CONF_LINEAR = "linear"
 CONF_READING = "reading"
 CONF_CONSUMPTION = "consumption"
 CONF_CONFIDENCE = "confidence"
@@ -58,6 +59,7 @@ WHEEL_SCHEMA = cv.Schema(
         cv.Required(CONF_SOURCE): cv.use_id(sensor.Sensor),
         cv.Required(CONF_RESOLUTION): cv.positive_float,
         cv.Optional(CONF_TOLERANCE, default=1.5): cv.positive_float,
+        cv.Optional(CONF_LINEAR, default=False): cv.boolean,
     }
 )
 
@@ -244,7 +246,7 @@ async def to_code(config):
     cg.add(var.set_back_tolerance(config[CONF_BACK_TOLERANCE]))
 
     for wheel in config[CONF_WHEELS]:
-        cg.add(var.add_wheel(wheel[CONF_LEVEL], wheel[CONF_RESOLUTION], wheel[CONF_TOLERANCE]))
+        cg.add(var.add_wheel(wheel[CONF_LEVEL], wheel[CONF_RESOLUTION], wheel[CONF_TOLERANCE], wheel[CONF_LINEAR]))
         source = await cg.get_variable(wheel[CONF_SOURCE])
         callback = cg.RawExpression(
             f"[{var}](float result, float fit, bool accepted) {{ "

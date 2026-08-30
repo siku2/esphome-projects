@@ -22,16 +22,27 @@ static float circdist(float a, float b) {
   return d > DIAL_PERIOD / 2.0f ? DIAL_PERIOD - d : d;
 }
 
-// A wheel at level k reliably knows the integer digit (u / 10^k) mod 10.
-// Coarse wheels do not track the linear fraction of the finer digits (they
-// creep only near a roll), so comparisons use the digit alone: fraction
-// model bias would systematically favor candidates one fraction step
-// behind the truth. For the finest wheel the digit is the quantum itself.
+// Wheel at level k shows (u / 10^k) mod 10. Digit drums lag the linear
+// fraction (they creep only near a roll), so they compare by integer digit.
+// Needle dials are geared 10:1 to the next finer dial and track the linear
+// fraction exactly; `linear` selects that expectation.
 static float digit_of(uint64_t u, uint8_t level) {
   uint64_t p = 1;
   for (uint8_t i = 0; i < level && i < 18; ++i)
     p *= 10U;
   return static_cast<float>((u / p) % 10ULL);
+}
+
+static float dial_of(uint64_t u, uint8_t level) {
+  uint64_t p = 1;
+  for (uint8_t i = 0; i < level && i < 18; ++i)
+    p *= 10U;
+  const uint64_t digit = (u / p) % 10ULL;
+  return static_cast<float>(static_cast<double>(digit) + static_cast<double>(u % p) / static_cast<double>(p));
+}
+
+static float expected_of(uint64_t u, uint8_t level, bool linear) {
+  return linear ? dial_of(u, level) : digit_of(u, level);
 }
 
 void MeterReader::setup() {
@@ -274,13 +285,14 @@ void MeterReader::apply_rebase(float liters) {
   ESP_LOGI(TAG, "Rebased to %.1f L (%llu quanta)", static_cast<double>(liters), (unsigned long long) u);
 }
 
-void MeterReader::add_wheel(uint8_t level, float resolution, float tolerance) {
+void MeterReader::add_wheel(uint8_t level, float resolution, float tolerance, bool linear) {
   if (level >= this->wheels_.size())
     this->wheels_.resize(level + 1);
   Wheel w{};
   w.level = level;
   w.resolution = resolution;
   w.tolerance = tolerance;
+  w.linear = linear;
   this->wheels_[level] = w;
 }
 
@@ -313,7 +325,7 @@ float MeterReader::consistency_error_(uint64_t u) const {
   for (const auto &w : this->wheels_) {
     if (!w.present)
       continue;
-    const float d = circdist(digit_of(u, w.level), w.result);
+    const float d = circdist(expected_of(u, w.level, w.linear), w.result);
     if (d > err)
       err = d;
   }
@@ -325,7 +337,7 @@ float MeterReader::dial_error_(uint64_t u) const {
   for (const auto &w : this->wheels_) {
     if (!w.present)
       continue;
-    err += circdist(digit_of(u, w.level), w.result);
+    err += circdist(expected_of(u, w.level, w.linear), w.result);
   }
   return err;
 }
@@ -334,7 +346,7 @@ bool MeterReader::coarse_consistent_(uint64_t u) const {
   for (const auto &w : this->wheels_) {
     if (w.level == 0 || !w.present)
       continue;
-    if (circdist(digit_of(u, w.level), w.result) > w.tolerance)
+    if (circdist(expected_of(u, w.level, w.linear), w.result) > w.tolerance)
       return false;
   }
   return true;
@@ -344,7 +356,7 @@ bool MeterReader::consistent_(uint64_t u) const {
   for (const auto &w : this->wheels_) {
     if (!w.present)
       continue;
-    if (circdist(digit_of(u, w.level), w.result) > w.tolerance)
+    if (circdist(expected_of(u, w.level, w.linear), w.result) > w.tolerance)
       return false;
   }
   return true;
