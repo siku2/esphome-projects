@@ -14,3 +14,16 @@ camera_snapshot:
     - component.update: "aqcsmp_m3"
     - component.update: "aqcsmp_confidence_snapshot"
     - component.update: "aqcsmp_confidence_reading"
+
+meter_reader:
+  id: aqmr
+  snapshotter: aqss_snapshot
+  wheels:
+    - {source: aqdig_0001, resolution: 10, tolerance: 1.2}
+    - {source: aqdig_001, resolution: 100}
+    - {source: aqdig_01, resolution: 1000}
+    - {source: aqdig_1, resolution: 10000}
+    - {source: aqdig_10, resolution: 100000}
+    - {source: aqdig_100, resolution: 1000000}
+    - {source: aqdig_1000, resolution: 10000000}
+    - {source: aqdig_10000, resolution: 100000000}
