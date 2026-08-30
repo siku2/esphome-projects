@@ -15,3 +15,19 @@ camera_snapshot:
     - component.update: "aqcsmp_10_liters"
     - component.update: "aqcsmp_confidence_snapshot"
     - component.update: "aqcsmp_confidence_reading"
+
+meter_reader:
+  id: aqmr
+  snapshotter: aqss_snapshot
+  wheels:
+    # Finest dial x0.0001 m3 = 1 L/rev.
+    - {source: aqdig_00001, resolution: 1, tolerance: 0.8}
+    # x0.001 m3 is a needle dial geared to the finest one.
+    - {source: aqdig_0001, resolution: 10, linear: true}
+    # The x0.01 m3 dial (100 L/rev) has no sensor.
+    - {source: aqdig_01, resolution: 1000}
+    - {source: aqdig_1, resolution: 10000}
+    - {source: aqdig_10, resolution: 100000}
+    - {source: aqdig_100, resolution: 1000000}
+    - {source: aqdig_1000, resolution: 10000000}
+    - {source: aqdig_10000, resolution: 100000000}
