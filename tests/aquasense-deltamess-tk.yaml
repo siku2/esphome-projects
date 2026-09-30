@@ -1,0 +1,63 @@
+packages:
+  project: !include
+    file: ../projects/aquasense/deltamess-tk.yaml
+    vars:
+      name: "test-aquasense-deltamess-tk"
+      friendly_name: "Test Aquasense Deltamess TK"
+      language: "de"
+
+      api_encryption_key: "BPuGmuUNPrvxVodyymhlYRYbylb2QAPuw6i3PZFdZLc="
+      ota_password: "test-ota-password"
+
+      components_source:
+        type: "local"
+        path: "../components"
+
+      aqdig_crop_10000:
+        top_left:
+          x: 142
+          y: 149
+        width: 33
+        height: 53
+      aqdig_crop_1000:
+        top_left:
+          x: 181
+          y: 148
+        width: 33
+        height: 53
+      aqdig_crop_100:
+        top_left:
+          x: 219
+          y: 146
+        width: 33
+        height: 53
+      aqdig_crop_10:
+        top_left:
+          x: 258
+          y: 144
+        width: 33
+        height: 53
+      aqdig_crop_1:
+        top_left:
+          x: 295
+          y: 143
+        width: 33
+        height: 53
+      aqdig_crop_01:
+        top_left:
+          x: 334
+          y: 141
+        width: 33
+        height: 53
+      aqdig_crop_001:
+        top_left:
+          x: 372
+          y: 138
+        width: 33
+        height: 53
+      aqdig_crop_0001:
+        top_left:
+          x: 413
+          y: 137
+        width: 33
+        height: 53

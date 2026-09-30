@@ -1,0 +1,2 @@
+packages:
+  project: !include ../projects/microscope-light/esp32.yaml

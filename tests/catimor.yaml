@@ -1,0 +1,18 @@
+packages:
+  core: !include
+    file: ../projects/catimor/core.yaml
+    vars:
+      name: "test-catimor"
+      friendly_name: "Test Catimor"
+      language: "de"
+
+      blind_left_cover_id: "cover.test_left"
+      blind_right_cover_id: "cover.test_right"
+      climate_id: "climate.test"
+
+      api_encryption_key: "PelRCiw9w4PveSslEtVgp4V0IbEUWB24tax3cZqjEoU="
+      ota_password: "test-ota-password"
+
+      components_source:
+        type: "local"
+        path: "../components"

@@ -55,12 +55,19 @@
 #
 # - `m5s3l_touchscreen`: The built-in touchscreen.
 
+substitutions:
+  components_source:
+    type: "git"
+    url: "https://github.com/siku2/esphome-projects"
+    ref: "581beaecbea589caa5c336f5e7e3803f39e4303c"
+    path: "components"
+
 packages:
   axp2101: !include axp2101.yaml
 
 external_components:
-- source: "github://siku2/esphome-projects@581beaecbea589caa5c336f5e7e3803f39e4303c"
-  components: [ "aw9523" ]
+- source: "${components_source}"
+  components: ["aw9523"]
 
 esp32:
   board: "esp32-s3-devkitc-1"

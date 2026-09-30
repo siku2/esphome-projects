@@ -1,0 +1,63 @@
+packages:
+  project: !include
+    file: ../projects/aquasense/rh.yaml
+    vars:
+      name: "test-aquasense-rh"
+      friendly_name: "Test Aquasense RH"
+      language: "de"
+
+      api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
+      ota_password: "test-ota-password"
+
+      components_source:
+        type: "local"
+        path: "../components"
+
+      aqdig_crop_10000:
+        top_left:
+          x: 110
+          y: 235
+        width: 20
+        height: 32
+      aqdig_crop_1000:
+        top_left:
+          x: 142
+          y: 235
+        width: 20
+        height: 32
+      aqdig_crop_100:
+        top_left:
+          x: 173
+          y: 234
+        width: 20
+        height: 32
+      aqdig_crop_10:
+        top_left:
+          x: 206
+          y: 234
+        width: 20
+        height: 32
+      aqdig_crop_1:
+        top_left:
+          x: 238
+          y: 233
+        width: 20
+        height: 32
+      aqdig_crop_01:
+        top_left:
+          x: 271
+          y: 232
+        width: 20
+        height: 32
+      aqdig_crop_0001:
+        top_left:
+          x: 73
+          y: 339
+        width: 90
+        height: 90
+      aqdig_crop_00001:
+        top_left:
+          x: 163
+          y: 379
+        width: 90
+        height: 90

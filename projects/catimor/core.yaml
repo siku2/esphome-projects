@@ -6,6 +6,11 @@ substitutions:
   api_encryption_key: "" # REQUIRED!
   ota_password: "" # REQUIRED!
   git_ref: "" # REQUIRED!
+  components_source:
+    type: "git"
+    url: "https://github.com/siku2/esphome-projects"
+    ref: "${git_ref}"
+    path: "components"
 
   name: "esp-catimor"
   friendly_name: "Catimor"
@@ -33,12 +38,8 @@ dashboard_import:
   import_full_config: false
 
 external_components:
-- source:
-    type: git
-    url: "https://github.com/siku2/esphome-projects"
-    ref: "${git_ref}"
-    path: "components"
-  components: [ "m5stack_4encodermotor" ]
+- source: "${components_source}"
+  components: ["m5stack_4encodermotor"]
 
 api:
   encryption:
@@ -189,7 +190,7 @@ touchscreen:
       - light.turn_on: "m5s3l_lcd_backlight"
 
 lvgl:
-  displays: [ "m5s3l_lcd" ]
+  displays: ["m5s3l_lcd"]
   touchscreens:
   - touchscreen_id: "m5s3l_touchscreen"
   theme:
