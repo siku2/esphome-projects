@@ -1,0 +1,12 @@
+extend-exclude = [".ruff_cache"]
+# Otherwise a path named on the command line is linted even when excluded.
+force-exclude = true
+
+[lint]
+select = [
+  "E4",
+  "E7",
+  "E9",
+  "F",
+  "I",
+]

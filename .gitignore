@@ -1,4 +1,7 @@
+.direnv/
 .esphome/
+.ruff_cache/
 .venv/
 __pycache__/
-/public/
+/result
+/result-*
