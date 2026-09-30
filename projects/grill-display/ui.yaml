@@ -1,0 +1,47 @@
+font:
+- file: "gfonts://Roboto@400"
+  id: "font_label"
+  size: 14
+  glyphsets: ["GF_Latin_Core"]
+- file: "gfonts://Roboto@400"
+  id: "font_text"
+  size: 20
+  glyphsets: ["GF_Latin_Core"]
+- file: "gfonts://Roboto Condensed@700"
+  id: "font_medium"
+  size: 32
+- file: "gfonts://Roboto Condensed@700"
+  id: "font_hero"
+  size: 96
+  glyphs:
+  - "0123456789.-+:%C°"
+
+color:
+- id: "color_ink"
+  hex: "FFFFFF"
+# The panel driver inverts colors, so white renders as black ink on paper.
+- id: "color_paper"
+  hex: "000000"
+
+lvgl:
+  displays:
+  - "cp579epd_display"
+  buffer_size: "12%"
+  log_level: "info"
+  bg_color: "color_paper"
+  theme:
+    label:
+      text_color: "color_ink"
+
+script:
+- id: "ui_refresh"
+  mode: "restart"
+  then:
+  - delay: "500ms"
+  - component.update: "cp579epd_display"
+
+- id: "ui_refresh_full"
+  then:
+  - lambda: |-
+      id(cp579epd_display)->request_full_update();
+  - script.execute: "ui_refresh"

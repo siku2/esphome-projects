@@ -1,0 +1,364 @@
+globals:
+- id: "wind_ux"
+  type: "float"
+  restore_value: no
+  initial_value: "0.0f"
+- id: "wind_uy"
+  type: "float"
+  restore_value: no
+  initial_value: "-1.0f"
+- id: "wind_vx"
+  type: "float"
+  restore_value: no
+  initial_value: "1.0f"
+- id: "wind_vy"
+  type: "float"
+  restore_value: no
+  initial_value: "0.0f"
+
+lvgl:
+  pages:
+  - id: "ui_page_idle"
+    widgets:
+    - obj:
+        width: 792
+        height: 272
+        pad_all: 0
+        border_width: 0
+        bg_color: "color_paper"
+        widgets:
+        - meter:
+            id: "lvgl_meter_time"
+            x: 30
+            y: 26
+            width: 220
+            height: 220
+            bg_opa: "TRANSP"
+            border_width: 0
+            text_color: "color_ink"
+            scales:
+            - range_from: 0 # minutes scale
+              range_to: 60
+              angle_range: 360
+              rotation: 270
+              ticks:
+                width: 1
+                count: 61
+                length: 10
+                color: "color_ink"
+              indicators:
+              - line:
+                  id: "lvgl_minute_hand"
+                  width: 3
+                  color: "color_ink"
+                  length: 96%
+                  value: 0
+            - range_from: 1 # hours scale for labels
+              range_to: 12
+              angle_range: 330
+              rotation: 300
+              ticks:
+                width: 1
+                count: 12
+                length: 1
+                major:
+                  stride: 1
+                  width: 4
+                  length: 10
+                  color: "color_ink"
+                  label_gap: 12
+            - range_from: 0 # hi-res hours scale for hand
+              range_to: 720
+              angle_range: 360
+              rotation: 270
+              indicators:
+              - line:
+                  id: "lvgl_hour_hand"
+                  width: 5
+                  color: "color_ink"
+                  length: 70%
+                  value: 0
+
+        - line:
+            x: 272
+            y: 26
+            points:
+            - x: 0
+              y: 0
+            - x: 0
+              y: 220
+            line_width: 1
+            line_color: "color_ink"
+
+        - line:
+            x: 520
+            y: 26
+            points:
+            - x: 0
+              y: 0
+            - x: 0
+              y: 220
+            line_width: 1
+            line_color: "color_ink"
+
+        - obj: # solar / outdoor readouts
+            x: 272
+            y: 26
+            width: 248
+            height: 220
+            pad_all: 0
+            border_width: 0
+            bg_color: "color_paper"
+            widgets:
+            - label:
+                text: "${i18n.grilldisplay[language].ui_solar_label}"
+                text_font: "font_label"
+                align: "TOP_MID"
+            - obj:
+                width: "SIZE_CONTENT"
+                height: "SIZE_CONTENT"
+                align: "TOP_MID"
+                y: 100
+                pad_all: 0
+                border_width: 0
+                bg_color: "color_paper"
+                layout:
+                  type: "flex"
+                  flex_flow: "ROW"
+                  flex_align_main: "CENTER"
+                  flex_align_cross: "END"
+                  pad_column: 4
+                widgets:
+                - label:
+                    id: "lbl_solar_value"
+                    text: "--"
+                    text_font: "font_hero"
+                - label:
+                    id: "lbl_solar_unit"
+                    text: ""
+                    text_font: "font_text"
+            - line:
+                y: 110
+                points:
+                - x: 10
+                  y: 0
+                - x: 238
+                  y: 0
+                line_width: 1
+                line_color: "color_ink"
+            - label:
+                text: "${i18n.grilldisplay[language].ui_outdoor_label}"
+                text_font: "font_label"
+                align: "TOP_MID"
+                y: 122
+            - obj:
+                width: "SIZE_CONTENT"
+                height: "SIZE_CONTENT"
+                align: "BOTTOM_MID"
+                pad_all: 0
+                border_width: 0
+                bg_color: "color_paper"
+                layout:
+                  type: "flex"
+                  flex_flow: "ROW"
+                  flex_align_main: "CENTER"
+                  flex_align_cross: "END"
+                  pad_column: 4
+                widgets:
+                - label:
+                    id: "lbl_outdoor_value"
+                    text: "--"
+                    text_font: "font_hero"
+                - label:
+                    text: "°C"
+                    text_font: "font_text"
+
+        - obj: # compass
+            x: 537
+            y: 26
+            width: 220
+            height: 220
+            pad_all: 0
+            border_width: 0
+            bg_color: "color_paper"
+            widgets:
+            - meter:
+                id: "lvgl_meter_compass"
+                width: 220
+                height: 220
+                bg_opa: "TRANSP"
+                border_width: 0
+                text_color: "color_ink"
+                scales:
+                - range_from: 0
+                  range_to: 360
+                  angle_range: 360
+                  rotation: 270
+                  ticks:
+                    width: 1
+                    count: 37
+                    length: 8
+                    color: "color_ink"
+                    major:
+                      stride: 9
+                      width: 3
+                      length: 16
+                      color: "color_ink"
+            # Shaft and chevron head in one polyline, pointing from the
+            # direction the wind comes from towards the rim.
+            - line:
+                id: "line_wind_arrow"
+                width: 220
+                height: 220
+                line_width: 4
+                line_color: "color_ink"
+                line_rounded: true
+                points:
+                - x: 110
+                  y: 110
+                - x: 110
+                  y: 20
+                - x: 96
+                  y: 60
+                - x: 110
+                  y: 20
+                - x: 124
+                  y: 60
+            - label:
+                text: "N"
+                text_font: "font_label"
+                align: "TOP_MID"
+                y: 6
+            - label:
+                text: "E"
+                text_font: "font_label"
+                align: "RIGHT_MID"
+                x: -6
+            - label:
+                text: "S"
+                text_font: "font_label"
+                align: "BOTTOM_MID"
+                y: -6
+            - label:
+                text: "W"
+                text_font: "font_label"
+                align: "LEFT_MID"
+                x: 6
+            - obj:
+                width: "SIZE_CONTENT"
+                height: "SIZE_CONTENT"
+                align: "CENTER"
+                y: 30
+                pad_all: 0
+                border_width: 0
+                bg_color: "color_paper"
+                layout:
+                  type: "flex"
+                  flex_flow: "ROW"
+                  flex_align_main: "CENTER"
+                  flex_align_cross: "END"
+                  pad_column: 3
+                widgets:
+                - label:
+                    id: "lbl_wind_speed"
+                    text: "--"
+                    text_font: "font_medium"
+                - label:
+                    text: "km/h"
+                    text_font: "font_text"
+            - label:
+                id: "lbl_wind_gust"
+                text: "--"
+                text_font: "font_label"
+                align: "CENTER"
+                y: 64
+
+script:
+- id: "ui_idle_update"
+  mode: "restart"
+  then:
+  - lambda: |-
+      const uint32_t five_minutes = 5 * 60;
+      const uint32_t twelve_hours = 12 * 60 * 60;
+      auto now = id(base_homeassistant_time).now();
+      uint32_t seconds = now.second + 60 * now.minute + 3600 * now.hour;
+      // Round to the nearest 5 minutes
+      seconds = (seconds + five_minutes / 2) / five_minutes * five_minutes;
+      id(lvgl_minute_hand)->set_value((seconds % 3600) / 60.0);
+      id(lvgl_hour_hand)->set_value((seconds % twelve_hours) / 60.0);
+
+      float bearing = id(ha_wind_bearing).state;
+      if (std::isnan(bearing)) {
+        bearing = 0.0f;
+      }
+      float rad = bearing * 3.14159265f / 180.0f;
+      id(wind_ux) = sinf(rad);
+      id(wind_uy) = -cosf(rad);
+      id(wind_vx) = cosf(rad);
+      id(wind_vy) = sinf(rad);
+  - lvgl.line.update:
+      id: "line_wind_arrow"
+      points:
+      - x: !lambda "return (int) (110 + id(wind_ux) * 35);"
+        y: !lambda "return (int) (110 + id(wind_uy) * 35);"
+      - x: !lambda "return (int) (110 + id(wind_ux) * 90);"
+        y: !lambda "return (int) (110 + id(wind_uy) * 90);"
+      - x: !lambda "return (int) (110 + id(wind_ux) * 60 + id(wind_vx) * 14);"
+        y: !lambda "return (int) (110 + id(wind_uy) * 60 + id(wind_vy) * 14);"
+      - x: !lambda "return (int) (110 + id(wind_ux) * 90);"
+        y: !lambda "return (int) (110 + id(wind_uy) * 90);"
+      - x: !lambda "return (int) (110 + id(wind_ux) * 60 - id(wind_vx) * 14);"
+        y: !lambda "return (int) (110 + id(wind_uy) * 60 - id(wind_vy) * 14);"
+  - lvgl.label.update:
+      id: "lbl_solar_value"
+      text: !lambda |-
+        float w = id(ha_solar_power).state;
+        char buf[16];
+        if (std::isnan(w)) {
+          snprintf(buf, sizeof(buf), "--");
+        } else if (w >= 1000.0f) {
+          snprintf(buf, sizeof(buf), "%.1f", w / 1000.0f);
+        } else {
+          snprintf(buf, sizeof(buf), "%.0f", w);
+        }
+        return std::string(buf);
+  - lvgl.label.update:
+      id: "lbl_solar_unit"
+      text: !lambda |-
+        float w = id(ha_solar_power).state;
+        if (std::isnan(w)) {
+          return std::string("");
+        }
+        return std::string(w >= 1000.0f ? "kW" : "W");
+  - lvgl.label.update:
+      id: "lbl_outdoor_value"
+      text: !lambda |-
+        float t = id(ha_outdoor_temperature).state;
+        if (std::isnan(t)) {
+          return std::string("--");
+        }
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%.1f", t);
+        return std::string(buf);
+  - lvgl.label.update:
+      id: "lbl_wind_speed"
+      text: !lambda |-
+        float v = id(ha_wind_speed).state;
+        if (std::isnan(v)) {
+          return std::string("--");
+        }
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%.0f", v);
+        return std::string(buf);
+  - lvgl.label.update:
+      id: "lbl_wind_gust"
+      text: !lambda |-
+        float v = id(ha_wind_gust).state;
+        char buf[24];
+        if (std::isnan(v)) {
+          snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_gust_label} --");
+        } else {
+          snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_gust_label} %.0f", v);
+        }
+        return std::string(buf);
+  - script.execute: "ui_refresh"

@@ -1,0 +1,32 @@
+sensor:
+- id: "ha_wind_bearing"
+  platform: "homeassistant"
+  internal: true
+  entity_id: "sensor.weatherlink_iss_wind_bearing"
+  unit_of_measurement: "°"
+
+- id: "ha_wind_speed"
+  platform: "homeassistant"
+  internal: true
+  entity_id: "sensor.weatherlink_iss_wind_speed"
+  unit_of_measurement: "km/h"
+
+- id: "ha_wind_gust"
+  platform: "homeassistant"
+  internal: true
+  entity_id: "sensor.weatherlink_wind_max_speed"
+  unit_of_measurement: "km/h"
+
+- id: "ha_outdoor_temperature"
+  platform: "homeassistant"
+  internal: true
+  entity_id: "sensor.weatherlink_iss_temperature"
+  unit_of_measurement: "°C"
+  device_class: "temperature"
+
+- id: "ha_solar_power"
+  platform: "homeassistant"
+  internal: true
+  entity_id: "sensor.solarleistung_gesamt"
+  unit_of_measurement: "W"
+  device_class: "power"

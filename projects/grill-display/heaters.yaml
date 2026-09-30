@@ -1,0 +1,67 @@
+switch:
+- &heater_west_switch
+  id: "heater_west_switch"
+  name: "${i18n.grilldisplay[language].heater_west}"
+  restore_mode: "ALWAYS_OFF"
+  platform: "homeassistant"
+  entity_id: "switch.terrasse_grill_west"
+
+- <<: *heater_west_switch
+  id: "heater_east_switch"
+  name: "${i18n.grilldisplay[language].heater_east}"
+  entity_id: "switch.on_off_light_31"
+
+output:
+- id: "heater_west_pwm"
+  platform: "slow_pwm"
+  period: "60s"
+  turn_on_action:
+  - switch.turn_on: "heater_west_switch"
+  turn_off_action:
+  - switch.turn_off: "heater_west_switch"
+
+- id: "heater_east_pwm"
+  platform: "slow_pwm"
+  period: "60s"
+  turn_on_action:
+  - switch.turn_on: "heater_east_switch"
+  turn_off_action:
+  - switch.turn_off: "heater_east_switch"
+
+climate:
+- &climate_west
+  id: "climate_west"
+  name: "${i18n.grilldisplay[language].climate_west}"
+  visual:
+    min_temperature: 40
+    max_temperature: 300
+    temperature_step: 5
+  platform: "pid"
+  sensor: "probe_west_temperature"
+  default_target_temperature: 0.0
+  heat_output: "heater_west_pwm"
+  control_parameters:
+    kp: 0.02829
+    ki: 0.00016
+    kd: 1.21726
+
+- <<: *climate_west
+  id: "climate_east"
+  name: "${i18n.grilldisplay[language].climate_east}"
+  sensor: "probe_east_temperature"
+  heat_output: "heater_east_pwm"
+
+button:
+- &climate_west_autotune
+  id: "climate_west_autotune"
+  name: "${i18n.grilldisplay[language].climate_west_autotune}"
+  entity_category: "CONFIG"
+  platform: "template"
+  on_press:
+  - climate.pid.autotune: "climate_west"
+
+- <<: *climate_west_autotune
+  id: "climate_east_autotune"
+  name: "${i18n.grilldisplay[language].climate_east_autotune}"
+  on_press:
+  - climate.pid.autotune: "climate_east"
