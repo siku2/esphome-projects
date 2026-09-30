@@ -79,6 +79,25 @@
                 ruff check --no-cache "$src"
                 touch "$out"
               '';
+
+          test-grill-cook =
+            pkgs.runCommand "check-test-grill-cook"
+              {
+                nativeBuildInputs = [ pkgs.stdenv.cc ];
+                src = lib.fileset.toSource {
+                  root = ./.;
+                  fileset = lib.fileset.unions [
+                    ./components/grill_cook/cook_model.h
+                    ./components/grill_cook/tests/cook_model_test.cpp
+                  ];
+                };
+              }
+              ''
+                g++ -std=c++17 -Wall -Wextra -Werror \
+                  -o cook_model_test "$src/components/grill_cook/tests/cook_model_test.cpp"
+                ./cook_model_test
+                touch "$out"
+              '';
         }
       );
 
