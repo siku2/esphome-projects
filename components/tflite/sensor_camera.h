@@ -61,7 +61,7 @@ class CameraSnapshotSensor : public sensor::Sensor, public Component, public cam
     this->inference_callbacks_.add(std::forward<F>(callback));
   }
 
-protected:
+ protected:
   InterpreterComponent *interpreter_component_{nullptr};
   camera::snapshot::Snapshotter *snapshotter_{nullptr};
   Rect crop_{};

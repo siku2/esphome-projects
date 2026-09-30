@@ -17,9 +17,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
  public:
   /// Set the attenuation for this pin. Only available on the ESP32.
   void set_attenuation(adc_atten_t attenuation) { this->attenuation_ = attenuation; }
-  void set_channel1(adc_channel_t channel) {
-    this->channel1_ = channel;
-  }
+  void set_channel1(adc_channel_t channel) { this->channel1_ = channel; }
   void set_autorange(bool autorange) { this->autorange_ = autorange; }
 
   /// Update ADC values

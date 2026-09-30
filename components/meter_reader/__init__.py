@@ -3,6 +3,7 @@ import math
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import camera_snapshot, number, sensor, text_sensor
+from esphome.components.number import NUMBER_MODES
 from esphome.const import (
     CONF_ACCURACY_DECIMALS,
     CONF_ID,
@@ -12,8 +13,8 @@ from esphome.const import (
     CONF_SOURCE,
     CONF_STATUS,
     CONF_TOLERANCE,
-    DEVICE_CLASS_WATER,
     DEVICE_CLASS_VOLUME_FLOW_RATE,
+    DEVICE_CLASS_WATER,
     ENTITY_CATEGORY_DIAGNOSTIC,
     ICON_COUNTER,
     ICON_GAUGE,
@@ -26,7 +27,6 @@ from esphome.const import (
     UNIT_LITRE_PER_SECOND,
     UNIT_PERCENT,
 )
-from esphome.components.number import NUMBER_MODES
 
 AUTO_LOAD = ["number", "sensor", "text_sensor"]
 DEPENDENCIES = ["camera_snapshot"]
@@ -169,9 +169,9 @@ def _validate_wheels(config):
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
-        cv.GenerateID(): cv.declare_id(MeterReader),
-        cv.Required(CONF_SNAPSHOTTER): cv.use_id(camera_snapshot.Snapshotter),
-        cv.Optional(CONF_MAX_FLOW, default=1.5): cv.positive_float,
+            cv.GenerateID(): cv.declare_id(MeterReader),
+            cv.Required(CONF_SNAPSHOTTER): cv.use_id(camera_snapshot.Snapshotter),
+            cv.Optional(CONF_MAX_FLOW, default=1.5): cv.positive_float,
             cv.Optional(CONF_CORROBORATIONS, default=1): cv.int_range(min=1),
             cv.Optional(
                 CONF_PENDING_WINDOW, default="6s"
@@ -185,7 +185,9 @@ CONFIG_SCHEMA = cv.All(
                 cv.ensure_list(WHEEL_SCHEMA),
                 cv.Length(min=2),
             ),
-            cv.Optional(CONF_READING, default=lambda: {CONF_NAME: "Meter Reading"}): READING_SCHEMA,
+            cv.Optional(
+                CONF_READING, default=lambda: {CONF_NAME: "Meter Reading"}
+            ): READING_SCHEMA,
             cv.Optional(
                 CONF_CONSUMPTION, default=lambda: {CONF_NAME: "Meter Consumption"}
             ): CONSUMPTION_SCHEMA,
@@ -246,7 +248,14 @@ async def to_code(config):
     cg.add(var.set_back_tolerance(config[CONF_BACK_TOLERANCE]))
 
     for wheel in config[CONF_WHEELS]:
-        cg.add(var.add_wheel(wheel[CONF_LEVEL], wheel[CONF_RESOLUTION], wheel[CONF_TOLERANCE], wheel[CONF_LINEAR]))
+        cg.add(
+            var.add_wheel(
+                wheel[CONF_LEVEL],
+                wheel[CONF_RESOLUTION],
+                wheel[CONF_TOLERANCE],
+                wheel[CONF_LINEAR],
+            )
+        )
         source = await cg.get_variable(wheel[CONF_SOURCE])
         callback = cg.RawExpression(
             f"[{var}](float result, float fit, bool accepted) {{ "

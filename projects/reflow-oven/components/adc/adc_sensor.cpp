@@ -32,8 +32,8 @@ void ADCSensor::setup() {
   }
 
   adc_oneshot_chan_cfg_t config = {
-    .atten = this->attenuation_,
-    .bitwidth = ADC_BITWIDTH_DEFAULT,
+      .atten = this->attenuation_,
+      .bitwidth = ADC_BITWIDTH_DEFAULT,
   };
   ret = adc_oneshot_config_channel(g_adc_handle, this->channel1_, &config);
   ESP_LOGCONFIG(TAG, "'%s': adc_oneshot_config_channel()=%d", this->get_name().c_str(), ret);

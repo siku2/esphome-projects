@@ -118,8 +118,7 @@ void MeterReader::process_cycle_(uint32_t now) {
     if (w.resolution == 0.0f)
       continue;
     if (w.present)
-      pos += snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u=%.2f ", w.level,
-                      (double) w.result);
+      pos += snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u=%.2f ", w.level, (double) w.result);
     else
       pos += snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u:- ", w.level);
   }
@@ -177,7 +176,8 @@ void MeterReader::process_cycle_(uint32_t now) {
   // Clamped so a long freeze cannot starve the CPU with an ever growing
   // search window.
   static constexpr uint64_t MAX_SEARCH_QUANTA = 100000;
-  uint64_t cap = static_cast<uint64_t>(std::ceil(this->max_flow_ * (now - this->last_commit_ms_) / 1000.0f / quantum)) + 1;
+  uint64_t cap =
+      static_cast<uint64_t>(std::ceil(this->max_flow_ * (now - this->last_commit_ms_) / 1000.0f / quantum)) + 1;
   cap = std::min(cap, MAX_SEARCH_QUANTA);
   const uint64_t back = this->back_span_u_();
   const uint64_t lo = this->u_ > back ? this->u_ - back : 0;
@@ -213,8 +213,7 @@ void MeterReader::process_cycle_(uint32_t now) {
              (unsigned long long) cap);
   } else {
     if (this->has_pending_) {
-      const bool confirms =
-          this->pending_u_ > this->u_ ? u_star >= this->pending_u_ : u_star <= this->pending_u_;
+      const bool confirms = this->pending_u_ > this->u_ ? u_star >= this->pending_u_ : u_star <= this->pending_u_;
       if (confirms) {
         this->pending_confirmed_++;
         if (this->pending_confirmed_ >= this->corroborations_)
@@ -433,8 +432,8 @@ void MeterReader::dump_config() {
   for (const auto &w : this->wheels_) {
     if (w.resolution == 0.0f)
       continue;  // unoccupied level slot
-    ESP_LOGCONFIG(TAG, "  Wheel level %u: %.1f L/rev, tolerance %.2f", (unsigned) w.level,
-                  (double) w.resolution, (double) w.tolerance);
+    ESP_LOGCONFIG(TAG, "  Wheel level %u: %.1f L/rev, tolerance %.2f", (unsigned) w.level, (double) w.resolution,
+                  (double) w.tolerance);
   }
   LOG_SENSOR("  ", "Reading", this->reading_sensor_);
   LOG_SENSOR("  ", "Consumption", this->consumption_sensor_);

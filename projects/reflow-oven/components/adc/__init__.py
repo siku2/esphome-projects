@@ -1,11 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import pins
-from esphome.const import CONF_ANALOG, CONF_INPUT, CONF_NUMBER
-
-from esphome.core import CORE
 from esphome.components.esp32 import get_esp32_variant
-from esphome.const import PLATFORM_ESP8266
 from esphome.components.esp32.const import (
     VARIANT_ESP32,
     VARIANT_ESP32C2,
@@ -15,6 +11,8 @@ from esphome.components.esp32.const import (
     VARIANT_ESP32S2,
     VARIANT_ESP32S3,
 )
+from esphome.const import CONF_ANALOG, CONF_INPUT, CONF_NUMBER, PLATFORM_ESP8266
+from esphome.core import CORE
 
 CODEOWNERS = ["@esphome/core"]
 
