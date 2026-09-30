@@ -27,7 +27,6 @@
 # ### Switch
 #
 # - `cp579epd_epd_power`: EPD power control.
-# - `cp579epd_display_full_update`: Switch to control full/partial updates (Defaults to partial update).
 
 substitutions:
   language: "en"
@@ -40,7 +39,6 @@ substitutions:
         exit: "Taste Zurück"
         menu: "Taste Menü"
         epd_power: "EPD Strom"
-        display_full_update: "Anzeige Vollaktualisierung"
         run_full_update: "Anzeige einmal voll aktualisieren"
 
       en:
@@ -50,11 +48,10 @@ substitutions:
         exit: "Button exit"
         menu: "Button menu"
         epd_power: "EPD Power"
-        display_full_update: "Display Full Update"
         run_full_update: "Display full update"
 
 external_components:
-- source: "github://siku2/esphome-crowpanel@d953202ad93176f7159df530837637170adaf33b"
+- source: "github://siku2/esphome-crowpanel@5f1e5677a119df5c54b9492ae43ab0896e9cbd0a"
   components: ["crowpanel_epaper"]
 
 esp32:
@@ -144,6 +141,7 @@ display:
   busy_pin: "GPIO48"
   update_interval: "never"
   auto_clear_enabled: false
+  full_update_every: 20
 
 switch:
 - id: "cp579epd_epd_power"
@@ -152,21 +150,6 @@ switch:
   platform: "gpio"
   pin: "GPIO7"
   restore_mode: "ALWAYS_ON"
-
-- id: "cp579epd_display_full_update"
-  name: "${i18n.cp579epd[language].display_full_update}"
-  entity_category: "CONFIG"
-  restore_mode: "ALWAYS_OFF"
-  platform: "template"
-  optimistic: true
-  turn_on_action:
-  - lambda: !lambda |
-      ESP_LOGI("main", "Enabling full display update");
-      id(cp579epd_display)->set_update_mode(crowpanel_epaper::UpdateMode::FULL);
-  turn_off_action:
-  - lambda: !lambda |
-      ESP_LOGI("main", "Enabling partial display update");
-      id(cp579epd_display)->set_update_mode(crowpanel_epaper::UpdateMode::PARTIAL);
 
 button:
 - id: "cp579epd_run_full_update"
@@ -177,9 +160,7 @@ button:
       tag: "cp579epd"
       level: "INFO"
       format: "Triggering full display update"
-  - switch.turn_on: "cp579epd_display_full_update"
+  - lambda: !lambda |
+      id(cp579epd_display)->request_full_update();
   - component.update: "cp579epd_display"
-  # It can take a while to update the display, so we wait a bit
-  - delay: "500ms"
-  - switch.turn_off: "cp579epd_display_full_update"
   platform: "template"
