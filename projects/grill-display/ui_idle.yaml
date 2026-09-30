@@ -101,7 +101,7 @@ lvgl:
             line_width: 1
             line_color: "color_ink"
 
-        - obj: # solar / outdoor readouts
+        - obj:
             x: 272
             y: 26
             width: 248
@@ -173,7 +173,7 @@ lvgl:
                     text: "°C"
                     text_font: "font_text"
 
-        - obj: # compass
+        - obj:
             x: 537
             y: 26
             width: 220
@@ -204,8 +204,7 @@ lvgl:
                       width: 3
                       length: 16
                       color: "color_ink"
-            # Shaft and chevron head in one polyline, pointing from the
-            # direction the wind comes from towards the rim.
+            # Shaft + chevron in one polyline: tail at the rim, tip toward centre.
             - line:
                 id: "line_wind_arrow"
                 width: 220
@@ -215,15 +214,15 @@ lvgl:
                 line_rounded: true
                 points:
                 - x: 110
-                  y: 110
+                  y: 15
                 - x: 110
-                  y: 20
-                - x: 96
-                  y: 60
-                - x: 110
-                  y: 20
+                  y: 70
                 - x: 124
-                  y: 60
+                  y: 45
+                - x: 110
+                  y: 70
+                - x: 96
+                  y: 45
             - label:
                 text: "N"
                 text_font: "font_label"
@@ -282,33 +281,35 @@ script:
       const uint32_t twelve_hours = 12 * 60 * 60;
       auto now = id(base_homeassistant_time).now();
       uint32_t seconds = now.second + 60 * now.minute + 3600 * now.hour;
-      // Round to the nearest 5 minutes
       seconds = (seconds + five_minutes / 2) / five_minutes * five_minutes;
       id(lvgl_minute_hand)->set_value((seconds % 3600) / 60.0);
       id(lvgl_hour_hand)->set_value((seconds % twelve_hours) / 60.0);
-
-      float bearing = id(ha_wind_bearing).state;
-      if (std::isnan(bearing)) {
-        bearing = 0.0f;
-      }
-      float rad = bearing * 3.14159265f / 180.0f;
-      id(wind_ux) = sinf(rad);
-      id(wind_uy) = -cosf(rad);
-      id(wind_vx) = cosf(rad);
-      id(wind_vy) = sinf(rad);
-  - lvgl.line.update:
-      id: "line_wind_arrow"
-      points:
-      - x: !lambda "return (int) (110 + id(wind_ux) * 35);"
-        y: !lambda "return (int) (110 + id(wind_uy) * 35);"
-      - x: !lambda "return (int) (110 + id(wind_ux) * 90);"
-        y: !lambda "return (int) (110 + id(wind_uy) * 90);"
-      - x: !lambda "return (int) (110 + id(wind_ux) * 60 + id(wind_vx) * 14);"
-        y: !lambda "return (int) (110 + id(wind_uy) * 60 + id(wind_vy) * 14);"
-      - x: !lambda "return (int) (110 + id(wind_ux) * 90);"
-        y: !lambda "return (int) (110 + id(wind_uy) * 90);"
-      - x: !lambda "return (int) (110 + id(wind_ux) * 60 - id(wind_vx) * 14);"
-        y: !lambda "return (int) (110 + id(wind_uy) * 60 - id(wind_vy) * 14);"
+  - if:
+      condition:
+        lambda: "return std::isnan(id(ha_wind_bearing).state);"
+      then:
+      - lvgl.widget.hide: "line_wind_arrow"
+      else:
+      - lambda: |-
+          float rad = id(ha_wind_bearing).state * 3.14159265f / 180.0f;
+          id(wind_ux) = sinf(rad);
+          id(wind_uy) = -cosf(rad);
+          id(wind_vx) = cosf(rad);
+          id(wind_vy) = sinf(rad);
+      - lvgl.widget.show: "line_wind_arrow"
+      - lvgl.line.update:
+          id: "line_wind_arrow"
+          points:
+          - x: !lambda "return (int) (110 + id(wind_ux) * 95);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 95);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 40);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 40);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 65 + id(wind_vx) * 14);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 65 + id(wind_vy) * 14);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 40);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 40);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 65 - id(wind_vx) * 14);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 65 - id(wind_vy) * 14);"
   - lvgl.label.update:
       id: "lbl_solar_value"
       text: !lambda |-
@@ -361,4 +362,8 @@ script:
           snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_gust_label} %.0f", v);
         }
         return std::string(buf);
-  - script.execute: "ui_refresh"
+  - if:
+      condition:
+        lvgl.page.is_showing: "ui_page_idle"
+      then:
+      - script.execute: "ui_refresh"
