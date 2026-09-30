@@ -45,3 +45,16 @@ script:
   - lambda: |-
       id(cp579epd_display)->request_full_update();
   - script.execute: "ui_refresh"
+
+- id: "ui_select_page"
+  mode: "restart"
+  then:
+  - if:
+      condition:
+        lambda: "return id(grill_cook_main)->is_cooking();"
+      then:
+      - lvgl.page.show: "ui_page_cook"
+      - script.execute: "ui_cook_update"
+      else:
+      - lvgl.page.show: "ui_page_idle"
+      - script.execute: "ui_idle_update"

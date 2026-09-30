@@ -1,0 +1,201 @@
+globals:
+- id: "line_history_${zone}"
+  type: "std::array<lv_point_precise_t, 60>"
+  restore_value: no
+
+lvgl:
+  pages:
+  - id: !extend "ui_page_cook"
+    widgets:
+    - obj:
+        x: ${x}
+        y: 0
+        width: 264
+        height: 272
+        pad_all: 0
+        border_width: 0
+        bg_color: "color_paper"
+        widgets:
+        - label:
+            text: "${i18n.grilldisplay[language]['ui_zone_' ~ zone]}"
+            text_font: "font_label"
+            align: "TOP_MID"
+            y: 10
+        - label:
+            id: "lbl_${zone}_off"
+            text: "${i18n.grilldisplay[language].ui_off}"
+            text_font: "font_label"
+            align: "TOP_MID"
+            y: 36
+            hidden: true
+        - obj:
+            id: "row_${zone}_on"
+            width: "SIZE_CONTENT"
+            height: "SIZE_CONTENT"
+            align: "TOP_MID"
+            y: 30
+            pad_all: 0
+            border_width: 0
+            bg_color: "color_paper"
+            layout:
+              type: "flex"
+              flex_flow: "ROW"
+              flex_align_main: "CENTER"
+              flex_align_cross: "END"
+              pad_column: 4
+            widgets:
+            - label:
+                id: "lbl_${zone}_temp"
+                text: "--"
+                text_font: "font_hero"
+            - label:
+                text: "°C"
+                text_font: "font_text"
+        - obj:
+            id: "row_${zone}_off"
+            width: "SIZE_CONTENT"
+            height: "SIZE_CONTENT"
+            align: "TOP_MID"
+            y: 60
+            pad_all: 0
+            border_width: 0
+            bg_color: "color_paper"
+            hidden: true
+            layout:
+              type: "flex"
+              flex_flow: "ROW"
+              flex_align_main: "CENTER"
+              flex_align_cross: "END"
+              pad_column: 4
+            widgets:
+            - label:
+                id: "lbl_${zone}_temp_off"
+                text: "--"
+                text_font: "font_medium"
+            - label:
+                text: "°C"
+                text_font: "font_text"
+        - line:
+            id: "line_hist_${zone}"
+            x: 52
+            y: 145
+            width: 160
+            height: 40
+            line_width: 2
+            line_color: "color_ink"
+            points:
+            - x: 0
+              y: 40
+            - x: 160
+              y: 40
+        - label:
+            id: "lbl_${zone}_target"
+            text: ""
+            text_font: "font_text"
+            text_color: "color_ink"
+            bg_opa: "TRANSP"
+            radius: 8
+            pad_top: 4
+            pad_bottom: 4
+            pad_left: 10
+            pad_right: 10
+            align: "TOP_MID"
+            y: 195
+            hidden: true
+        - label:
+            id: "lbl_${zone}_duty"
+            text: ""
+            text_font: "font_label"
+            align: "TOP_MID"
+            y: 232
+            hidden: true
+
+script:
+- id: "ui_cook_update_${zone}"
+  mode: "restart"
+  then:
+  - lvgl.label.update:
+      id: "lbl_${zone}_temp"
+      text: !lambda |-
+        char buf[24];
+        snprintf(buf, sizeof(buf), "%.1f", id(grill_cook_main)->zone_temperature(grill_cook::Zone::${zone_enum}));
+        return std::string(buf);
+  - lvgl.label.update:
+      id: "lbl_${zone}_temp_off"
+      text: !lambda |-
+        char buf[24];
+        snprintf(buf, sizeof(buf), "%.1f", id(grill_cook_main)->zone_temperature(grill_cook::Zone::${zone_enum}));
+        return std::string(buf);
+  - lvgl.obj.update:
+      id: "row_${zone}_on"
+      hidden: !lambda "return !id(grill_cook_main)->zone_on(grill_cook::Zone::${zone_enum});"
+  - lvgl.obj.update:
+      id: "row_${zone}_off"
+      hidden: !lambda "return id(grill_cook_main)->zone_on(grill_cook::Zone::${zone_enum});"
+  - lvgl.label.update:
+      id: "lbl_${zone}_off"
+      hidden: !lambda "return id(grill_cook_main)->zone_on(grill_cook::Zone::${zone_enum});"
+  - lvgl.label.update:
+      id: "lbl_${zone}_target"
+      hidden: !lambda |-
+        const bool focus = id(ui_focus_visible) && id(ui_focus) == ${focus};
+        return !(id(grill_cook_main)->zone_on(grill_cook::Zone::${zone_enum}) || focus);
+      text: !lambda |-
+        char buf[24];
+        snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_target_format}",
+                 id(grill_cook_main)->zone_target(grill_cook::Zone::${zone_enum}));
+        return std::string(buf);
+  - if:
+      condition:
+        lambda: "return id(ui_focus_visible) && id(ui_focus) == ${focus};"
+      then:
+      - lvgl.label.update:
+          id: "lbl_${zone}_target"
+          bg_opa: "COVER"
+          bg_color: "color_ink"
+          text_color: "color_paper"
+      else:
+      - lvgl.label.update:
+          id: "lbl_${zone}_target"
+          bg_opa: "TRANSP"
+          text_color: "color_ink"
+  - lvgl.label.update:
+      id: "lbl_${zone}_duty"
+      hidden: !lambda "return !id(grill_cook_main)->zone_on(grill_cook::Zone::${zone_enum});"
+      text: !lambda |-
+        float duty = std::max(0.0f, std::min(1.0f, id(climate_${zone})->get_output_value()));
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%.0f %%", duty * 100.0f);
+        return std::string(buf);
+  # History: repeat the last valid point across NaN gaps, draw nothing until two samples exist.
+  - lambda: |-
+      const auto &hist = id(grill_cook_main)->zone_history(grill_cook::Zone::${zone_enum});
+      size_t valid = 0;
+      float lo = NAN, hi = NAN;
+      for (float v : hist) {
+        if (!std::isnan(v)) {
+          valid++;
+          if (std::isnan(lo) || v < lo) lo = v;
+          if (std::isnan(hi) || v > hi) hi = v;
+        }
+      }
+      size_t count = 0;
+      if (valid >= 2) {
+        float span = (hi - lo) > 0.1f ? (hi - lo) : 1.0f;
+        float last = NAN;
+        bool started = false;
+        for (size_t i = 0; i < hist.size(); i++) {
+          float v = hist[i];
+          if (std::isnan(v)) {
+            if (!started) continue;
+            v = last;
+          } else {
+            last = v;
+            started = true;
+          }
+          id(line_history_${zone})[count].x = (float) i / (float) (hist.size() - 1) * 160.0f;
+          id(line_history_${zone})[count].y = 40.0f - (v - lo) / span * 40.0f;
+          count++;
+        }
+      }
+      lv_line_set_points(id(line_hist_${zone})->obj, id(line_history_${zone}).data(), count);

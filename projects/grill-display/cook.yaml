@@ -1,0 +1,62 @@
+number:
+- id: "target_meat_core_temperature"
+  name: "${i18n.grilldisplay[language].grill_target_temperature}"
+  platform: "template"
+  optimistic: true
+  restore_value: true
+  initial_value: 93
+  min_value: 40
+  max_value: 300
+  step: 0.5
+  mode: "box"
+
+event:
+- id: "grill_event"
+  name: "${i18n.grilldisplay[language].grill_event}"
+  platform: "template"
+  event_types:
+  - "started"
+  - "done"
+  - "stalled"
+  - "ended"
+
+grill_cook:
+  id: "grill_cook_main"
+  time_id: "base_homeassistant_time"
+  update_interval: "5s"
+  zones:
+    west:
+      climate: "climate_west"
+      probe: "probe_west_temperature"
+    east:
+      climate: "climate_east"
+      probe: "probe_east_temperature"
+  meat_probe: "probe_meat_temperature"
+  meat_target: "target_meat_core_temperature"
+  phase:
+    name: "${i18n.grilldisplay[language].grill_phase}"
+  meat_rate:
+    name: "${i18n.grilldisplay[language].grill_meat_rate}"
+  eta:
+    name: "${i18n.grilldisplay[language].grill_eta}"
+  remaining_minutes:
+    name: "${i18n.grilldisplay[language].grill_remaining_minutes}"
+  on_cook_started:
+  - event.trigger:
+      id: "grill_event"
+      event_type: "started"
+  - script.execute: "ui_select_page"
+  on_cook_ended:
+  - event.trigger:
+      id: "grill_event"
+      event_type: "ended"
+  - script.execute: "ui_select_page"
+  on_phase:
+  - if:
+      condition:
+        lambda: "return x == \"done\" || x == \"stalled\";"
+      then:
+      - event.trigger:
+          id: "grill_event"
+          event_type: !lambda "return x;"
+  - script.execute: "ui_cook_update"

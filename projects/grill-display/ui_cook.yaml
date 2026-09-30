@@ -1,0 +1,235 @@
+lvgl:
+  pages:
+  - id: "ui_page_cook"
+    widgets:
+    - obj:
+        width: 792
+        height: 272
+        pad_all: 0
+        border_width: 0
+        bg_color: "color_paper"
+        widgets:
+        - line:
+            x: 264
+            y: 26
+            points:
+            - x: 0
+              y: 0
+            - x: 0
+              y: 220
+            line_width: 1
+            line_color: "color_ink"
+
+        - line:
+            x: 528
+            y: 26
+            points:
+            - x: 0
+              y: 0
+            - x: 0
+              y: 220
+            line_width: 1
+            line_color: "color_ink"
+
+        - obj:
+            x: 264
+            y: 0
+            width: 264
+            height: 272
+            pad_all: 0
+            border_width: 0
+            bg_color: "color_paper"
+            widgets:
+            - label:
+                text: "${i18n.grilldisplay[language].ui_meat_probe}"
+                text_font: "font_label"
+                align: "TOP_MID"
+                y: 10
+
+            - label:
+                id: "lbl_meat_hint"
+                text: "${i18n.grilldisplay[language].ui_no_meat_probe}"
+                text_font: "font_text"
+                text_align: "CENTER"
+                align: "TOP_MID"
+                y: 100
+                hidden: true
+
+            - obj:
+                id: "grp_meat_present"
+                x: 0
+                y: 0
+                width: 264
+                height: 272
+                pad_all: 0
+                border_width: 0
+                bg_color: "color_paper"
+                widgets:
+                - obj:
+                    id: "row_meat_temp"
+                    width: "SIZE_CONTENT"
+                    height: "SIZE_CONTENT"
+                    align: "TOP_MID"
+                    y: 30
+                    pad_all: 0
+                    border_width: 0
+                    bg_color: "color_paper"
+                    layout:
+                      type: "flex"
+                      flex_flow: "ROW"
+                      flex_align_main: "CENTER"
+                      flex_align_cross: "END"
+                      pad_column: 4
+                    widgets:
+                    - label:
+                        id: "lbl_meat_temp"
+                        text: "--"
+                        text_font: "font_hero"
+                    - label:
+                        text: "°C"
+                        text_font: "font_text"
+                - label:
+                    id: "lbl_meat_target"
+                    text: ""
+                    text_font: "font_text"
+                    text_color: "color_ink"
+                    bg_opa: "TRANSP"
+                    radius: 8
+                    pad_top: 4
+                    pad_bottom: 4
+                    pad_left: 10
+                    pad_right: 10
+                    align: "TOP_MID"
+                    y: 140
+                - label:
+                    id: "lbl_meat_rate"
+                    text: ""
+                    text_font: "font_text"
+                    align: "TOP_MID"
+                    y: 168
+                - label:
+                    id: "lbl_meat_phase"
+                    text: ""
+                    text_font: "font_label"
+                    align: "TOP_MID"
+                    y: 194
+                - label:
+                    id: "lbl_meat_done"
+                    text: ""
+                    text_font: "font_text"
+                    align: "TOP_MID"
+                    y: 214
+                    hidden: true
+                - label:
+                    id: "lbl_meat_remaining"
+                    text: ""
+                    text_font: "font_label"
+                    align: "TOP_MID"
+                    y: 238
+                    hidden: true
+
+interval:
+- interval: "30s"
+  then:
+  - if:
+      condition:
+        lvgl.page.is_showing: "ui_page_cook"
+      then:
+      - script.execute: "ui_cook_update"
+
+script:
+- id: "ui_cook_update"
+  mode: "restart"
+  then:
+  - script.execute: "ui_cook_update_west"
+  - script.execute: "ui_cook_update_east"
+  - lvgl.obj.update:
+      id: "grp_meat_present"
+      hidden: !lambda "return !id(grill_cook_main)->meat_probe_present();"
+  - lvgl.label.update:
+      id: "lbl_meat_hint"
+      hidden: !lambda "return id(grill_cook_main)->meat_probe_present();"
+  - if:
+      condition:
+        lambda: "return id(grill_cook_main)->meat_probe_present();"
+      then:
+      - lvgl.label.update:
+          id: "lbl_meat_temp"
+          text: !lambda |-
+            char buf[24];
+            snprintf(buf, sizeof(buf), "%.1f", id(grill_cook_main)->meat_temperature());
+            return std::string(buf);
+      - lvgl.label.update:
+          id: "lbl_meat_target"
+          text: !lambda |-
+            char buf[24];
+            snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_target_format}",
+                     id(target_meat_core_temperature).state);
+            return std::string(buf);
+      - if:
+          condition:
+            lambda: "return id(ui_focus_visible) && id(ui_focus) == 2;"
+          then:
+          - lvgl.label.update:
+              id: "lbl_meat_target"
+              bg_opa: "COVER"
+              bg_color: "color_ink"
+              text_color: "color_paper"
+          else:
+          - lvgl.label.update:
+              id: "lbl_meat_target"
+              bg_opa: "TRANSP"
+              text_color: "color_ink"
+      - lvgl.label.update:
+          id: "lbl_meat_rate"
+          text: !lambda |-
+            const float rate = id(grill_cook_main)->meat_rate();
+            char buf[24];
+            if (std::isnan(rate)) {
+              snprintf(buf, sizeof(buf), "--");
+            } else {
+              snprintf(buf, sizeof(buf), "%+.2f °C/min", rate);
+            }
+            return std::string(buf);
+      - lvgl.label.update:
+          id: "lbl_meat_phase"
+          text: !lambda |-
+            switch (id(grill_cook_main)->phase()) {
+              case grill_cook::Phase::IDLE:
+                return std::string("${i18n.grilldisplay[language].ui_phase_idle}");
+              case grill_cook::Phase::GRILLING:
+                return std::string("${i18n.grilldisplay[language].ui_phase_grilling}");
+              case grill_cook::Phase::COOKING:
+                return std::string("${i18n.grilldisplay[language].ui_phase_cooking}");
+              case grill_cook::Phase::STALLED:
+                return std::string("${i18n.grilldisplay[language].ui_phase_stalled}");
+              case grill_cook::Phase::DONE:
+                return std::string("${i18n.grilldisplay[language].ui_phase_done}");
+              default:
+                return std::string("");
+            }
+      - lvgl.label.update:
+          id: "lbl_meat_done"
+          hidden: !lambda "return id(grill_cook_main)->eta_clock().empty();"
+          text: !lambda |-
+            const std::string eta = id(grill_cook_main)->eta_clock();
+            if (eta.empty())
+              return std::string("");
+            char buf[24];
+            snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_done_format}", eta.c_str());
+            return std::string(buf);
+      - lvgl.label.update:
+          id: "lbl_meat_remaining"
+          hidden: !lambda "return id(grill_cook_main)->remaining_minutes() < 0;"
+          text: !lambda |-
+            const int remaining = id(grill_cook_main)->remaining_minutes();
+            if (remaining < 0)
+              return std::string("");
+            char buf[24];
+            snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_remaining_format}", remaining / 60, remaining % 60);
+            return std::string(buf);
+  - if:
+      condition:
+        lvgl.page.is_showing: "ui_page_cook"
+      then:
+      - script.execute: "ui_refresh"

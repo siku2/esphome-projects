@@ -2,7 +2,6 @@ switch:
 - &heater_west_switch
   id: "heater_west_switch"
   name: "${i18n.grilldisplay[language].heater_west}"
-  restore_mode: "ALWAYS_OFF"
   platform: "homeassistant"
   entity_id: "switch.terrasse_grill_west"
 
@@ -38,7 +37,7 @@ climate:
     temperature_step: 5
   platform: "pid"
   sensor: "probe_west_temperature"
-  default_target_temperature: 0.0
+  default_target_temperature: 180
   heat_output: "heater_west_pwm"
   control_parameters:
     kp: 0.02829

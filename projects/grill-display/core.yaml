@@ -26,6 +26,23 @@ packages:
   ha_inputs: !include ha_inputs.yaml
   ui: !include ui.yaml
   ui_idle: !include ui_idle.yaml
+  ui_cook: !include ui_cook.yaml
+  ui_cook_west: !include
+    file: ui_cook_zone.yaml
+    vars:
+      zone: "west"
+      zone_enum: "WEST"
+      x: 0
+      focus: 0
+  ui_cook_east: !include
+    file: ui_cook_zone.yaml
+    vars:
+      zone: "east"
+      zone_enum: "EAST"
+      x: 528
+      focus: 1
+  cook: !include cook.yaml
+  input: !include input.yaml
 
 esphome:
   name: "${name}"
@@ -37,6 +54,10 @@ esphome:
 dashboard_import:
   package_import_url: "github://siku2/esphome-projects/projects/grill-display/core.yaml@main"
   import_full_config: false
+
+external_components:
+- source: "${components_source}"
+  components: ["grill_cook"]
 
 logger:
   logs:
