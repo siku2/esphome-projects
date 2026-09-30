@@ -55,7 +55,7 @@ substitutions:
 
 external_components:
 - source: "github://siku2/esphome-crowpanel@d953202ad93176f7159df530837637170adaf33b"
-  components: [ "crowpanel_epaper" ]
+  components: ["crowpanel_epaper"]
 
 esp32:
   board: "esp32-s3-devkitc-1"

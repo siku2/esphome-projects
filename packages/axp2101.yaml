@@ -41,12 +41,12 @@ output:
   - logger.log:
       tag: "axp2101"
       format: "Setting DLDO1 to %f"
-      args: [ 'state' ]
+      args: ["state"]
   - script.execute:
       id: "axp2101_set_ldo"
       index: 7
-      turn_on: !lambda 'return state != 0.0;'
-      step: !lambda 'return (int)(state * 28.5);'
+      turn_on: !lambda "return state != 0.0;"
+      step: !lambda "return (int)(state * 28.5);"
 
 script:
 - id: "axp2101_set_ldo"

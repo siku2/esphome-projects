@@ -19,7 +19,7 @@
 # - `e32s3cam_i2c`: I2C bus for camera configuration.
 #
 # ### Light
-# 
+#
 # - `e32s3cam_flash`: The flash light component.
 
 substitutions:

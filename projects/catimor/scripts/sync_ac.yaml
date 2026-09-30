@@ -3,11 +3,11 @@ mode: "restart"
 then:
 - if:
     condition:
-      lambda: 'return !isnan(id(ac_temperature).state);'
+      lambda: "return !isnan(id(ac_temperature).state);"
     then:
     - lvgl.arc.update:
         id: "arc_temperature"
-        value: !lambda 'return (int)(id(ac_temperature).state * 2.0f + 0.5f);'
+        value: !lambda "return (int)(id(ac_temperature).state * 2.0f + 0.5f);"
     - lvgl.label.update:
         id: "label_ac_temp"
         text:
@@ -15,7 +15,7 @@ then:
           args: ["id(ac_temperature).state"]
 - if:
     condition:
-      lambda: 'return !id(ac_hvac_mode).state.empty();'
+      lambda: "return !id(ac_hvac_mode).state.empty();"
     then:
     - lvgl.widget.update:
         id: "btn_ac_power"
@@ -36,7 +36,7 @@ then:
               return 4;
 - if:
     condition:
-      lambda: 'return !id(ac_fan_mode).state.empty();'
+      lambda: "return !id(ac_fan_mode).state.empty();"
     then:
     - lvgl.dropdown.update:
         id: "dd_ac_fan"
@@ -48,7 +48,7 @@ then:
           return 3;
 - if:
     condition:
-      lambda: 'return !id(ac_swing_mode).state.empty();'
+      lambda: "return !id(ac_swing_mode).state.empty();"
     then:
     - lvgl.widget.update:
         id: "sw_ac_swing"

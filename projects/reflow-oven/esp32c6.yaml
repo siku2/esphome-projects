@@ -1,6 +1,6 @@
 substitutions:
-  # name: "reflow-oven"
-  # friendly_name: "Reflow Oven"
+# name: "reflow-oven"
+# friendly_name: "Reflow Oven"
 
 packages:
   core: !include core.yaml

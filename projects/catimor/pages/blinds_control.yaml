@@ -98,7 +98,7 @@ widgets:
           id: "label_pos_pct"
           text:
             format: "%.0f%%"
-            args: [ "x" ]
+            args: ["x"]
     on_release:
       then:
       - script.execute:
@@ -154,7 +154,7 @@ widgets:
           id: "label_tilt_pct"
           text:
             format: "%.0f%%"
-            args: [ "x" ]
+            args: ["x"]
     on_release:
       then:
       - script.execute:

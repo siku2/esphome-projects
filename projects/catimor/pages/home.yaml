@@ -9,7 +9,6 @@ layout:
   pad_row: 6
   pad_column: 6
 widgets:
-
 # --- Row 0, Col 0: Blinds ---
 - button:
     id: "tile_blinds"
@@ -141,4 +140,3 @@ widgets:
         text_font: "montserrat_12_ext"
         text_align: "CENTER"
         width: "100%"
-
