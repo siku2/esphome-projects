@@ -7,9 +7,8 @@ sensor:
   id: "probe_west_temperature"
   internal: true
   filters:
+  - throttle_average: "2s"
   - round: 1
-  - filter_out: "NaN"
-  - timeout: "5s"
   platform: "max31855"
   update_interval: "500ms"
   cs_pin: "GPIO20"
