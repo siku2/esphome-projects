@@ -124,6 +124,18 @@ lvgl:
             align: "TOP_MID"
             y: 232
             hidden: true
+        - obj:
+            id: "frame_${zone}"
+            x: 3
+            y: 3
+            width: 259
+            height: 266
+            bg_opa: "TRANSP"
+            border_width: 3
+            border_color: "color_ink"
+            radius: 10
+            clickable: false
+            hidden: true
 
 script:
 - id: "ui_cook_update_${zone}"
@@ -169,20 +181,9 @@ script:
         if (id(ui_level) == 3 && id(ui_panel) == ${focus})
           return "< " + std::string(buf) + " >";
         return std::string(buf);
-  - if:
-      condition:
-        lambda: "return id(ui_level) == 1 && id(ui_panel) == ${focus};"
-      then:
-      - lvgl.label.update:
-          id: "lbl_${zone}_header"
-          bg_opa: "COVER"
-          bg_color: "color_ink"
-          text_color: "color_paper"
-      else:
-      - lvgl.label.update:
-          id: "lbl_${zone}_header"
-          bg_opa: "TRANSP"
-          text_color: "color_ink"
+  - lvgl.obj.update:
+      id: "frame_${zone}"
+      hidden: !lambda "return !(id(ui_level) >= 1 && id(ui_panel) == ${focus});"
   - if:
       condition:
         lambda: "return id(ui_level) == 2 && id(ui_panel) == ${focus} && id(ui_item) == 0;"

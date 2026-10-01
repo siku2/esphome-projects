@@ -136,6 +136,18 @@ lvgl:
                     align: "TOP_MID"
                     y: 238
                     hidden: true
+            - obj:
+                id: "frame_meat"
+                x: 3
+                y: 3
+                width: 259
+                height: 266
+                bg_opa: "TRANSP"
+                border_width: 3
+                border_color: "color_ink"
+                radius: 10
+                clickable: false
+                hidden: true
 
 interval:
 - interval: "30s"
@@ -152,20 +164,9 @@ script:
   then:
   - script.execute: "ui_cook_update_west"
   - script.execute: "ui_cook_update_east"
-  - if:
-      condition:
-        lambda: "return id(ui_level) == 1 && id(ui_panel) == 2;"
-      then:
-      - lvgl.label.update:
-          id: "lbl_meat_header"
-          bg_opa: "COVER"
-          bg_color: "color_ink"
-          text_color: "color_paper"
-      else:
-      - lvgl.label.update:
-          id: "lbl_meat_header"
-          bg_opa: "TRANSP"
-          text_color: "color_ink"
+  - lvgl.obj.update:
+      id: "frame_meat"
+      hidden: !lambda "return !(id(ui_level) >= 1 && id(ui_panel) == 2);"
   - lvgl.obj.update:
       id: "grp_meat_present"
       hidden: !lambda "return !id(grill_cook_main)->meat_probe_present();"
