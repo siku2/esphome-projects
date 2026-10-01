@@ -5,6 +5,7 @@ from esphome.components import climate, number, sensor, text_sensor, time
 from esphome.const import (
     CONF_ID,
     CONF_TIME_ID,
+    CONF_UPDATE_INTERVAL,
     STATE_CLASS_MEASUREMENT,
 )
 
@@ -66,6 +67,13 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_ON_COOK_ENDED): automation.validate_automation(single=True),
     }
 ).extend(cv.polling_component_schema("5s"))
+CONFIG_SCHEMA = cv.All(
+    CONFIG_SCHEMA,
+    cv.Schema(
+        {cv.Optional(CONF_UPDATE_INTERVAL): cv.Range(min=cv.TimePeriod(seconds=2))},
+        extra=cv.ALLOW_EXTRA,
+    ),
+)
 
 
 async def to_code(config):

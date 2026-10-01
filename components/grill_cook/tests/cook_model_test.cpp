@@ -1,7 +1,9 @@
 #include "../cook_model.h"
 
+#include <array>
 #include <cassert>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -228,6 +230,303 @@ void test_start_end_start_resets_state() {
   }
 }
 
+// Feeds `ticks` samples with the zone on at 130 C and returns the next time.
+uint32_t feed(CookModel &model, uint32_t t, int ticks, bool zone_on, float meat_temp, float meat_target) {
+  for (int i = 0; i < ticks; i++) {
+    model.update(make_inputs(t, zone_on, false, 130.0f, meat_temp, meat_target));
+    t += DT_S;
+  }
+  return t;
+}
+
+// Raises the meat from `start` to just below `target` at 3 C/min.
+uint32_t ramp_below(CookModel &model, uint32_t t, float start, float target) {
+  const uint32_t t0 = t;
+  while (true) {
+    const float meat_temp = start + 3.0f * (t - t0) / 60.0f;
+    if (meat_temp >= target - 1.0f)
+      return t;
+    model.update(make_inputs(t, true, false, 130.0f, meat_temp, target));
+    t += DT_S;
+  }
+}
+
+void test_hot_probe_before_insertion_is_not_done() {
+  CookModel model;
+  model.start();
+
+  uint32_t t = 0;
+  for (int i = 0; i < 12; i++) {
+    model.update(make_inputs(t, true, false, 130.0f, 120.0f, 90.0f));
+    assert(model.phase() != Phase::DONE);
+    t += DT_S;
+  }
+  for (int i = 0; i < 120; i++) {
+    model.update(make_inputs(t, true, false, 130.0f, 8.0f, 90.0f));
+    assert(model.phase() != Phase::DONE);
+    t += DT_S;
+  }
+}
+
+void test_done_latch_and_release_on_higher_target() {
+  CookModel model;
+  model.start();
+
+  uint32_t t = ramp_below(model, 0, 20.0f, 90.0f);
+  t = feed(model, t, 1, true, 90.0f, 90.0f);
+  assert(model.phase() == Phase::DONE);
+
+  t = feed(model, t, 6, true, 88.0f, 90.0f);
+  assert(model.phase() == Phase::DONE);
+
+  t = feed(model, t, 1, true, 88.0f, 95.0f);
+  assert(model.phase() == Phase::COOKING);
+
+  t = feed(model, t, 1, true, 95.0f, 95.0f);
+  assert(model.phase() == Phase::DONE);
+}
+
+void test_lowered_target_gives_done_once() {
+  CookModel model;
+  model.start();
+
+  uint32_t t = ramp_below(model, 0, 20.0f, 90.0f);
+  t = feed(model, t, 3, true, 70.0f, 90.0f);
+  assert(model.phase() == Phase::COOKING);
+
+  int done_entries = 0;
+  Phase prev = model.phase();
+  for (float target : {65.0f, 65.0f, 60.0f, 50.0f, 40.0f}) {
+    for (int i = 0; i < 6; i++) {
+      model.update(make_inputs(t, true, false, 130.0f, 70.0f, target));
+      t += DT_S;
+      assert(model.phase() == Phase::DONE);
+      if (prev != Phase::DONE)
+        done_entries++;
+      prev = model.phase();
+    }
+  }
+  assert(done_entries == 1);
+}
+
+void test_cooling_with_zones_off_is_not_stalled() {
+  CookModel model;
+  model.start();
+
+  uint32_t t = 0;
+  for (; t <= 15 * 60; t += DT_S) {
+    const float meat_temp = 66.0f - 0.3f * (t / 60.0f);
+    model.update(make_inputs(t, false, false, 25.0f, meat_temp, 90.0f));
+    assert(model.phase() == Phase::COOKING);
+  }
+  assert(model.meat_rate() < -0.25f);
+}
+
+void test_stall_hysteresis() {
+  CookModel model;
+  model.start();
+
+  uint32_t t = 0;
+  float meat_temp = 20.0f;
+  int stalled_entries = 0;
+  bool was_stalled = false;
+  bool stall_reached = false;
+  bool stall_left_early = false;
+
+  auto tick = [&](float c_per_min) {
+    meat_temp += c_per_min * DT_S / 60.0f;
+    model.update(make_inputs(t, true, false, 130.0f, meat_temp, 90.0f));
+    t += DT_S;
+    const bool stalled = model.phase() == Phase::STALLED;
+    if (stalled && !was_stalled)
+      stalled_entries++;
+    if (!stalled && was_stalled && stall_reached && !std::isnan(model.meat_rate()) && model.meat_rate() < 0.2f)
+      stall_left_early = true;
+    was_stalled = stalled;
+  };
+
+  for (int i = 0; i < 120; i++)
+    tick(4.5f);
+  for (int i = 0; i < 15 * 12 + 24; i++)
+    tick(0.0f);
+  assert(model.phase() == Phase::STALLED);
+  stall_reached = true;
+
+  // The rate wanders between 0.08 and 0.15 C/min.
+  for (int round = 0; round < 3; round++) {
+    for (int i = 0; i < 20 * 12; i++)
+      tick(0.08f);
+    for (int i = 0; i < 20 * 12; i++)
+      tick(0.15f);
+    assert(model.phase() == Phase::STALLED);
+  }
+  assert(stalled_entries == 1);
+  assert(!stall_left_early);
+
+  for (int i = 0; i < 20 * 12; i++)
+    tick(0.5f);
+  assert(model.meat_rate() >= 0.2f);
+  assert(model.phase() == Phase::COOKING);
+  assert(stalled_entries == 1);
+}
+
+void test_end_cook_with_zones_on_stays_idle() {
+  CookModel model;
+  model.start();
+  uint32_t t = feed(model, 0, 10, true, 40.0f, 90.0f);
+  assert(model.is_cooking());
+
+  model.end();
+  assert(model.phase() == Phase::IDLE);
+  feed(model, t, 40, true, 40.0f, 90.0f);
+  assert(!model.is_cooking());
+  assert(model.phase() == Phase::IDLE);
+}
+
+void test_zone_on_at_first_update_starts_cook() {
+  CookModel model;
+  model.update(make_inputs(0, true, false, 25.0f, NAN, 90.0f));
+  assert(model.is_cooking());
+  assert(model.phase() == Phase::GRILLING);
+}
+
+void test_probe_dropout_and_return() {
+  CookModel model;
+  model.start();
+
+  uint32_t t = ramp_below(model, 0, 20.0f, 90.0f);
+  t = feed(model, t, 6, true, 50.0f, 90.0f);
+  assert(model.phase() == Phase::COOKING);
+  assert(model.meat_probe_present());
+
+  for (int i = 0; i < 24; i++) {
+    model.update(make_inputs(t, true, false, 130.0f, NAN, 90.0f));
+    t += DT_S;
+    assert(model.phase() == Phase::GRILLING);
+    assert(!model.meat_probe_present());
+  }
+
+  t = feed(model, t, 6, true, 52.0f, 90.0f);
+  assert(model.phase() == Phase::COOKING);
+  assert(model.meat_probe_present());
+}
+
+// The latch is kept while the probe is absent, so DONE comes back with it.
+void test_done_latch_survives_probe_dropout() {
+  CookModel model;
+  model.start();
+
+  uint32_t t = ramp_below(model, 0, 20.0f, 90.0f);
+  t = feed(model, t, 2, true, 90.0f, 90.0f);
+  assert(model.phase() == Phase::DONE);
+
+  t = feed(model, t, 24, true, NAN, 90.0f);
+  assert(model.phase() == Phase::GRILLING);
+
+  t = feed(model, t, 2, true, 85.0f, 90.0f);
+  assert(model.phase() == Phase::DONE);
+}
+
+void test_timestamps_near_counter_limits() {
+  CookModel model;
+  std::vector<Phase> reference;
+  run_cook_profile(model, 0, reference);
+
+  // 4294967 s is where a 32 bit millisecond counter wraps. 2^32 s is where
+  // the model's own seconds counter wraps.
+  for (uint32_t t0 : {4294967u - 400u, UINT32_MAX - 400u}) {
+    CookModel other;
+    std::vector<Phase> trace;
+    run_cook_profile(other, t0, trace);
+    assert(!other.is_cooking());
+    assert(trace == reference);
+  }
+}
+
+void test_auto_end_restarts_when_zone_turns_on() {
+  CookModel model;
+  model.start();
+
+  uint32_t t = feed(model, 0, 1, true, 20.0f, 90.0f);
+  t = feed(model, t, 50, false, 20.0f, 90.0f);  // 250 s
+  assert(model.is_cooking());
+
+  t = feed(model, t, 1, true, 20.0f, 90.0f);
+  t = feed(model, t, 50, false, 20.0f, 90.0f);  // another 250 s
+  assert(model.is_cooking());
+
+  t = feed(model, t, 15, false, 20.0f, 90.0f);
+  assert(!model.is_cooking());
+}
+
+struct Tick {
+  Phase phase;
+  float rate;
+  int remaining;
+  std::array<float, CookModel::HISTORY_LEN> west;
+  std::array<float, CookModel::HISTORY_LEN> east;
+  std::array<float, CookModel::HISTORY_LEN> meat;
+};
+
+bool same_float(float a, float b) {
+  if (std::isnan(a) || std::isnan(b))
+    return std::isnan(a) && std::isnan(b);
+  return std::fabs(a - b) <= 1e-4f;
+}
+
+template<size_t N> bool same_array(const std::array<float, N> &a, const std::array<float, N> &b) {
+  for (size_t i = 0; i < N; i++) {
+    if (!same_float(a[i], b[i]))
+      return false;
+  }
+  return true;
+}
+
+uint32_t run_traced_cook(CookModel &model, uint32_t t, std::vector<Tick> &trace) {
+  const float meat_target = 80.0f;
+  auto tick = [&](bool zone_on, float meat_temp) {
+    model.update(make_inputs(t, zone_on, zone_on, 130.0f, meat_temp, meat_target));
+    trace.push_back({model.phase(), model.meat_rate(), model.remaining_minutes(), model.zone_history(Zone::WEST),
+                     model.zone_history(Zone::EAST), model.meat_history()});
+    t += DT_S;
+  };
+
+  for (int i = 0; i < 12; i++)
+    tick(true, NAN);
+  for (int i = 0; i < 12 * 20; i++)
+    tick(true, 20.0f + 3.0f * i * DT_S / 60.0f);
+  for (int i = 0; i < 12 * 5; i++)
+    tick(true, meat_target);
+  for (int i = 0; i < 12 * 3; i++)
+    tick(true, 75.0f);
+  return t;
+}
+
+void test_second_manual_cook_matches_first() {
+  CookModel model;
+  std::vector<Tick> first;
+  std::vector<Tick> second;
+
+  model.start();
+  uint32_t t = run_traced_cook(model, 1000, first);
+  assert(model.phase() == Phase::DONE);
+  model.end();
+  assert(model.phase() == Phase::IDLE);
+
+  model.start();
+  run_traced_cook(model, t, second);
+
+  assert(first.size() == second.size());
+  for (size_t i = 0; i < first.size(); i++) {
+    assert(first[i].phase == second[i].phase);
+    assert(same_float(first[i].rate, second[i].rate));
+    assert(first[i].remaining == second[i].remaining);
+    assert(same_array(first[i].west, second[i].west));
+    assert(same_array(first[i].east, second[i].east));
+    assert(same_array(first[i].meat, second[i].meat));
+  }
+}
+
 }  // namespace
 
 int main() {
@@ -239,6 +538,18 @@ int main() {
   test_auto_end_after_cold_and_off();
   test_second_cook_matches_first();
   test_start_end_start_resets_state();
+  test_hot_probe_before_insertion_is_not_done();
+  test_done_latch_and_release_on_higher_target();
+  test_lowered_target_gives_done_once();
+  test_cooling_with_zones_off_is_not_stalled();
+  test_stall_hysteresis();
+  test_end_cook_with_zones_on_stays_idle();
+  test_zone_on_at_first_update_starts_cook();
+  test_probe_dropout_and_return();
+  test_done_latch_survives_probe_dropout();
+  test_timestamps_near_counter_limits();
+  test_auto_end_restarts_when_zone_turns_on();
+  test_second_manual_cook_matches_first();
 
   std::printf("all cook_model tests passed\n");
   return 0;

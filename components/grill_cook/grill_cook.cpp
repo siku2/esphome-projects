@@ -65,7 +65,7 @@ void GrillCook::dump_config() {
 
 void GrillCook::update() {
   grill_cook_model::CookInputs in{};
-  in.t_s = millis() / 1000;
+  in.t_s = static_cast<uint32_t>(millis_64() / 1000);
 
   for (size_t z = 0; z < 2; z++) {
     const auto *climate = this->zones_[z].climate;
@@ -96,7 +96,7 @@ void GrillCook::update() {
   this->publish_if_changed_(this->phase_sensor_, std::string(this->model_.phase_str()), &this->last_phase_text_);
   this->publish_if_changed_(this->eta_sensor_, this->eta_clock(), &this->last_eta_text_);
 
-  const float rate = this->model_.meat_rate();
+  const float rate = std::round(this->model_.meat_rate() * 100.0f) / 100.0f;
   const bool rate_changed =
       std::isnan(rate) != std::isnan(this->last_meat_rate_) || (!std::isnan(rate) && rate != this->last_meat_rate_);
   if (this->meat_rate_sensor_ != nullptr && rate_changed) {

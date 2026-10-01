@@ -36,8 +36,8 @@ struct CookInputs {
   float meat_target{NAN};
 };
 
-// cooking_ and meat_peak_ are the only latched values. Everything else is
-// recomputed from the recent inputs and only turns samples into a slope, a
+// cooking_, done_, armed_ and stalled_ are the latched values. Everything else
+// is recomputed from the recent inputs and only turns samples into a slope, a
 // sparkline and a duration.
 class CookModel {
  public:
@@ -74,15 +74,14 @@ class CookModel {
 
     const bool probe_present = std::isfinite(in.meat_temp);
     if (probe_present) {
-      if (std::isnan(this->meat_peak_) || in.meat_temp > this->meat_peak_) {
-        this->meat_peak_ = in.meat_temp;
-      }
       this->push_rate_sample_(in.t_s, in.meat_temp);
     } else {
       this->rate_head_ = 0;
       this->rate_count_ = 0;
     }
     this->compute_rate_();
+    this->update_done_(in, probe_present);
+    this->update_stalled_(any_zone_on, probe_present);
     this->push_history_sample_(in);
 
     const bool meat_cold_or_absent = !probe_present || in.meat_temp < MEAT_COLD_C;
@@ -103,10 +102,9 @@ class CookModel {
       return Phase::IDLE;
     if (!this->meat_probe_present())
       return Phase::GRILLING;
-    if (!std::isnan(this->meat_peak_) && this->meat_peak_ >= this->latest_.meat_target)
+    if (this->done_)
       return Phase::DONE;
-    if (this->latest_.meat_temp >= STALL_TEMP_C && !std::isnan(this->rate_c_per_min_) &&
-        this->rate_c_per_min_ < STALL_RATE_C_PER_MIN)
+    if (this->stalled_)
       return Phase::STALLED;
     return Phase::COOKING;
   }
@@ -120,7 +118,7 @@ class CookModel {
       return -1;
     if (!std::isfinite(this->latest_.meat_target))
       return -1;
-    if (std::isnan(this->rate_c_per_min_) || this->rate_c_per_min_ <= RATE_ETA_MIN_C_PER_MIN)
+    if (std::isnan(this->rate_c_per_min_) || this->rate_c_per_min_ < RATE_ETA_MIN_C_PER_MIN)
       return -1;
     const float delta = this->latest_.meat_target - this->latest_.meat_temp;
     if (delta <= 0.0f)
@@ -145,7 +143,8 @@ class CookModel {
  private:
   static constexpr float ZONE_SETPOINT_TOLERANCE_C = 5.0f;
   static constexpr float STALL_TEMP_C = 60.0f;
-  static constexpr float STALL_RATE_C_PER_MIN = 0.1f;
+  static constexpr float STALL_ENTER_RATE_C_PER_MIN = 0.1f;
+  static constexpr float STALL_EXIT_RATE_C_PER_MIN = 0.2f;
   static constexpr float MEAT_COLD_C = 30.0f;
   static constexpr uint32_t AUTO_END_S = 5 * 60;
   static constexpr uint32_t RATE_WINDOW_S = 15 * 60;
@@ -159,7 +158,10 @@ class CookModel {
   };
 
   void reset_cook_state_() {
-    this->meat_peak_ = NAN;
+    this->done_ = false;
+    this->done_target_ = NAN;
+    this->armed_ = false;
+    this->stalled_ = false;
     this->rate_head_ = 0;
     this->rate_count_ = 0;
     this->rate_c_per_min_ = NAN;
@@ -170,6 +172,34 @@ class CookModel {
     this->last_history_t_s_ = 0;
     this->history_started_ = false;
     this->off_since_valid_ = false;
+  }
+
+  // The probe can read hot before it is inserted, so DONE only arms once the
+  // meat has been seen below the target.
+  void update_done_(const CookInputs &in, bool probe_present) {
+    if (this->done_ && in.meat_target > this->done_target_) {
+      this->done_ = false;
+    }
+    if (!probe_present)
+      return;
+    if (in.meat_temp < in.meat_target) {
+      this->armed_ = true;
+    } else if (this->armed_ && !this->done_ && in.meat_temp >= in.meat_target) {
+      this->done_ = true;
+      this->done_target_ = in.meat_target;
+    }
+  }
+
+  void update_stalled_(bool any_zone_on, bool probe_present) {
+    const bool eligible = probe_present && !this->done_ && any_zone_on && this->latest_.meat_temp >= STALL_TEMP_C &&
+                          !std::isnan(this->rate_c_per_min_);
+    if (!eligible) {
+      this->stalled_ = false;
+    } else if (this->rate_c_per_min_ < STALL_ENTER_RATE_C_PER_MIN) {
+      this->stalled_ = true;
+    } else if (this->rate_c_per_min_ >= STALL_EXIT_RATE_C_PER_MIN) {
+      this->stalled_ = false;
+    }
   }
 
   void push_rate_sample_(uint32_t t_s, float temp) {
@@ -244,7 +274,10 @@ class CookModel {
   }
 
   bool cooking_{false};
-  float meat_peak_{NAN};
+  bool done_{false};
+  float done_target_{NAN};
+  bool armed_{false};
+  bool stalled_{false};
 
   CookInputs latest_{};
   bool prev_any_zone_on_{false};
