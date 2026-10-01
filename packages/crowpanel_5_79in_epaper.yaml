@@ -93,6 +93,8 @@ binary_sensor:
   name: "${i18n.cp579epd[language].rotary_down}"
   entity_category: "DIAGNOSTIC"
   platform: "gpio"
+  filters:
+  - delayed_on_off: "10ms"
   pin:
     number: "GPIO4"
     inverted: true
