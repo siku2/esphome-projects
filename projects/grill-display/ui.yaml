@@ -3,10 +3,12 @@ font:
   id: "font_label"
   size: 14
   glyphsets: ["GF_Latin_Core"]
+  ignore_missing_glyphs: true
 - file: "gfonts://Roboto@400"
   id: "font_text"
   size: 20
   glyphsets: ["GF_Latin_Core"]
+  ignore_missing_glyphs: true
 - file: "gfonts://Roboto Condensed@700"
   id: "font_medium"
   size: 32
