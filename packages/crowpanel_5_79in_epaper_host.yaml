@@ -9,7 +9,7 @@ binary_sensor:
 - &cp579epd_rotary_up
   id: "cp579epd_rotary_up"
   internal: true
-  publish_initial_state: true
+  trigger_on_initial_state: true
   platform: "sdl"
   sdl_id: "cp579epd_display"
   key: "SDLK_UP"
@@ -30,6 +30,74 @@ binary_sensor:
   id: "cp579epd_exit"
   key: "SDLK_ESCAPE"
 
+script:
+- id: "cp579epd_sim_press"
+  mode: "queued"
+  parameters:
+    input: "string"
+    hold_ms: "int"
+  then:
+  - lambda: |-
+      id(cp579epd_pressed) = nullptr;
+      if (input == "rotary_up") id(cp579epd_pressed) = id(cp579epd_rotary_up);
+      if (input == "rotary_down") id(cp579epd_pressed) = id(cp579epd_rotary_down);
+      if (input == "rotary_press") id(cp579epd_pressed) = id(cp579epd_rotary_press);
+      if (input == "menu") id(cp579epd_pressed) = id(cp579epd_menu);
+      if (input == "exit") id(cp579epd_pressed) = id(cp579epd_exit);
+      if (id(cp579epd_pressed) != nullptr) id(cp579epd_pressed)->publish_state(true);
+  - delay: !lambda "return hold_ms;"
+  - lambda: |-
+      if (id(cp579epd_pressed) != nullptr) id(cp579epd_pressed)->publish_state(false);
+
+button:
+- name: "Sim Rotary Up"
+  platform: "template"
+  on_press:
+  - script.execute:
+      id: "cp579epd_sim_press"
+      input: "rotary_up"
+      hold_ms: 100
+
+- name: "Sim Rotary Down"
+  platform: "template"
+  on_press:
+  - script.execute:
+      id: "cp579epd_sim_press"
+      input: "rotary_down"
+      hold_ms: 100
+
+- name: "Sim Rotary Press"
+  platform: "template"
+  on_press:
+  - script.execute:
+      id: "cp579epd_sim_press"
+      input: "rotary_press"
+      hold_ms: 100
+
+- name: "Sim Menu"
+  platform: "template"
+  on_press:
+  - script.execute:
+      id: "cp579epd_sim_press"
+      input: "menu"
+      hold_ms: 100
+
+- name: "Sim Exit"
+  platform: "template"
+  on_press:
+  - script.execute:
+      id: "cp579epd_sim_press"
+      input: "exit"
+      hold_ms: 100
+
+- name: "Sim Exit Hold"
+  platform: "template"
+  on_press:
+  - script.execute:
+      id: "cp579epd_sim_press"
+      input: "exit"
+      hold_ms: 1200
+
 api:
   actions:
   - action: "press"
@@ -37,17 +105,10 @@ api:
       input: "string"
       hold_ms: "int"
     then:
-    - lambda: |-
-        id(cp579epd_pressed) = nullptr;
-        if (input == "rotary_up") id(cp579epd_pressed) = id(cp579epd_rotary_up);
-        if (input == "rotary_down") id(cp579epd_pressed) = id(cp579epd_rotary_down);
-        if (input == "rotary_press") id(cp579epd_pressed) = id(cp579epd_rotary_press);
-        if (input == "menu") id(cp579epd_pressed) = id(cp579epd_menu);
-        if (input == "exit") id(cp579epd_pressed) = id(cp579epd_exit);
-        if (id(cp579epd_pressed) != nullptr) id(cp579epd_pressed)->publish_state(true);
-    - delay: !lambda "return hold_ms;"
-    - lambda: |-
-        if (id(cp579epd_pressed) != nullptr) id(cp579epd_pressed)->publish_state(false);
+    - script.execute:
+        id: "cp579epd_sim_press"
+        input: !lambda "return input;"
+        hold_ms: !lambda "return hold_ms;"
 
 globals:
 - id: "cp579epd_pressed"

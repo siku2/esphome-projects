@@ -27,10 +27,19 @@
 
       pythonFiles = lib.fileset.fileFilter (file: file.hasExt "py");
 
+      simulatorSrc = lib.fileset.toSource {
+        root = ./simulator;
+        fileset = lib.fileset.unions [
+          ./simulator/pyproject.toml
+          (pythonFiles ./simulator)
+        ];
+      };
+
       perSystem = lib.genAttrs systems (
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          python = pkgs.python3;
           # The nixpkgs sdl2-config has an empty includedir and prints -I/SDL2.
           sdl2 = pkgs.SDL2.overrideAttrs (old: {
             postFixup = (old.postFixup or "") + ''
@@ -38,53 +47,52 @@
                 --replace-fail "in /SDL2 " 'in ''${includedir}/SDL2 '
             '';
           });
-          grillDisplaySimPanel = pkgs.writeShellApplication {
-            name = "grill-display-sim-panel";
-            runtimeInputs = [
-              (pkgs.python3.withPackages (ps: [
-                ps.aioesphomeapi
-                ps.tkinter
-              ]))
-              pkgs.git
-            ];
-            text = ''
-              exec python3 "$(git rev-parse --show-toplevel)/projects/grill-display/sim_panel.py" "$@"
-            '';
-          };
         in
         {
           inherit pkgs sdl2;
-          grillDisplaySim = pkgs.writeShellApplication {
-            name = "grill-display-sim";
-            runtimeInputs = [
-              pkgs.esphome
-              pkgs.git
-              sdl2
-              sdl2.dev
-              pkgs.openssl
-              pkgs.openssl.dev
-              pkgs.stdenv.cc
-              grillDisplaySimPanel
+          pythonDev = python.withPackages (ps: [
+            ps.aioesphomeapi
+            ps.mypy
+            ps.pytest
+            ps.pyyaml
+            ps.types-pyyaml
+          ]);
+          esphomeSim = python.pkgs.buildPythonApplication {
+            pname = "esphome-sim";
+            version = "0.1.0";
+            pyproject = true;
+            src = simulatorSrc;
+            build-system = [ python.pkgs.hatchling ];
+            dependencies = [
+              python.pkgs.aioesphomeapi
+              python.pkgs.pyyaml
+              python.pkgs.tkinter
             ];
-            text = ''
-              export CPATH="${pkgs.openssl.dev}/include''${CPATH:+:$CPATH}"
-              export LIBRARY_PATH="${pkgs.openssl.out}/lib''${LIBRARY_PATH:+:$LIBRARY_PATH}"
-              cd "$(git rev-parse --show-toplevel)"
-              grill-display-sim-panel &
-              panel=$!
-              trap 'kill "$panel" 2>/dev/null || true' EXIT
-              esphome run tests/grill-display-host.yaml "$@"
-            '';
-          };
-          grillDisplaySimPress = pkgs.writeShellApplication {
-            name = "grill-display-sim-press";
-            runtimeInputs = [
-              (pkgs.python3.withPackages (ps: [ ps.aioesphomeapi ]))
-              pkgs.git
+            nativeCheckInputs = [ python.pkgs.pytestCheckHook ];
+            pythonImportsCheck = [ "esphome_sim" ];
+            # `esphome-sim run` compiles the host build.
+            makeWrapperArgs = [
+              "--prefix"
+              "PATH"
+              ":"
+              (lib.makeBinPath [
+                pkgs.esphome
+                sdl2
+                sdl2.dev
+                pkgs.openssl
+                pkgs.openssl.dev
+                pkgs.stdenv.cc
+              ])
+              "--prefix"
+              "CPATH"
+              ":"
+              "${pkgs.openssl.dev}/include"
+              "--prefix"
+              "LIBRARY_PATH"
+              ":"
+              "${lib.getLib pkgs.openssl}/lib"
             ];
-            text = ''
-              python3 "$(git rev-parse --show-toplevel)/projects/grill-display/sim_press.py" "$@"
-            '';
+            meta.mainProgram = "esphome-sim";
           };
           treefmt = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
           validateConfigs = pkgs.writeShellApplication {
@@ -108,8 +116,21 @@
     {
       formatter = forSystems ({ treefmt, ... }: treefmt.config.build.wrapper);
 
+      packages = forSystems (
+        { esphomeSim, ... }:
+        {
+          esphome-sim = esphomeSim;
+        }
+      );
+
       checks = forSystems (
-        { pkgs, treefmt, ... }:
+        {
+          pkgs,
+          treefmt,
+          pythonDev,
+          esphomeSim,
+          ...
+        }:
         {
           formatting = treefmt.config.build.check self;
 
@@ -125,6 +146,7 @@
                     ./ruff.toml
                     (pythonFiles ./components)
                     (pythonFiles ./projects)
+                    (pythonFiles ./simulator)
                   ];
                 };
               }
@@ -132,6 +154,20 @@
                 ruff check --no-cache "$src"
                 touch "$out"
               '';
+
+          typecheck-python =
+            pkgs.runCommand "check-typecheck-python"
+              {
+                nativeBuildInputs = [ pythonDev ];
+                src = simulatorSrc;
+              }
+              ''
+                cd "$src"
+                mypy --strict --cache-dir "$TMPDIR/mypy" esphome_sim tests
+                touch "$out"
+              '';
+
+          esphome-sim = esphomeSim;
 
           test-grill-cook =
             pkgs.runCommand "check-test-grill-cook"
@@ -155,27 +191,17 @@
       );
 
       apps = forSystems (
-        {
-          validateConfigs,
-          grillDisplaySim,
-          grillDisplaySimPress,
-          ...
-        }:
+        { validateConfigs, esphomeSim, ... }:
         {
           validate-configs = {
             type = "app";
             program = lib.getExe validateConfigs;
             meta.description = "Run `esphome config` on every device configuration";
           };
-          grill-display-sim = {
+          sim = {
             type = "app";
-            program = lib.getExe grillDisplaySim;
-            meta.description = "Build and run the grill display host simulation";
-          };
-          grill-display-sim-press = {
-            type = "app";
-            program = lib.getExe grillDisplaySimPress;
-            meta.description = "Press simulated inputs on the running grill display simulation";
+            program = lib.getExe esphomeSim;
+            meta.description = "Run and drive ESPHome host simulations";
           };
         }
       );
@@ -186,8 +212,8 @@
           sdl2,
           treefmt,
           validateConfigs,
-          grillDisplaySim,
-          grillDisplaySimPress,
+          pythonDev,
+          esphomeSim,
           ...
         }:
         {
@@ -200,10 +226,10 @@
               pkgs.openssl.dev
               pkgs.clang-tools
               pkgs.ruff
+              pythonDev
               treefmt.config.build.wrapper
               validateConfigs
-              grillDisplaySim
-              grillDisplaySimPress
+              esphomeSim
             ];
           };
         }

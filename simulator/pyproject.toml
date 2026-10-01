@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "esphome-sim"
+version = "0.1.0"
+description = "Drive ESPHome host simulations of the projects in this repository"
+requires-python = ">=3.13"
+dependencies = ["aioesphomeapi", "PyYAML"]
+
+[project.scripts]
+esphome-sim = "esphome_sim.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["esphome_sim"]
+
+[tool.mypy]
+strict = true
+python_version = "3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

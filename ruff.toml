@@ -1,4 +1,5 @@
 extend-exclude = [".ruff_cache"]
+src = [".", "simulator"]
 # Otherwise a path named on the command line is linted even when excluded.
 force-exclude = true
 
