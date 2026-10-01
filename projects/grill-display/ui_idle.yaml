@@ -42,14 +42,14 @@ lvgl:
               angle_range: 360
               rotation: 270
               ticks:
-                width: 1
+                width: 3
                 count: 61
                 length: 10
                 color: "color_ink"
               indicators:
               - line:
                   id: "lvgl_minute_hand"
-                  width: 3
+                  width: 9
                   color: "color_ink"
                   length: 96%
                   value: 0
@@ -63,10 +63,10 @@ lvgl:
                 length: 1
                 major:
                   stride: 1
-                  width: 4
-                  length: 10
+                  width: 6
+                  length: 18
                   color: "color_ink"
-                  label_gap: 12
+                  label_gap: 14
             - range_from: 0 # hi-res hours scale for hand
               range_to: 720
               angle_range: 360
@@ -74,9 +74,9 @@ lvgl:
               indicators:
               - line:
                   id: "lvgl_hour_hand"
-                  width: 5
+                  width: 15
                   color: "color_ink"
-                  length: 70%
+                  length: 55%
                   value: 0
 
         - line:
@@ -199,16 +199,25 @@ lvgl:
                   angle_range: 360
                   rotation: 270
                   ticks:
-                    width: 1
+                    width: 3
                     count: 37
                     length: 8
+                    color: "color_ink"
+                - range_from: 0 # cardinal ticks
+                  range_to: 360
+                  angle_range: 360
+                  rotation: 270
+                  ticks:
+                    width: 6
+                    count: 5
+                    length: 14
                     color: "color_ink"
             # Shaft + chevron in one polyline: tail at the rim, tip toward centre.
             - line:
                 id: "line_wind_arrow"
                 width: 220
                 height: 220
-                line_width: 4
+                line_width: 12
                 line_color: "color_ink"
                 line_rounded: true
                 points:
@@ -288,16 +297,16 @@ script:
       - lvgl.line.update:
           id: "line_wind_arrow"
           points:
-          - x: !lambda "return (int) (110 + id(wind_ux) * 66);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 66);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 46);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 46);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 58 + id(wind_vx) * 10);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 58 + id(wind_vy) * 10);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 46);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 46);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 58 - id(wind_vx) * 10);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 58 - id(wind_vy) * 10);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 64);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 64);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 38);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 38);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 54 + id(wind_vx) * 14);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 54 + id(wind_vy) * 14);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 38);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 38);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 54 - id(wind_vx) * 14);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 54 - id(wind_vy) * 14);"
   - lvgl.label.update:
       id: "lbl_solar_value"
       text: !lambda |-
