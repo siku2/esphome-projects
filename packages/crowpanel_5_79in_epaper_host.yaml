@@ -1,0 +1,30 @@
+display:
+- id: "cp579epd_display"
+  platform: "sdl"
+  dimensions:
+    width: 792
+    height: 272
+
+binary_sensor:
+- &cp579epd_rotary_up
+  id: "cp579epd_rotary_up"
+  internal: true
+  platform: "sdl"
+  sdl_id: "cp579epd_display"
+  key: "SDLK_UP"
+
+- <<: *cp579epd_rotary_up
+  id: "cp579epd_rotary_down"
+  key: "SDLK_DOWN"
+
+- <<: *cp579epd_rotary_up
+  id: "cp579epd_rotary_press"
+  key: "SDLK_RETURN"
+
+- <<: *cp579epd_rotary_up
+  id: "cp579epd_menu"
+  key: "SDLK_TAB"
+
+- <<: *cp579epd_rotary_up
+  id: "cp579epd_exit"
+  key: "SDLK_ESCAPE"

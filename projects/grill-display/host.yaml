@@ -1,0 +1,7 @@
+packages:
+  app: !include app.yaml
+  base: !include
+    file: ../../packages/base_host.yaml
+  crowpanel: !include
+    file: ../../packages/crowpanel_5_79in_epaper_host.yaml
+  probes: !include probes_sim.yaml

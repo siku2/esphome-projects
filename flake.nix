@@ -31,15 +31,23 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          # The nixpkgs sdl2-config has an empty includedir and prints -I/SDL2.
+          sdl2 = pkgs.SDL2.overrideAttrs (old: {
+            postFixup = (old.postFixup or "") + ''
+              substituteInPlace "$dev/bin/sdl2-config" \
+                --replace-fail "in /SDL2 " 'in ''${includedir}/SDL2 '
+            '';
+          });
         in
         {
-          inherit pkgs;
+          inherit pkgs sdl2;
           treefmt = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
           validateConfigs = pkgs.writeShellApplication {
             name = "validate-configs";
             runtimeInputs = [
               pkgs.esphome
               pkgs.git
+              sdl2.dev
             ];
             text = ''
               cd "$(git rev-parse --show-toplevel)"
@@ -115,6 +123,7 @@
       devShells = forSystems (
         {
           pkgs,
+          sdl2,
           treefmt,
           validateConfigs,
           ...
@@ -123,6 +132,10 @@
           default = pkgs.mkShell {
             packages = [
               pkgs.esphome
+              sdl2
+              sdl2.dev
+              pkgs.openssl
+              pkgs.openssl.dev
               pkgs.clang-tools
               pkgs.ruff
               treefmt.config.build.wrapper

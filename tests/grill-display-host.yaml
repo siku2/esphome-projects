@@ -1,0 +1,14 @@
+packages:
+  core: !include
+    file: ../projects/grill-display/host.yaml
+    vars:
+      name: "test-grill-display-host"
+      friendly_name: "Test Grill Display Host"
+      language: "de"
+
+      api_encryption_key: "j/+/ENFUx0rHq87Yz1/Cll3lOqfVXsQ3TC+zXp/A9CI="
+      ota_password: "test-ota-password"
+
+      components_source:
+        type: "local"
+        path: "../components"

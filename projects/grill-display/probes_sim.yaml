@@ -1,0 +1,47 @@
+globals:
+- id: "sim_west_temperature"
+  type: "float"
+  initial_value: "20.0"
+- id: "sim_east_temperature"
+  type: "float"
+  initial_value: "20.0"
+- id: "sim_meat_temperature"
+  type: "float"
+  initial_value: "8.0"
+- id: "sim_meat_present"
+  type: "bool"
+  initial_value: "true"
+
+binary_sensor:
+- id: "sim_meat_toggle"
+  internal: true
+  platform: "sdl"
+  sdl_id: "cp579epd_display"
+  key: "SDLK_m"
+  on_press:
+  - lambda: |-
+      id(sim_meat_present) = !id(sim_meat_present);
+
+sensor:
+- &sim_zone
+  id: "probe_west_temperature"
+  internal: true
+  update_interval: "1s"
+  platform: "template"
+  lambda: |-
+    id(sim_west_temperature) += (20.0f + id(climate_west)->get_output_value() * 330.0f - id(sim_west_temperature)) / 180.0f;
+    return id(sim_west_temperature);
+
+- <<: *sim_zone
+  id: "probe_east_temperature"
+  lambda: |-
+    id(sim_east_temperature) += (20.0f + id(climate_east)->get_output_value() * 330.0f - id(sim_east_temperature)) / 180.0f;
+    return id(sim_east_temperature);
+
+- <<: *sim_zone
+  id: "probe_meat_temperature"
+  lambda: |-
+    float &t = id(sim_meat_temperature);
+    const float rate = (t > 65.0f && t < 75.0f) ? 0.05f : 1.0f;
+    t += rate * ((id(sim_west_temperature) + id(sim_east_temperature)) / 2.0f - t) / 2400.0f;
+    return id(sim_meat_present) ? t : NAN;

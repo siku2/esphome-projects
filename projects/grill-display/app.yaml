@@ -1,0 +1,75 @@
+substitutions:
+  api_encryption_key: "" # REQUIRED!
+  ota_password: "" # REQUIRED!
+  git_ref: "" # REQUIRED!
+  components_source:
+    type: "git"
+    url: "https://github.com/siku2/esphome-projects"
+    ref: "${git_ref}"
+    path: "components"
+
+  name: "grill-display"
+  friendly_name: "Grill Display"
+  language: "en"
+  i18n:
+    grilldisplay:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
+
+packages:
+  heaters: !include heaters.yaml
+  ha_inputs: !include ha_inputs.yaml
+  ui: !include ui.yaml
+  ui_idle: !include ui_idle.yaml
+  ui_cook: !include ui_cook.yaml
+  ui_cook_west: !include
+    file: ui_cook_zone.yaml
+    vars:
+      zone: "west"
+      zone_enum: "WEST"
+      x: 0
+      focus: 0
+  ui_cook_east: !include
+    file: ui_cook_zone.yaml
+    vars:
+      zone: "east"
+      zone_enum: "EAST"
+      x: 528
+      focus: 1
+  cook: !include cook.yaml
+  input: !include input.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "siku2.grill-display"
+    version: "0.1.0"
+
+external_components:
+- source: "${components_source}"
+  components: ["grill_cook"]
+
+api:
+  encryption:
+    key: "${api_encryption_key}"
+
+ota:
+- platform: "esphome"
+  password: "${ota_password}"
+
+time:
+- id: !extend "base_homeassistant_time"
+  on_time_sync:
+    then:
+    - script.execute: "ui_idle_update"
+  on_time:
+  # Every 5 minutes, offset by 2:30
+  - seconds: "30"
+    minutes: "2/5"
+    then:
+    - script.execute: "ui_idle_update"
+  - seconds: 0
+    minutes: 0
+    then:
+    - script.execute: "ui_refresh_full"

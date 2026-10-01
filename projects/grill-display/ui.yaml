@@ -43,7 +43,9 @@ script:
 - id: "ui_refresh_full"
   then:
   - lambda: |-
+      #ifndef USE_HOST
       id(cp579epd_display)->request_full_update();
+      #endif
   - script.execute: "ui_refresh"
 
 - id: "ui_select_page"
