@@ -5,6 +5,12 @@ globals:
 - id: "sim_east_temperature"
   type: "float"
   initial_value: "20.0"
+- id: "sim_west_element"
+  type: "float"
+  initial_value: "0.0"
+- id: "sim_east_element"
+  type: "float"
+  initial_value: "0.0"
 - id: "sim_meat_temperature"
   type: "float"
   initial_value: "8.0"
@@ -29,13 +35,17 @@ sensor:
   update_interval: "1s"
   platform: "template"
   lambda: |-
-    id(sim_west_temperature) += (20.0f + id(climate_west)->get_output_value() * 330.0f - id(sim_west_temperature)) / 180.0f;
+    const float duty = std::max(0.0f, std::min(1.0f, id(climate_west)->get_output_value()));
+    id(sim_west_element) += (duty - id(sim_west_element)) / 60.0f;
+    id(sim_west_temperature) += (20.0f + 330.0f * id(sim_west_element) - id(sim_west_temperature)) / 180.0f;
     return id(sim_west_temperature);
 
 - <<: *sim_zone
   id: "probe_east_temperature"
   lambda: |-
-    id(sim_east_temperature) += (20.0f + id(climate_east)->get_output_value() * 330.0f - id(sim_east_temperature)) / 180.0f;
+    const float duty = std::max(0.0f, std::min(1.0f, id(climate_east)->get_output_value()));
+    id(sim_east_element) += (duty - id(sim_east_element)) / 60.0f;
+    id(sim_east_temperature) += (20.0f + 330.0f * id(sim_east_element) - id(sim_east_temperature)) / 180.0f;
     return id(sim_east_temperature);
 
 - <<: *sim_zone
