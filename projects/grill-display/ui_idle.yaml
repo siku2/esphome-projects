@@ -213,15 +213,15 @@ lvgl:
                 line_rounded: true
                 points:
                 - x: 110
-                  y: 15
+                  y: 44
                 - x: 110
-                  y: 70
-                - x: 124
-                  y: 45
+                  y: 64
+                - x: 120
+                  y: 52
                 - x: 110
-                  y: 70
-                - x: 96
-                  y: 45
+                  y: 64
+                - x: 100
+                  y: 50
             - label:
                 text: "N"
                 text_font: "font_label"
@@ -242,34 +242,23 @@ lvgl:
                 text_font: "font_label"
                 align: "LEFT_MID"
                 x: 26
-            - obj:
-                width: "SIZE_CONTENT"
-                height: "SIZE_CONTENT"
+            - label:
+                id: "lbl_wind_speed"
+                text: "--"
+                text_font: "font_medium"
                 align: "CENTER"
-                y: 30
-                pad_all: 0
-                border_width: 0
-                bg_opa: "TRANSP"
-                layout:
-                  type: "flex"
-                  flex_flow: "ROW"
-                  flex_align_main: "CENTER"
-                  flex_align_cross: "END"
-                  pad_column: 3
-                widgets:
-                - label:
-                    id: "lbl_wind_speed"
-                    text: "--"
-                    text_font: "font_medium"
-                - label:
-                    text: "km/h"
-                    text_font: "font_text"
+                y: -6
+            - label:
+                text: "km/h"
+                text_font: "font_label"
+                align: "CENTER"
+                y: 14
             - label:
                 id: "lbl_wind_gust"
                 text: "--"
                 text_font: "font_label"
                 align: "CENTER"
-                y: 64
+                y: 28
 
 script:
 - id: "ui_idle_update"
@@ -299,16 +288,16 @@ script:
       - lvgl.line.update:
           id: "line_wind_arrow"
           points:
-          - x: !lambda "return (int) (110 + id(wind_ux) * 72);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 72);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 40);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 40);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 58 + id(wind_vx) * 12);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 58 + id(wind_vy) * 12);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 40);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 40);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 58 - id(wind_vx) * 12);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 58 - id(wind_vy) * 12);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 66);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 66);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 46);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 46);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 58 + id(wind_vx) * 10);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 58 + id(wind_vy) * 10);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 46);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 46);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 58 - id(wind_vx) * 10);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 58 - id(wind_vy) * 10);"
   - lvgl.label.update:
       id: "lbl_solar_value"
       text: !lambda |-
