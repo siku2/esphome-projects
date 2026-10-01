@@ -41,6 +41,34 @@
         in
         {
           inherit pkgs sdl2;
+          grillDisplaySim = pkgs.writeShellApplication {
+            name = "grill-display-sim";
+            runtimeInputs = [
+              pkgs.esphome
+              pkgs.git
+              sdl2
+              sdl2.dev
+              pkgs.openssl
+              pkgs.openssl.dev
+              pkgs.stdenv.cc
+            ];
+            text = ''
+              export CPATH="${pkgs.openssl.dev}/include''${CPATH:+:$CPATH}"
+              export LIBRARY_PATH="${pkgs.openssl.out}/lib''${LIBRARY_PATH:+:$LIBRARY_PATH}"
+              cd "$(git rev-parse --show-toplevel)"
+              exec esphome run tests/grill-display-host.yaml "$@"
+            '';
+          };
+          grillDisplaySimPress = pkgs.writeShellApplication {
+            name = "grill-display-sim-press";
+            runtimeInputs = [
+              (pkgs.python3.withPackages (ps: [ ps.aioesphomeapi ]))
+              pkgs.git
+            ];
+            text = ''
+              python3 "$(git rev-parse --show-toplevel)/projects/grill-display/sim_press.py" "$@"
+            '';
+          };
           treefmt = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
           validateConfigs = pkgs.writeShellApplication {
             name = "validate-configs";
@@ -110,12 +138,27 @@
       );
 
       apps = forSystems (
-        { validateConfigs, ... }:
+        {
+          validateConfigs,
+          grillDisplaySim,
+          grillDisplaySimPress,
+          ...
+        }:
         {
           validate-configs = {
             type = "app";
             program = lib.getExe validateConfigs;
             meta.description = "Run `esphome config` on every device configuration";
+          };
+          grill-display-sim = {
+            type = "app";
+            program = lib.getExe grillDisplaySim;
+            meta.description = "Build and run the grill display host simulation";
+          };
+          grill-display-sim-press = {
+            type = "app";
+            program = lib.getExe grillDisplaySimPress;
+            meta.description = "Press simulated inputs on the running grill display simulation";
           };
         }
       );
@@ -126,6 +169,8 @@
           sdl2,
           treefmt,
           validateConfigs,
+          grillDisplaySim,
+          grillDisplaySimPress,
           ...
         }:
         {
@@ -140,6 +185,8 @@
               pkgs.ruff
               treefmt.config.build.wrapper
               validateConfigs
+              grillDisplaySim
+              grillDisplaySimPress
             ];
           };
         }
