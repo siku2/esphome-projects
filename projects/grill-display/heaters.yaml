@@ -1,3 +1,27 @@
+esphome:
+  on_boot:
+    priority: -100
+    then:
+    - climate.control:
+        id: "climate_west"
+        mode: "OFF"
+    - climate.control:
+        id: "climate_east"
+        mode: "OFF"
+
+api:
+  on_client_connected:
+  - if:
+      condition:
+        lambda: "return id(climate_west)->mode == climate::CLIMATE_MODE_OFF;"
+      then:
+      - switch.turn_off: "heater_west_switch"
+  - if:
+      condition:
+        lambda: "return id(climate_east)->mode == climate::CLIMATE_MODE_OFF;"
+      then:
+      - switch.turn_off: "heater_east_switch"
+
 switch:
 - &heater_west_switch
   id: "heater_west_switch"

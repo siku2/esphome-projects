@@ -5,30 +5,48 @@ spi:
 sensor:
 - &probe_west_temperature
   id: "probe_west_temperature"
-  name: "${i18n.grilldisplay[language].probe_west}"
-  unit_of_measurement: "°C"
-  device_class: "temperature"
-  state_class: "measurement"
-  accuracy_decimals: 0
+  internal: true
   filters:
   - round: 1
   - filter_out: "NaN"
   - timeout: "5s"
-  - delta: 0.5
-  # Re-emit the last value every 5s even if it hasn't changed
-  - timeout:
-      timeout: "5s"
-      value: "last"
   platform: "max31855"
   update_interval: "500ms"
   cs_pin: "GPIO20"
 
 - <<: *probe_west_temperature
   id: "probe_east_temperature"
-  name: "${i18n.grilldisplay[language].probe_east}"
   cs_pin: "GPIO38"
 
 - <<: *probe_west_temperature
   id: "probe_meat_temperature"
-  name: "${i18n.grilldisplay[language].probe_grey}"
   cs_pin: "GPIO21"
+
+- &probe_west_temperature_public
+  id: "probe_west_temperature_public"
+  name: "${i18n.grilldisplay[language].probe_west}"
+  source_id: "probe_west_temperature"
+  unit_of_measurement: "°C"
+  device_class: "temperature"
+  state_class: "measurement"
+  accuracy_decimals: 0
+  filters:
+  - or:
+    - delta: 0.5
+    # Pass NaN and the first value after it, which delta would drop
+    - lambda: |-
+        static bool was_nan = false;
+        const bool pass = std::isnan(x) || was_nan;
+        was_nan = std::isnan(x);
+        return pass ? optional<float>{x} : optional<float>{};
+  platform: "copy"
+
+- <<: *probe_west_temperature_public
+  id: "probe_east_temperature_public"
+  name: "${i18n.grilldisplay[language].probe_east}"
+  source_id: "probe_east_temperature"
+
+- <<: *probe_west_temperature_public
+  id: "probe_meat_temperature_public"
+  name: "${i18n.grilldisplay[language].probe_grey}"
+  source_id: "probe_meat_temperature"
