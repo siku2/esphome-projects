@@ -1,23 +1,5 @@
-substitutions:
-  language: "en"
-  timezone: "Europe/Zurich"
-  i18n:
-    base:
-      de:
-        restart: "Neustarten"
-        log_level: "Log Level"
-        last_restart: "Letzter Neustart"
-        wifi_signal: "WiFi Signal"
-        restart_reason: "Neustart Grund"
-        cpu_temperature: "CPU Temperatur"
-
-      en:
-        restart: "Restart"
-        log_level: "Log Level"
-        last_restart: "Last Restart"
-        wifi_signal: "WiFi Signal"
-        restart_reason: "Restart Reason"
-        cpu_temperature: "CPU Temperature"
+packages:
+  common: !include base_common.yaml
 
 wifi:
   ssid: !secret wifi_ssid
@@ -25,32 +7,7 @@ wifi:
   domain: !secret wifi_domain
   fast_connect: true
 
-debug:
-  update_interval: "never"
-
-logger:
-  level: "VERBOSE"
-  initial_level: "DEBUG"
-
-# Peripherals
-
-button:
-- id: "base_restart"
-  platform: "restart"
-  name: "${i18n.base[language].restart}"
-
-select:
-- id: "base_log_level"
-  platform: "logger"
-  name: "${i18n.base[language].log_level}"
-
 sensor:
-- id: "base_last_restart"
-  entity_category: "DIAGNOSTIC"
-  platform: "uptime"
-  type: "timestamp"
-  name: "${i18n.base[language].last_restart}"
-
 - id: "base_wifi_signal"
   name: "${i18n.base[language].wifi_signal}"
   entity_category: "DIAGNOSTIC"
@@ -74,13 +31,3 @@ sensor:
   - or:
     - throttle: "24h"
     - delta: 5.0
-
-text_sensor:
-- platform: "debug"
-  reset_reason:
-    name: "${i18n.base[language].restart_reason}"
-
-time:
-- id: "base_homeassistant_time"
-  timezone: "${timezone}"
-  platform: "homeassistant"

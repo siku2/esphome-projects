@@ -1,0 +1,4 @@
+packages:
+  common: !include base_common.yaml
+
+host: {}
