@@ -3,6 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixgl = {
+      url = "github:nix-community/nixGL";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -13,6 +17,7 @@
     {
       self,
       nixpkgs,
+      nixgl,
       treefmt-nix,
     }:
     let
@@ -40,6 +45,7 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           python = pkgs.python3;
+          nixGL = lib.optional pkgs.stdenv.isLinux nixgl.packages.${system}.nixGLIntel;
           # The nixpkgs sdl2-config has an empty includedir and prints -I/SDL2.
           sdl2 = pkgs.SDL2.overrideAttrs (old: {
             postFixup = (old.postFixup or "") + ''
@@ -49,7 +55,7 @@
           });
         in
         {
-          inherit pkgs sdl2;
+          inherit pkgs sdl2 nixGL;
           pythonDev = python.withPackages (ps: [
             ps.aioesphomeapi
             ps.mypy
@@ -75,14 +81,17 @@
               "--prefix"
               "PATH"
               ":"
-              (lib.makeBinPath [
-                pkgs.esphome
-                sdl2
-                sdl2.dev
-                pkgs.openssl
-                pkgs.openssl.dev
-                pkgs.stdenv.cc
-              ])
+              (lib.makeBinPath (
+                [
+                  pkgs.esphome
+                  sdl2
+                  sdl2.dev
+                  pkgs.openssl
+                  pkgs.openssl.dev
+                  pkgs.stdenv.cc
+                ]
+                ++ nixGL
+              ))
               "--prefix"
               "CPATH"
               ":"
@@ -210,6 +219,7 @@
         {
           pkgs,
           sdl2,
+          nixGL,
           treefmt,
           validateConfigs,
           pythonDev,
@@ -230,7 +240,8 @@
               treefmt.config.build.wrapper
               validateConfigs
               esphomeSim
-            ];
+            ]
+            ++ nixGL;
           };
         }
       );
