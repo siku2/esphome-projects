@@ -18,85 +18,67 @@ script:
   - script.execute: "ui_cook_update"
 
 binary_sensor:
-- id: !extend "cp579epd_rotary_press"
-  on_press:
-  - if:
-      condition:
-        lvgl.page.is_showing: "ui_page_idle"
-      then:
-      - lambda: |-
-          id(grill_cook_main)->start_cook();
-          id(grill_cook_main)->update();
-      else:
-      - if:
-          condition:
-            lambda: "return !id(ui_focus_visible);"
-          then:
-          - lambda: |-
-              id(ui_focus_visible) = true;
-          else:
-          - lambda: |-
-              int next = (id(ui_focus) + 1) % 3;
-              if (next == 2 && !id(grill_cook_main)->meat_probe_present()) {
-                next = (next + 1) % 3;
-              }
-              id(ui_focus) = next;
-      - script.execute: "ui_focus_timeout"
-      - lambda: |-
-          id(grill_cook_main)->update();
-      - script.execute: "ui_cook_update"
-
 - id: !extend "cp579epd_menu"
-  on_press:
-  - if:
-      condition:
-        lvgl.page.is_showing: "ui_page_idle"
-      then:
-      - lambda: |-
-          id(grill_cook_main)->start_cook();
-          id(grill_cook_main)->update();
-      else:
-      - if:
-          condition:
-            lambda: "return !id(ui_focus_visible);"
-          then:
-          - lambda: |-
-              id(ui_focus_visible) = true;
-          else:
-          - if:
-              condition:
-                lambda: "return id(ui_focus) == 0;"
-              then:
-              - if:
-                  condition:
-                    lambda: "return id(climate_west)->mode == climate::CLIMATE_MODE_OFF;"
-                  then:
-                  - climate.control:
-                      id: "climate_west"
-                      mode: "HEAT"
-                  else:
-                  - climate.control:
-                      id: "climate_west"
-                      mode: "OFF"
-          - if:
-              condition:
-                lambda: "return id(ui_focus) == 1;"
-              then:
-              - if:
-                  condition:
-                    lambda: "return id(climate_east)->mode == climate::CLIMATE_MODE_OFF;"
-                  then:
-                  - climate.control:
-                      id: "climate_east"
-                      mode: "HEAT"
-                  else:
-                  - climate.control:
-                      id: "climate_east"
-                      mode: "OFF"
-      - script.execute: "ui_focus_timeout"
-      - lambda: |-
-          id(grill_cook_main)->update();
-      - script.execute: "ui_cook_update"
+  on_click:
+    min_length: "50ms"
+    max_length: "999ms"
+    then:
+    - if:
+        condition:
+          lvgl.page.is_showing: "ui_page_idle"
+        then:
+        - lambda: |-
+            id(grill_cook_main)->start_cook();
+            id(grill_cook_main)->update();
+            id(ui_focus) = 0;
+            id(ui_focus_visible) = true;
+        - script.execute: "ui_focus_timeout"
+        else:
+        - if:
+            condition:
+              lambda: "return !id(ui_focus_visible);"
+            then:
+            - lambda: |-
+                id(ui_focus_visible) = true;
+            else:
+            - lambda: |-
+                int next = (id(ui_focus) + 1) % 3;
+                if (next == 2 && !id(grill_cook_main)->meat_probe_present()) {
+                  next = 0;
+                }
+                id(ui_focus) = next;
+        - script.execute: "ui_focus_timeout"
+        - lambda: |-
+            id(grill_cook_main)->update();
+        - script.execute: "ui_cook_update"
+  on_multi_click:
+  - timing:
+    - state: true
+      min_length: "1s"
+    - min_length: "0s"
+    then:
+    - if:
+        condition:
+          lambda: "return id(ui_focus_visible) && id(ui_focus) == 0;"
+        then:
+        - climate.control:
+            id: "climate_west"
+            mode: !lambda "return id(climate_west)->mode == climate::CLIMATE_MODE_OFF ? climate::CLIMATE_MODE_HEAT : climate::CLIMATE_MODE_OFF;"
+    - if:
+        condition:
+          lambda: "return id(ui_focus_visible) && id(ui_focus) == 1;"
+        then:
+        - climate.control:
+            id: "climate_east"
+            mode: !lambda "return id(climate_east)->mode == climate::CLIMATE_MODE_OFF ? climate::CLIMATE_MODE_HEAT : climate::CLIMATE_MODE_OFF;"
+    - if:
+        condition:
+          lvgl.page.is_showing: "ui_page_cook"
+        then:
+        - script.execute: "ui_focus_timeout"
+        - lambda: |-
+            id(grill_cook_main)->update();
+        - script.execute: "ui_cook_update"
 
 - id: !extend "cp579epd_rotary_up"
   on_press:

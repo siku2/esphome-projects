@@ -47,7 +47,6 @@ grill_cook:
       event_type: "started"
   - lambda: |-
       id(ui_focus) = 0;
-      id(ui_focus_visible) = false;
   - script.execute: "ui_select_page"
   on_cook_ended:
   - event.trigger:
