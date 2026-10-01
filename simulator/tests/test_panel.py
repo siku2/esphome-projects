@@ -1,7 +1,7 @@
 """Tests for the panel entity ordering."""
 
 from esphome_sim.model import Entity, EntityKind
-from esphome_sim.panel import order_entities
+from esphome_sim.panel import button_rows, order_entities
 
 
 def entity(key: int, name: str, kind: EntityKind) -> Entity:
@@ -23,4 +23,42 @@ def test_order_groups_by_kind_and_keeps_reported_order() -> None:
         "Gamma",
         "Zed",
         "Aaa",
+    ]
+
+
+def button(key: int, name: str) -> Entity:
+    return entity(key, name, EntityKind.BUTTON)
+
+
+def names(rows: list[tuple[Entity, Entity | None]]) -> list[tuple[str, str | None]]:
+    return [(b.name, h.name if h else None) for b, h in rows]
+
+
+def test_button_rows_pair_base_with_hold() -> None:
+    rows = button_rows([button(1, "Menu"), button(2, "Menu Hold")])
+    assert names(rows) == [("Menu", "Menu Hold")]
+
+
+def test_button_rows_keep_hold_without_base_alone() -> None:
+    rows = button_rows([button(1, "Menu Hold")])
+    assert names(rows) == [("Menu Hold", None)]
+
+
+def test_button_rows_keep_base_without_hold_alone() -> None:
+    rows = button_rows([button(1, "Menu")])
+    assert names(rows) == [("Menu", None)]
+
+
+def test_button_rows_keep_base_position() -> None:
+    buttons = [
+        button(1, "Up"),
+        button(2, "Menu Hold"),
+        button(3, "Down"),
+        button(4, "Menu"),
+        button(5, "Up Hold"),
+    ]
+    assert names(button_rows(buttons)) == [
+        ("Up", "Up Hold"),
+        ("Down", None),
+        ("Menu", "Menu Hold"),
     ]

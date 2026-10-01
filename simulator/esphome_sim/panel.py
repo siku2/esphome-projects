@@ -4,7 +4,7 @@ import asyncio
 import queue
 import threading
 import tkinter as tk
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 
 from esphome_sim.client import RETRY_INTERVAL, SimClient
@@ -15,6 +15,7 @@ from esphome_sim.project import Project
 SIM_PREFIX = "sim_"
 POLL_MS = 100
 SCALE_LENGTH = 320
+HOLD_SUFFIX = " Hold"
 KIND_ORDER = (
     EntityKind.BUTTON,
     EntityKind.NUMBER,
@@ -64,6 +65,17 @@ def order_entities(entities: Iterable[Entity]) -> list[Entity]:
     """Group the shown entities by kind and keep the reported order within a kind."""
     shown = [e for e in entities if e.kind in KIND_ORDER]
     return sorted(shown, key=lambda e: KIND_ORDER.index(e.kind))
+
+
+def button_rows(buttons: Sequence[Entity]) -> list[tuple[Entity, Entity | None]]:
+    """Pair each button with its " Hold" button and keep the order of the base."""
+    by_name = {b.name: b for b in buttons}
+    holds = {f"{b.name}{HOLD_SUFFIX}" for b in buttons} & by_name.keys()
+    return [
+        (b, by_name.get(f"{b.name}{HOLD_SUFFIX}"))
+        for b in buttons
+        if b.name not in holds
+    ]
 
 
 class Panel:
@@ -180,25 +192,43 @@ class Panel:
 
     def _build(self, entities: Iterable[Entity]) -> None:
         self._clear()
-        for entity in order_entities(entities):
-            sim = entity.object_id.startswith(SIM_PREFIX)
-            group = self._sim_group if sim else self._device_group
+        ordered = order_entities(entities)
+        buttons = [e for e in ordered if e.kind is EntityKind.BUTTON]
+        for base, hold in button_rows(buttons):
+            group = self._group_for(base)
+            self._add_button_row(group, group.grid_size()[1], base, hold)
+        for entity in ordered:
+            if entity.kind is EntityKind.BUTTON:
+                continue
+            group = self._group_for(entity)
             updater = self._add_row(group, group.grid_size()[1], entity)
             if updater is not None:
                 self._updaters[entity.object_id] = updater
+
+    def _group_for(self, entity: Entity) -> tk.LabelFrame:
+        sim = entity.object_id.startswith(SIM_PREFIX)
+        return self._sim_group if sim else self._device_group
+
+    def _add_button_row(
+        self, group: tk.LabelFrame, row: int, base: Entity, hold: Entity | None
+    ) -> None:
+        span = 2 if hold is None else 1
+        for column, entity in enumerate((base, hold)):
+            if entity is None:
+                continue
+            tk.Button(
+                group,
+                text=entity.name,
+                command=self._press(entity.object_id),
+            ).grid(row=row, column=column, columnspan=span, sticky="ew", padx=4, pady=1)
+
+    def _press(self, object_id: str) -> Callable[[], None]:
+        return lambda: self._send(lambda c: c.press_button(object_id))
 
     def _add_row(
         self, group: tk.LabelFrame, row: int, entity: Entity
     ) -> Updater | None:
         object_id = entity.object_id
-        if entity.kind is EntityKind.BUTTON:
-            tk.Button(
-                group,
-                text=entity.name,
-                command=lambda: self._send(lambda c: c.press_button(object_id)),
-            ).grid(row=row, column=0, columnspan=2, sticky="ew", padx=4, pady=1)
-            return None
-
         label = f"{entity.name} ({entity.unit})" if entity.unit else entity.name
         tk.Label(group, text=label, anchor="w").grid(
             row=row, column=0, sticky="w", padx=4
