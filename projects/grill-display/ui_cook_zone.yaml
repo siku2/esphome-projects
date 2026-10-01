@@ -17,23 +17,37 @@ lvgl:
         bg_opa: "TRANSP"
         widgets:
         - label:
+            id: "lbl_${zone}_header"
             text: "${i18n.grilldisplay[language]['ui_zone_' ~ zone]}"
             text_font: "font_label"
+            text_color: "color_ink"
+            bg_opa: "TRANSP"
+            radius: 8
+            pad_top: 2
+            pad_bottom: 2
+            pad_left: 10
+            pad_right: 10
             align: "TOP_MID"
-            y: 10
+            y: 8
         - label:
-            id: "lbl_${zone}_off"
+            id: "lbl_${zone}_power"
             text: "${i18n.grilldisplay[language].ui_off}"
             text_font: "font_label"
+            text_color: "color_ink"
+            bg_opa: "TRANSP"
+            radius: 8
+            pad_top: 2
+            pad_bottom: 2
+            pad_left: 10
+            pad_right: 10
             align: "TOP_MID"
-            y: 36
-            hidden: true
+            y: 32
         - obj:
             id: "row_${zone}_on"
             width: "SIZE_CONTENT"
             height: "SIZE_CONTENT"
             align: "TOP_MID"
-            y: 30
+            y: 36
             pad_all: 0
             border_width: 0
             bg_opa: "TRANSP"
@@ -138,21 +152,54 @@ script:
       id: "row_${zone}_off"
       hidden: !lambda "return id(grill_cook_main)->zone_on(grill_cook::Zone::${zone_enum});"
   - lvgl.label.update:
-      id: "lbl_${zone}_off"
-      hidden: !lambda "return id(grill_cook_main)->zone_on(grill_cook::Zone::${zone_enum});"
+      id: "lbl_${zone}_power"
+      text: !lambda |-
+        if (id(grill_cook_main)->zone_on(grill_cook::Zone::${zone_enum}))
+          return std::string("${i18n.grilldisplay[language].ui_on}");
+        return std::string("${i18n.grilldisplay[language].ui_off}");
   - lvgl.label.update:
       id: "lbl_${zone}_target"
       hidden: !lambda |-
-        const bool focus = id(ui_focus_visible) && id(ui_focus) == ${focus};
-        return !(id(grill_cook_main)->zone_on(grill_cook::Zone::${zone_enum}) || focus);
+        const bool selected = id(ui_level) >= 2 && id(ui_panel) == ${focus};
+        return !(id(grill_cook_main)->zone_on(grill_cook::Zone::${zone_enum}) || selected);
       text: !lambda |-
         char buf[24];
         snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_target_format}",
                  id(grill_cook_main)->zone_target(grill_cook::Zone::${zone_enum}));
+        if (id(ui_level) == 3 && id(ui_panel) == ${focus})
+          return "< " + std::string(buf) + " >";
         return std::string(buf);
   - if:
       condition:
-        lambda: "return id(ui_focus_visible) && id(ui_focus) == ${focus};"
+        lambda: "return id(ui_level) == 1 && id(ui_panel) == ${focus};"
+      then:
+      - lvgl.label.update:
+          id: "lbl_${zone}_header"
+          bg_opa: "COVER"
+          bg_color: "color_ink"
+          text_color: "color_paper"
+      else:
+      - lvgl.label.update:
+          id: "lbl_${zone}_header"
+          bg_opa: "TRANSP"
+          text_color: "color_ink"
+  - if:
+      condition:
+        lambda: "return id(ui_level) == 2 && id(ui_panel) == ${focus} && id(ui_item) == 0;"
+      then:
+      - lvgl.label.update:
+          id: "lbl_${zone}_power"
+          bg_opa: "COVER"
+          bg_color: "color_ink"
+          text_color: "color_paper"
+      else:
+      - lvgl.label.update:
+          id: "lbl_${zone}_power"
+          bg_opa: "TRANSP"
+          text_color: "color_ink"
+  - if:
+      condition:
+        lambda: "return id(ui_level) >= 2 && id(ui_panel) == ${focus} && id(ui_item) == 1;"
       then:
       - lvgl.label.update:
           id: "lbl_${zone}_target"

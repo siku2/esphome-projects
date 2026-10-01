@@ -41,10 +41,18 @@ lvgl:
             bg_opa: "TRANSP"
             widgets:
             - label:
+                id: "lbl_meat_header"
                 text: "${i18n.grilldisplay[language].ui_meat_probe}"
                 text_font: "font_label"
+                text_color: "color_ink"
+                bg_opa: "TRANSP"
+                radius: 8
+                pad_top: 2
+                pad_bottom: 2
+                pad_left: 10
+                pad_right: 10
                 align: "TOP_MID"
-                y: 10
+                y: 8
 
             - label:
                 id: "lbl_meat_hint"
@@ -70,7 +78,7 @@ lvgl:
                     width: "SIZE_CONTENT"
                     height: "SIZE_CONTENT"
                     align: "TOP_MID"
-                    y: 30
+                    y: 36
                     pad_all: 0
                     border_width: 0
                     bg_opa: "TRANSP"
@@ -144,6 +152,20 @@ script:
   then:
   - script.execute: "ui_cook_update_west"
   - script.execute: "ui_cook_update_east"
+  - if:
+      condition:
+        lambda: "return id(ui_level) == 1 && id(ui_panel) == 2;"
+      then:
+      - lvgl.label.update:
+          id: "lbl_meat_header"
+          bg_opa: "COVER"
+          bg_color: "color_ink"
+          text_color: "color_paper"
+      else:
+      - lvgl.label.update:
+          id: "lbl_meat_header"
+          bg_opa: "TRANSP"
+          text_color: "color_ink"
   - lvgl.obj.update:
       id: "grp_meat_present"
       hidden: !lambda "return !id(grill_cook_main)->meat_probe_present();"
@@ -166,10 +188,12 @@ script:
             char buf[24];
             snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_target_format}",
                      id(target_meat_core_temperature).state);
+            if (id(ui_level) == 3 && id(ui_panel) == 2)
+              return "< " + std::string(buf) + " >";
             return std::string(buf);
       - if:
           condition:
-            lambda: "return id(ui_focus_visible) && id(ui_focus) == 2;"
+            lambda: "return id(ui_level) >= 2 && id(ui_panel) == 2;"
           then:
           - lvgl.label.update:
               id: "lbl_meat_target"

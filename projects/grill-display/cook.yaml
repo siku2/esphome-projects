@@ -45,13 +45,20 @@ grill_cook:
   - event.trigger:
       id: "grill_event"
       event_type: "started"
-  - lambda: |-
-      id(ui_focus) = 0;
+  - if:
+      condition:
+        lambda: "return id(ui_level) == 0;"
+      then:
+      - lambda: |-
+          id(ui_level) = 1;
+          id(ui_panel) = 0;
+      - script.execute: "ui_timeout_panel"
   - script.execute: "ui_select_page"
   on_cook_ended:
   - event.trigger:
       id: "grill_event"
       event_type: "ended"
+  - script.execute: "ui_timeout_panel"
   - script.execute: "ui_select_page"
   on_phase:
   - if:

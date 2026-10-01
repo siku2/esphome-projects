@@ -65,12 +65,22 @@ script:
   then:
   - if:
       condition:
-        lambda: "return id(grill_cook_main)->is_cooking();"
+        lambda: "return id(ui_level) > 0 || id(grill_cook_main)->is_cooking();"
       then:
-      - lvgl.page.show: "ui_page_cook"
+      - if:
+          condition:
+            not:
+              lvgl.page.is_showing: "ui_page_cook"
+          then:
+          - lvgl.page.show: "ui_page_cook"
       - script.execute: "ui_cook_update"
       else:
-      - lvgl.page.show: "ui_page_idle"
+      - if:
+          condition:
+            not:
+              lvgl.page.is_showing: "ui_page_idle"
+          then:
+          - lvgl.page.show: "ui_page_idle"
       - script.execute: "ui_idle_update"
 
 esphome:
