@@ -226,22 +226,22 @@ lvgl:
                 text: "N"
                 text_font: "font_label"
                 align: "TOP_MID"
-                y: 6
+                y: 26
             - label:
                 text: "E"
                 text_font: "font_label"
                 align: "RIGHT_MID"
-                x: -6
+                x: -26
             - label:
                 text: "S"
                 text_font: "font_label"
                 align: "BOTTOM_MID"
-                y: -6
+                y: -24
             - label:
                 text: "W"
                 text_font: "font_label"
                 align: "LEFT_MID"
-                x: 6
+                x: 26
             - obj:
                 width: "SIZE_CONTENT"
                 height: "SIZE_CONTENT"
@@ -299,16 +299,16 @@ script:
       - lvgl.line.update:
           id: "line_wind_arrow"
           points:
-          - x: !lambda "return (int) (110 + id(wind_ux) * 95);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 95);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 72);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 72);"
           - x: !lambda "return (int) (110 + id(wind_ux) * 40);"
             y: !lambda "return (int) (110 + id(wind_uy) * 40);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 65 + id(wind_vx) * 14);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 65 + id(wind_vy) * 14);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 58 + id(wind_vx) * 12);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 58 + id(wind_vy) * 12);"
           - x: !lambda "return (int) (110 + id(wind_ux) * 40);"
             y: !lambda "return (int) (110 + id(wind_uy) * 40);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 65 - id(wind_vx) * 14);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 65 - id(wind_vy) * 14);"
+          - x: !lambda "return (int) (110 + id(wind_ux) * 58 - id(wind_vx) * 12);"
+            y: !lambda "return (int) (110 + id(wind_uy) * 58 - id(wind_vy) * 12);"
   - lvgl.label.update:
       id: "lbl_solar_value"
       text: !lambda |-
