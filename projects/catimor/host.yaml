@@ -6,3 +6,7 @@ packages:
     file: ../../packages/m5stack_cores3_lite_host.yaml
   covers: !include covers_sim.yaml
   ha_inputs: !include ha_inputs_sim.yaml
+
+external_components:
+- source: "${components_source}"
+  components: ["sdl"]
