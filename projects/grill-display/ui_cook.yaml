@@ -88,6 +88,7 @@ lvgl:
                     - label:
                         text: "°C"
                         text_font: "font_text"
+                        pad_bottom: 18
                 - label:
                     id: "lbl_meat_target"
                     text: ""

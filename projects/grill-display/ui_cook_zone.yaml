@@ -51,6 +51,7 @@ lvgl:
             - label:
                 text: "°C"
                 text_font: "font_text"
+                pad_bottom: 18
         - obj:
             id: "row_${zone}_off"
             width: "SIZE_CONTENT"
@@ -185,7 +186,12 @@ script:
       }
       size_t count = 0;
       if (valid >= 2) {
-        float span = (hi - lo) > 0.1f ? (hi - lo) : 1.0f;
+        if (hi - lo < 10.0f) {
+          const float mid = (hi + lo) / 2.0f;
+          lo = mid - 5.0f;
+          hi = mid + 5.0f;
+        }
+        const float span = hi - lo;
         float last = NAN;
         bool started = false;
         for (size_t i = 0; i < hist.size(); i++) {

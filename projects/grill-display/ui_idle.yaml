@@ -199,11 +199,6 @@ lvgl:
                     count: 37
                     length: 8
                     color: "color_ink"
-                    major:
-                      stride: 9
-                      width: 3
-                      length: 16
-                      color: "color_ink"
             # Shaft + chevron in one polyline: tail at the rim, tip toward centre.
             - line:
                 id: "line_wind_arrow"

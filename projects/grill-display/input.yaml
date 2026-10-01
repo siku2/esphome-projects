@@ -42,6 +42,8 @@ binary_sensor:
               }
               id(ui_focus) = next;
       - script.execute: "ui_focus_timeout"
+      - lambda: |-
+          id(grill_cook_main)->update();
       - script.execute: "ui_cook_update"
 
 - id: !extend "cp579epd_menu"
@@ -92,6 +94,8 @@ binary_sensor:
                       id: "climate_east"
                       mode: "OFF"
       - script.execute: "ui_focus_timeout"
+      - lambda: |-
+          id(grill_cook_main)->update();
       - script.execute: "ui_cook_update"
 
 - id: !extend "cp579epd_rotary_up"
@@ -129,6 +133,8 @@ binary_sensor:
                   id: "target_meat_core_temperature"
                   value: !lambda "return id(target_meat_core_temperature)->state + 1;"
       - script.execute: "ui_focus_timeout"
+      - lambda: |-
+          id(grill_cook_main)->update();
       - script.execute: "ui_cook_update"
 
 - id: !extend "cp579epd_rotary_down"
@@ -166,6 +172,8 @@ binary_sensor:
                   id: "target_meat_core_temperature"
                   value: !lambda "return id(target_meat_core_temperature)->state - 1;"
       - script.execute: "ui_focus_timeout"
+      - lambda: |-
+          id(grill_cook_main)->update();
       - script.execute: "ui_cook_update"
 
 - id: !extend "cp579epd_exit"
