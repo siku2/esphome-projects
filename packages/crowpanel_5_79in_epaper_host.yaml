@@ -9,6 +9,7 @@ binary_sensor:
 - &cp579epd_rotary_up
   id: "cp579epd_rotary_up"
   internal: true
+  publish_initial_state: true
   platform: "sdl"
   sdl_id: "cp579epd_display"
   key: "SDLK_UP"
