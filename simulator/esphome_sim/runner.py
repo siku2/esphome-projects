@@ -23,12 +23,10 @@ def run(repo_root: Path, project: Project, esphome_args: Sequence[str]) -> int:
         str(project.path.relative_to(repo_root)),
         *esphome_args,
     ]
-    # The SDL display never maps its window on native Wayland, X11 works.
-    env = {"SDL_VIDEODRIVER": "x11", **os.environ} if "DISPLAY" in os.environ else None
     try:
         # A separate process group, so that a terminal Ctrl-C arrives only once.
         process = subprocess.Popen(
-            command, cwd=repo_root, stdin=subprocess.DEVNULL, process_group=0, env=env
+            command, cwd=repo_root, stdin=subprocess.DEVNULL, process_group=0
         )
     except FileNotFoundError as err:
         raise SimError("esphome is not on PATH") from err
