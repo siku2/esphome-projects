@@ -1,0 +1,108 @@
+sensor:
+- id: "ha_wind_bearing"
+  internal: true
+  platform: "template"
+
+- id: "ha_wind_speed"
+  internal: true
+  platform: "template"
+
+- id: "ha_wind_gust"
+  internal: true
+  platform: "template"
+
+- id: "ha_outdoor_temperature"
+  internal: true
+  platform: "template"
+
+- id: "ha_solar_power"
+  internal: true
+  platform: "template"
+
+number:
+- id: "sim_wind_bearing"
+  name: "Sim Wind Bearing"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  min_value: 0
+  max_value: 360
+  step: 5
+  initial_value: 230
+  on_value:
+  - sensor.template.publish:
+      id: "ha_wind_bearing"
+      state: !lambda "return x;"
+  - script.execute: "ui_idle_update"
+
+- id: "sim_wind_speed"
+  name: "Sim Wind Speed"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  min_value: 0
+  max_value: 80
+  step: 1
+  initial_value: 12
+  on_value:
+  - sensor.template.publish:
+      id: "ha_wind_speed"
+      state: !lambda "return x;"
+  - script.execute: "ui_idle_update"
+
+- id: "sim_wind_gust"
+  name: "Sim Wind Gust"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  min_value: 0
+  max_value: 120
+  step: 1
+  initial_value: 25
+  on_value:
+  - sensor.template.publish:
+      id: "ha_wind_gust"
+      state: !lambda "return x;"
+  - script.execute: "ui_idle_update"
+
+- id: "sim_outdoor_temperature"
+  name: "Sim Outdoor Temperature"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  min_value: -20
+  max_value: 45
+  step: 0.5
+  initial_value: 18.5
+  on_value:
+  - sensor.template.publish:
+      id: "ha_outdoor_temperature"
+      state: !lambda "return x;"
+  - script.execute: "ui_idle_update"
+
+- id: "sim_solar_power"
+  name: "Sim Solar Power"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  min_value: 0
+  max_value: 15000
+  step: 100
+  initial_value: 3200
+  on_value:
+  - sensor.template.publish:
+      id: "ha_solar_power"
+      state: !lambda "return x;"
+  - script.execute: "ui_idle_update"
+
+esphome:
+  on_boot:
+    priority: -100
+    then:
+    - lambda: |-
+        id(ha_wind_bearing).publish_state(id(sim_wind_bearing).state);
+        id(ha_wind_speed).publish_state(id(sim_wind_speed).state);
+        id(ha_wind_gust).publish_state(id(sim_wind_gust).state);
+        id(ha_outdoor_temperature).publish_state(id(sim_outdoor_temperature).state);
+        id(ha_solar_power).publish_state(id(sim_solar_power).state);
+    - script.execute: "ui_idle_update"

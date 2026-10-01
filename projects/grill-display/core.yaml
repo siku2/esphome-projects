@@ -5,6 +5,7 @@ packages:
   crowpanel: !include
     file: ../../packages/crowpanel_5_79in_epaper.yaml
   probes: !include probes.yaml
+  ha_inputs: !include ha_inputs.yaml
 
 dashboard_import:
   package_import_url: "github://siku2/esphome-projects/projects/grill-display/core.yaml@main"

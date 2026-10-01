@@ -5,3 +5,4 @@ packages:
   crowpanel: !include
     file: ../../packages/crowpanel_5_79in_epaper_host.yaml
   probes: !include probes_sim.yaml
+  ha_inputs: !include ha_inputs_sim.yaml

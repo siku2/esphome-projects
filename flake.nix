@@ -69,6 +69,19 @@
               python3 "$(git rev-parse --show-toplevel)/projects/grill-display/sim_press.py" "$@"
             '';
           };
+          grillDisplaySimPanel = pkgs.writeShellApplication {
+            name = "grill-display-sim-panel";
+            runtimeInputs = [
+              (pkgs.python3.withPackages (ps: [
+                ps.aioesphomeapi
+                ps.tkinter
+              ]))
+              pkgs.git
+            ];
+            text = ''
+              python3 "$(git rev-parse --show-toplevel)/projects/grill-display/sim_panel.py" "$@"
+            '';
+          };
           treefmt = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
           validateConfigs = pkgs.writeShellApplication {
             name = "validate-configs";
@@ -142,6 +155,7 @@
           validateConfigs,
           grillDisplaySim,
           grillDisplaySimPress,
+          grillDisplaySimPanel,
           ...
         }:
         {
@@ -160,6 +174,11 @@
             program = lib.getExe grillDisplaySimPress;
             meta.description = "Press simulated inputs on the running grill display simulation";
           };
+          grill-display-sim-panel = {
+            type = "app";
+            program = lib.getExe grillDisplaySimPanel;
+            meta.description = "Control panel for the running grill display simulation";
+          };
         }
       );
 
@@ -171,6 +190,7 @@
           validateConfigs,
           grillDisplaySim,
           grillDisplaySimPress,
+          grillDisplaySimPanel,
           ...
         }:
         {
@@ -187,6 +207,7 @@
               validateConfigs
               grillDisplaySim
               grillDisplaySimPress
+              grillDisplaySimPanel
             ];
           };
         }

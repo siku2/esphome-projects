@@ -14,9 +14,6 @@ globals:
 - id: "sim_meat_temperature"
   type: "float"
   initial_value: "8.0"
-- id: "sim_meat_present"
-  type: "bool"
-  initial_value: "true"
 
 binary_sensor:
 - id: "sim_meat_toggle"
@@ -25,8 +22,48 @@ binary_sensor:
   sdl_id: "cp579epd_display"
   key: "SDLK_m"
   on_press:
-  - lambda: |-
-      id(sim_meat_present) = !id(sim_meat_present);
+  - switch.toggle: "sim_meat_probe"
+
+switch:
+- id: "sim_meat_probe"
+  name: "Sim Meat Probe"
+  platform: "template"
+  optimistic: true
+  restore_mode: "ALWAYS_ON"
+
+number:
+- id: "sim_west_temperature_input"
+  name: "Sim West Temperature"
+  platform: "template"
+  optimistic: true
+  min_value: 0
+  max_value: 400
+  step: 1
+  initial_value: 20
+  on_value:
+  - lambda: "id(sim_west_temperature) = x;"
+
+- id: "sim_east_temperature_input"
+  name: "Sim East Temperature"
+  platform: "template"
+  optimistic: true
+  min_value: 0
+  max_value: 400
+  step: 1
+  initial_value: 20
+  on_value:
+  - lambda: "id(sim_east_temperature) = x;"
+
+- id: "sim_meat_temperature_input"
+  name: "Sim Meat Temperature"
+  platform: "template"
+  optimistic: true
+  min_value: 0
+  max_value: 120
+  step: 0.5
+  initial_value: 8
+  on_value:
+  - lambda: "id(sim_meat_temperature) = x;"
 
 sensor:
 - &sim_zone
@@ -54,4 +91,4 @@ sensor:
     float &t = id(sim_meat_temperature);
     const float rate = (t > 65.0f && t < 75.0f) ? 0.05f : 1.0f;
     t += rate * ((id(sim_west_temperature) + id(sim_east_temperature)) / 2.0f - t) / 2400.0f;
-    return id(sim_meat_present) ? t : NAN;
+    return id(sim_meat_probe).state ? t : NAN;
