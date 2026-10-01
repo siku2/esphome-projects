@@ -28,3 +28,27 @@ binary_sensor:
 - <<: *cp579epd_rotary_up
   id: "cp579epd_exit"
   key: "SDLK_ESCAPE"
+
+api:
+  actions:
+  - action: "press"
+    variables:
+      input: "string"
+      hold_ms: "int"
+    then:
+    - lambda: |-
+        id(cp579epd_pressed) = nullptr;
+        if (input == "rotary_up") id(cp579epd_pressed) = id(cp579epd_rotary_up);
+        if (input == "rotary_down") id(cp579epd_pressed) = id(cp579epd_rotary_down);
+        if (input == "rotary_press") id(cp579epd_pressed) = id(cp579epd_rotary_press);
+        if (input == "menu") id(cp579epd_pressed) = id(cp579epd_menu);
+        if (input == "exit") id(cp579epd_pressed) = id(cp579epd_exit);
+        if (id(cp579epd_pressed) != nullptr) id(cp579epd_pressed)->publish_state(true);
+    - delay: !lambda "return hold_ms;"
+    - lambda: |-
+        if (id(cp579epd_pressed) != nullptr) id(cp579epd_pressed)->publish_state(false);
+
+globals:
+- id: "cp579epd_pressed"
+  type: "binary_sensor::BinarySensor *"
+  initial_value: "nullptr"
