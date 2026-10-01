@@ -58,3 +58,9 @@ script:
       else:
       - lvgl.page.show: "ui_page_idle"
       - script.execute: "ui_idle_update"
+
+esphome:
+  on_boot:
+    priority: -100
+    then:
+    - script.execute: "ui_select_page"

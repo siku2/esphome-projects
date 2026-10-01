@@ -38,7 +38,7 @@ lvgl:
             height: 272
             pad_all: 0
             border_width: 0
-            bg_color: "color_paper"
+            bg_opa: "TRANSP"
             widgets:
             - label:
                 text: "${i18n.grilldisplay[language].ui_meat_probe}"
@@ -63,7 +63,7 @@ lvgl:
                 height: 272
                 pad_all: 0
                 border_width: 0
-                bg_color: "color_paper"
+                bg_opa: "TRANSP"
                 widgets:
                 - obj:
                     id: "row_meat_temp"
@@ -73,7 +73,7 @@ lvgl:
                     y: 30
                     pad_all: 0
                     border_width: 0
-                    bg_color: "color_paper"
+                    bg_opa: "TRANSP"
                     layout:
                       type: "flex"
                       flex_flow: "ROW"

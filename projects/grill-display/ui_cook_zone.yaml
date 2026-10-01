@@ -14,7 +14,7 @@ lvgl:
         height: 272
         pad_all: 0
         border_width: 0
-        bg_color: "color_paper"
+        bg_opa: "TRANSP"
         widgets:
         - label:
             text: "${i18n.grilldisplay[language]['ui_zone_' ~ zone]}"
@@ -36,7 +36,7 @@ lvgl:
             y: 30
             pad_all: 0
             border_width: 0
-            bg_color: "color_paper"
+            bg_opa: "TRANSP"
             layout:
               type: "flex"
               flex_flow: "ROW"
@@ -59,7 +59,7 @@ lvgl:
             y: 60
             pad_all: 0
             border_width: 0
-            bg_color: "color_paper"
+            bg_opa: "TRANSP"
             hidden: true
             layout:
               type: "flex"
@@ -117,14 +117,18 @@ script:
   - lvgl.label.update:
       id: "lbl_${zone}_temp"
       text: !lambda |-
+        const float temp = id(grill_cook_main)->zone_temperature(grill_cook::Zone::${zone_enum});
+        if (std::isnan(temp)) return std::string("--");
         char buf[24];
-        snprintf(buf, sizeof(buf), "%.1f", id(grill_cook_main)->zone_temperature(grill_cook::Zone::${zone_enum}));
+        snprintf(buf, sizeof(buf), "%.1f", temp);
         return std::string(buf);
   - lvgl.label.update:
       id: "lbl_${zone}_temp_off"
       text: !lambda |-
+        const float temp = id(grill_cook_main)->zone_temperature(grill_cook::Zone::${zone_enum});
+        if (std::isnan(temp)) return std::string("--");
         char buf[24];
-        snprintf(buf, sizeof(buf), "%.1f", id(grill_cook_main)->zone_temperature(grill_cook::Zone::${zone_enum}));
+        snprintf(buf, sizeof(buf), "%.1f", temp);
         return std::string(buf);
   - lvgl.obj.update:
       id: "row_${zone}_on"
