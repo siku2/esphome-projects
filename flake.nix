@@ -38,6 +38,19 @@
                 --replace-fail "in /SDL2 " 'in ''${includedir}/SDL2 '
             '';
           });
+          grillDisplaySimPanel = pkgs.writeShellApplication {
+            name = "grill-display-sim-panel";
+            runtimeInputs = [
+              (pkgs.python3.withPackages (ps: [
+                ps.aioesphomeapi
+                ps.tkinter
+              ]))
+              pkgs.git
+            ];
+            text = ''
+              exec python3 "$(git rev-parse --show-toplevel)/projects/grill-display/sim_panel.py" "$@"
+            '';
+          };
         in
         {
           inherit pkgs sdl2;
@@ -51,12 +64,16 @@
               pkgs.openssl
               pkgs.openssl.dev
               pkgs.stdenv.cc
+              grillDisplaySimPanel
             ];
             text = ''
               export CPATH="${pkgs.openssl.dev}/include''${CPATH:+:$CPATH}"
               export LIBRARY_PATH="${pkgs.openssl.out}/lib''${LIBRARY_PATH:+:$LIBRARY_PATH}"
               cd "$(git rev-parse --show-toplevel)"
-              exec esphome run tests/grill-display-host.yaml "$@"
+              grill-display-sim-panel &
+              panel=$!
+              trap 'kill "$panel" 2>/dev/null || true' EXIT
+              esphome run tests/grill-display-host.yaml "$@"
             '';
           };
           grillDisplaySimPress = pkgs.writeShellApplication {
@@ -67,19 +84,6 @@
             ];
             text = ''
               python3 "$(git rev-parse --show-toplevel)/projects/grill-display/sim_press.py" "$@"
-            '';
-          };
-          grillDisplaySimPanel = pkgs.writeShellApplication {
-            name = "grill-display-sim-panel";
-            runtimeInputs = [
-              (pkgs.python3.withPackages (ps: [
-                ps.aioesphomeapi
-                ps.tkinter
-              ]))
-              pkgs.git
-            ];
-            text = ''
-              python3 "$(git rev-parse --show-toplevel)/projects/grill-display/sim_panel.py" "$@"
             '';
           };
           treefmt = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
@@ -155,7 +159,6 @@
           validateConfigs,
           grillDisplaySim,
           grillDisplaySimPress,
-          grillDisplaySimPanel,
           ...
         }:
         {
@@ -174,11 +177,6 @@
             program = lib.getExe grillDisplaySimPress;
             meta.description = "Press simulated inputs on the running grill display simulation";
           };
-          grill-display-sim-panel = {
-            type = "app";
-            program = lib.getExe grillDisplaySimPanel;
-            meta.description = "Control panel for the running grill display simulation";
-          };
         }
       );
 
@@ -190,7 +188,6 @@
           validateConfigs,
           grillDisplaySim,
           grillDisplaySimPress,
-          grillDisplaySimPanel,
           ...
         }:
         {
@@ -207,7 +204,6 @@
               validateConfigs
               grillDisplaySim
               grillDisplaySimPress
-              grillDisplaySimPanel
             ];
           };
         }
