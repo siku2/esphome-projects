@@ -50,6 +50,22 @@ script:
       if (id(cp579epd_pressed) != nullptr) id(cp579epd_pressed)->publish_state(false);
 
 button:
+- name: "Sim Menu"
+  platform: "template"
+  on_press:
+  - script.execute:
+      id: "cp579epd_sim_press"
+      input: "menu"
+      hold_ms: 100
+
+- name: "Sim Menu Hold"
+  platform: "template"
+  on_press:
+  - script.execute:
+      id: "cp579epd_sim_press"
+      input: "menu"
+      hold_ms: 1200
+
 - name: "Sim Rotary Up"
   platform: "template"
   on_press:
@@ -64,22 +80,6 @@ button:
   - script.execute:
       id: "cp579epd_sim_press"
       input: "rotary_down"
-      hold_ms: 100
-
-- name: "Sim Rotary Press"
-  platform: "template"
-  on_press:
-  - script.execute:
-      id: "cp579epd_sim_press"
-      input: "rotary_press"
-      hold_ms: 100
-
-- name: "Sim Menu"
-  platform: "template"
-  on_press:
-  - script.execute:
-      id: "cp579epd_sim_press"
-      input: "menu"
       hold_ms: 100
 
 - name: "Sim Exit"
@@ -97,6 +97,14 @@ button:
       id: "cp579epd_sim_press"
       input: "exit"
       hold_ms: 1200
+
+- name: "Sim Rotary Press"
+  platform: "template"
+  on_press:
+  - script.execute:
+      id: "cp579epd_sim_press"
+      input: "rotary_press"
+      hold_ms: 100
 
 api:
   actions:

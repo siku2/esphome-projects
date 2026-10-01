@@ -60,6 +60,12 @@ type Updater = Callable[[EntityState], None]
 type Command = Callable[[SimClient], None]
 
 
+def order_entities(entities: Iterable[Entity]) -> list[Entity]:
+    """Group the shown entities by kind and keep the reported order within a kind."""
+    shown = [e for e in entities if e.kind in KIND_ORDER]
+    return sorted(shown, key=lambda e: KIND_ORDER.index(e.kind))
+
+
 class Panel:
     """A window with one widget per entity, split into simulation and device."""
 
@@ -174,9 +180,7 @@ class Panel:
 
     def _build(self, entities: Iterable[Entity]) -> None:
         self._clear()
-        shown = [e for e in entities if e.kind in KIND_ORDER]
-        shown.sort(key=lambda e: (KIND_ORDER.index(e.kind), e.name.lower()))
-        for entity in shown:
+        for entity in order_entities(entities):
             sim = entity.object_id.startswith(SIM_PREFIX)
             group = self._sim_group if sim else self._device_group
             updater = self._add_row(group, group.grid_size()[1], entity)
