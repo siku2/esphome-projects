@@ -1,0 +1,26 @@
+display:
+- id: "m5s3l_lcd"
+  platform: "sdl"
+  dimensions:
+    width: 320
+    height: 240
+
+touchscreen:
+- id: "m5s3l_touchscreen"
+  platform: "sdl"
+  display: "m5s3l_lcd"
+  sdl_id: "m5s3l_lcd"
+
+output:
+- id: "m5s3l_lcd_backlight_output"
+  platform: "template"
+  type: "float"
+  write_action: []
+
+light:
+- id: "m5s3l_lcd_backlight"
+  name: "LCD Backlight"
+  restore_mode: "ALWAYS_ON"
+  entity_category: "CONFIG"
+  platform: "monochromatic"
+  output: "m5s3l_lcd_backlight_output"

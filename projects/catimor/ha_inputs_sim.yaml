@@ -1,0 +1,199 @@
+sensor:
+- id: "blind_left_position"
+  platform: "template"
+
+- id: "blind_right_position"
+  platform: "template"
+
+- id: "blind_left_tilt"
+  platform: "template"
+
+- id: "blind_right_tilt"
+  platform: "template"
+
+- id: "ac_temperature"
+  platform: "template"
+
+text_sensor:
+- id: "blind_left_state"
+  platform: "template"
+
+- id: "blind_right_state"
+  platform: "template"
+
+- id: "ac_hvac_mode"
+  platform: "template"
+
+- id: "ac_fan_mode"
+  platform: "template"
+
+- id: "ac_swing_mode"
+  platform: "template"
+
+number:
+- id: "sim_blind_left_position"
+  name: "Sim Blind Left Position"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  min_value: 0
+  max_value: 100
+  step: 1
+  initial_value: 50
+  on_value:
+  - sensor.template.publish:
+      id: "blind_left_position"
+      state: !lambda "return x;"
+
+- id: "sim_blind_right_position"
+  name: "Sim Blind Right Position"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  min_value: 0
+  max_value: 100
+  step: 1
+  initial_value: 50
+  on_value:
+  - sensor.template.publish:
+      id: "blind_right_position"
+      state: !lambda "return x;"
+
+- id: "sim_blind_left_tilt"
+  name: "Sim Blind Left Tilt"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  min_value: 0
+  max_value: 100
+  step: 1
+  initial_value: 50
+  on_value:
+  - sensor.template.publish:
+      id: "blind_left_tilt"
+      state: !lambda "return x;"
+
+- id: "sim_blind_right_tilt"
+  name: "Sim Blind Right Tilt"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  min_value: 0
+  max_value: 100
+  step: 1
+  initial_value: 50
+  on_value:
+  - sensor.template.publish:
+      id: "blind_right_tilt"
+      state: !lambda "return x;"
+
+- id: "sim_ac_temperature"
+  name: "Sim AC Temperature"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  min_value: 16
+  max_value: 30
+  step: 0.5
+  initial_value: 22
+  on_value:
+  - sensor.template.publish:
+      id: "ac_temperature"
+      state: !lambda "return x;"
+
+select:
+- id: "sim_blind_left_state"
+  name: "Sim Blind Left State"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  initial_option: "open"
+  options:
+  - "open"
+  - "closed"
+  - "opening"
+  - "closing"
+  on_value:
+  - text_sensor.template.publish:
+      id: "blind_left_state"
+      state: !lambda "return x;"
+
+- id: "sim_blind_right_state"
+  name: "Sim Blind Right State"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  initial_option: "open"
+  options:
+  - "open"
+  - "closed"
+  - "opening"
+  - "closing"
+  on_value:
+  - text_sensor.template.publish:
+      id: "blind_right_state"
+      state: !lambda "return x;"
+
+- id: "sim_ac_hvac_mode"
+  name: "Sim AC Mode"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  initial_option: "cool"
+  options:
+  - "heat"
+  - "cool"
+  - "auto"
+  - "fan_only"
+  - "dry"
+  - "off"
+  on_value:
+  - text_sensor.template.publish:
+      id: "ac_hvac_mode"
+      state: !lambda "return x;"
+
+- id: "sim_ac_fan_mode"
+  name: "Sim AC Fan"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  initial_option: "auto"
+  options:
+  - "low"
+  - "medium"
+  - "high"
+  - "auto"
+  on_value:
+  - text_sensor.template.publish:
+      id: "ac_fan_mode"
+      state: !lambda "return x;"
+
+- id: "sim_ac_swing_mode"
+  name: "Sim AC Swing"
+  platform: "template"
+  optimistic: true
+  restore_value: false
+  initial_option: "off"
+  options:
+  - "off"
+  - "vertical"
+  on_value:
+  - text_sensor.template.publish:
+      id: "ac_swing_mode"
+      state: !lambda "return x;"
+
+esphome:
+  on_boot:
+    priority: -100
+    then:
+    - lambda: |-
+        id(blind_left_position).publish_state(id(sim_blind_left_position).state);
+        id(blind_right_position).publish_state(id(sim_blind_right_position).state);
+        id(blind_left_tilt).publish_state(id(sim_blind_left_tilt).state);
+        id(blind_right_tilt).publish_state(id(sim_blind_right_tilt).state);
+        id(ac_temperature).publish_state(id(sim_ac_temperature).state);
+        id(blind_left_state).publish_state(id(sim_blind_left_state).current_option());
+        id(blind_right_state).publish_state(id(sim_blind_right_state).current_option());
+        id(ac_hvac_mode).publish_state(id(sim_ac_hvac_mode).current_option());
+        id(ac_fan_mode).publish_state(id(sim_ac_fan_mode).current_option());
+        id(ac_swing_mode).publish_state(id(sim_ac_swing_mode).current_option());

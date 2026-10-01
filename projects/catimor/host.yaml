@@ -1,0 +1,8 @@
+packages:
+  app: !include app.yaml
+  base: !include
+    file: ../../packages/base_host.yaml
+  m5stack_cores3_lite: !include
+    file: ../../packages/m5stack_cores3_lite_host.yaml
+  covers: !include covers_sim.yaml
+  ha_inputs: !include ha_inputs_sim.yaml

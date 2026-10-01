@@ -1,0 +1,13 @@
+cover:
+- &cover_north
+  id: "cover_north"
+  name: "${i18n.catimor[language].cover_north}"
+  device_class: "shutter"
+  platform: "template"
+  optimistic: true
+  assumed_state: true
+  has_position: true
+
+- <<: *cover_north
+  id: "cover_south"
+  name: "${i18n.catimor[language].cover_south}"
