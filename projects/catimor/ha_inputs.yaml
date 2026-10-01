@@ -1,0 +1,48 @@
+sensor:
+- &blind_left_position
+  id: "blind_left_position"
+  platform: "homeassistant"
+  entity_id: "${blind_left_cover_id}"
+  attribute: "current_position"
+
+- <<: *blind_left_position
+  id: "blind_right_position"
+  entity_id: "${blind_right_cover_id}"
+
+- &blind_left_tilt
+  <<: *blind_left_position
+  id: "blind_left_tilt"
+  attribute: "current_tilt_position"
+
+- <<: *blind_left_tilt
+  id: "blind_right_tilt"
+  entity_id: "${blind_right_cover_id}"
+
+- id: "ac_temperature"
+  platform: "homeassistant"
+  entity_id: "${climate_id}"
+  attribute: "temperature"
+
+text_sensor:
+- &blind_left_state
+  id: "blind_left_state"
+  platform: "homeassistant"
+  entity_id: "${blind_left_cover_id}"
+
+- <<: *blind_left_state
+  id: "blind_right_state"
+  entity_id: "${blind_right_cover_id}"
+
+- id: "ac_hvac_mode"
+  platform: "homeassistant"
+  entity_id: "${climate_id}"
+
+- id: "ac_fan_mode"
+  platform: "homeassistant"
+  entity_id: "${climate_id}"
+  attribute: "fan_mode"
+
+- id: "ac_swing_mode"
+  platform: "homeassistant"
+  entity_id: "${climate_id}"
+  attribute: "swing_mode"
