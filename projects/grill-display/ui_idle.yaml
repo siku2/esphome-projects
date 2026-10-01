@@ -109,6 +109,7 @@ lvgl:
             pad_all: 0
             border_width: 0
             bg_opa: "TRANSP"
+            scrollbar_mode: "OFF"
             widgets:
             - label:
                 text: "${i18n.grilldisplay[language].ui_solar_label}"
@@ -118,7 +119,7 @@ lvgl:
                 width: "SIZE_CONTENT"
                 height: "SIZE_CONTENT"
                 align: "TOP_MID"
-                y: 100
+                y: 2
                 pad_all: 0
                 border_width: 0
                 bg_opa: "TRANSP"
@@ -137,8 +138,9 @@ lvgl:
                     id: "lbl_solar_unit"
                     text: ""
                     text_font: "font_text"
+                    pad_bottom: 18
             - line:
-                y: 110
+                y: 104
                 points:
                 - x: 10
                   y: 0
@@ -150,11 +152,12 @@ lvgl:
                 text: "${i18n.grilldisplay[language].ui_outdoor_label}"
                 text_font: "font_label"
                 align: "TOP_MID"
-                y: 122
+                y: 110
             - obj:
                 width: "SIZE_CONTENT"
                 height: "SIZE_CONTENT"
-                align: "BOTTOM_MID"
+                align: "TOP_MID"
+                y: 110
                 pad_all: 0
                 border_width: 0
                 bg_opa: "TRANSP"
@@ -172,6 +175,7 @@ lvgl:
                 - label:
                     text: "°C"
                     text_font: "font_text"
+                    pad_bottom: 18
 
         - obj:
             x: 537
