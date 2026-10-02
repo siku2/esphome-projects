@@ -129,6 +129,12 @@ binary_sensor:
   - min_length: "1s"
     max_length: "60s"
     then:
+    - climate.control:
+        id: "climate_west"
+        mode: "OFF"
+    - climate.control:
+        id: "climate_east"
+        mode: "OFF"
     - lambda: |-
         id(ui_level) = 0;
     - script.execute: "ui_input_done"
