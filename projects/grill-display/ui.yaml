@@ -83,6 +83,7 @@ script:
               lvgl.page.is_showing: "ui_page_idle"
           then:
           - lvgl.page.show: "ui_page_idle"
+          - script.execute: "ui_refresh_full"
       - script.execute: "ui_idle_update"
 
 esphome:
@@ -90,3 +91,14 @@ esphome:
     priority: -100
     then:
     - script.execute: "ui_select_page"
+
+interval:
+- interval: "10min"
+  then:
+  - if:
+      condition:
+        and:
+        - lvgl.page.is_showing: "ui_page_cook"
+        - lambda: "return id(ui_level) <= 1;"
+      then:
+      - script.execute: "ui_refresh_full"

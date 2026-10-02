@@ -29,6 +29,7 @@ script:
       - lambda: |-
           id(ui_level) = 1;
       - script.execute: "ui_cook_update"
+      - script.execute: "ui_refresh_full"
 
 - id: "ui_timeout_panel"
   mode: "restart"
@@ -44,6 +45,7 @@ script:
       - lambda: |-
           id(ui_level) = 0;
       - script.execute: "ui_select_page"
+      - script.execute: "ui_refresh_full"
 
 - id: "ui_input_done"
   then:
