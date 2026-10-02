@@ -16,6 +16,7 @@ using grill_cook_model::Zone;
 namespace {
 
 constexpr uint32_t DT_S = 5;
+constexpr size_t HISTORY_LAST = CookModel::HISTORY_LEN - 1;
 
 CookInputs make_inputs(uint32_t t_s, bool west_on, bool east_on, float zone_temp, float meat_temp, float meat_target) {
   CookInputs in{};
@@ -220,14 +221,6 @@ void test_start_end_start_resets_state() {
   assert(std::isnan(model.meat_rate()));
   assert(model.remaining_minutes() == -1);
   assert(model.phase() != Phase::DONE);
-  for (float v : model.meat_history()) {
-    assert(std::isnan(v));
-  }
-  for (int z = 0; z < 2; z++) {
-    for (float v : model.zone_history(static_cast<Zone>(z))) {
-      assert(std::isnan(v));
-    }
-  }
 }
 
 // Feeds `ticks` samples with the zone on at 130 C and returns the next time.
@@ -463,9 +456,6 @@ struct Tick {
   Phase phase;
   float rate;
   int remaining;
-  std::array<float, CookModel::HISTORY_LEN> west;
-  std::array<float, CookModel::HISTORY_LEN> east;
-  std::array<float, CookModel::HISTORY_LEN> meat;
 };
 
 bool same_float(float a, float b) {
@@ -474,20 +464,11 @@ bool same_float(float a, float b) {
   return std::fabs(a - b) <= 1e-4f;
 }
 
-template<size_t N> bool same_array(const std::array<float, N> &a, const std::array<float, N> &b) {
-  for (size_t i = 0; i < N; i++) {
-    if (!same_float(a[i], b[i]))
-      return false;
-  }
-  return true;
-}
-
 uint32_t run_traced_cook(CookModel &model, uint32_t t, std::vector<Tick> &trace) {
   const float meat_target = 80.0f;
   auto tick = [&](bool zone_on, float meat_temp) {
     model.update(make_inputs(t, zone_on, zone_on, 130.0f, meat_temp, meat_target));
-    trace.push_back({model.phase(), model.meat_rate(), model.remaining_minutes(), model.zone_history(Zone::WEST),
-                     model.zone_history(Zone::EAST), model.meat_history()});
+    trace.push_back({model.phase(), model.meat_rate(), model.remaining_minutes()});
     t += DT_S;
   };
 
@@ -521,10 +502,55 @@ void test_second_manual_cook_matches_first() {
     assert(first[i].phase == second[i].phase);
     assert(same_float(first[i].rate, second[i].rate));
     assert(first[i].remaining == second[i].remaining);
-    assert(same_array(first[i].west, second[i].west));
-    assert(same_array(first[i].east, second[i].east));
-    assert(same_array(first[i].meat, second[i].meat));
   }
+}
+
+size_t valid_count(const std::array<float, CookModel::HISTORY_LEN> &history) {
+  size_t count = 0;
+  for (float v : history) {
+    if (!std::isnan(v))
+      count++;
+  }
+  return count;
+}
+
+void test_history_fills_while_idle() {
+  CookModel model;
+  assert(valid_count(model.meat_history()) == 0);
+
+  uint32_t t = 0;
+  for (; t < 10 * 60; t += DT_S) {
+    model.update(make_inputs(t, false, false, 20.0f, 25.0f, 90.0f));
+  }
+  assert(!model.is_cooking());
+  assert(valid_count(model.meat_history()) == 20);
+  assert(valid_count(model.zone_history(Zone::WEST)) == 20);
+  assert(valid_count(model.zone_history(Zone::EAST)) == 20);
+  assert(model.meat_history().back() == 25.0f);
+}
+
+void test_history_survives_cook_start_and_end() {
+  CookModel model;
+  uint32_t t = 0;
+  for (; t < 5 * 60; t += DT_S) {
+    model.update(make_inputs(t, false, false, 20.0f, 25.0f, 90.0f));
+  }
+  const size_t idle_count = valid_count(model.meat_history());
+  assert(idle_count == 10);
+
+  model.update(make_inputs(t, true, false, 130.0f, 25.0f, 90.0f));
+  assert(model.is_cooking());
+  assert(valid_count(model.meat_history()) == idle_count + 1);
+  assert(model.meat_history()[HISTORY_LAST - idle_count] == 25.0f);
+
+  model.end();
+  assert(valid_count(model.meat_history()) == idle_count + 1);
+
+  t += DT_S;
+  for (; t < 40 * 60; t += DT_S) {
+    model.update(make_inputs(t, false, false, 20.0f, 25.0f, 90.0f));
+  }
+  assert(valid_count(model.meat_history()) == CookModel::HISTORY_LEN);
 }
 
 }  // namespace
@@ -550,6 +576,8 @@ int main() {
   test_timestamps_near_counter_limits();
   test_auto_end_restarts_when_zone_turns_on();
   test_second_manual_cook_matches_first();
+  test_history_fills_while_idle();
+  test_history_survives_cook_start_and_end();
 
   std::printf("all cook_model tests passed\n");
   return 0;

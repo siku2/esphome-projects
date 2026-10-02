@@ -44,7 +44,13 @@ class CookModel {
   static constexpr size_t HISTORY_LEN = 60;
   static constexpr uint32_t HISTORY_STEP_S = 30;
 
-  CookModel() { this->reset_cook_state_(); }
+  CookModel() {
+    this->reset_cook_state_();
+    for (auto &history : this->zone_history_) {
+      history.fill(NAN);
+    }
+    this->meat_history_.fill(NAN);
+  }
 
   void start() {
     if (this->cooking_)
@@ -69,6 +75,8 @@ class CookModel {
     }
     this->prev_any_zone_on_ = any_zone_on;
 
+    this->push_history_sample_(in);
+
     if (!this->cooking_)
       return;
 
@@ -82,7 +90,6 @@ class CookModel {
     this->compute_rate_();
     this->update_done_(in, probe_present);
     this->update_stalled_(any_zone_on, probe_present);
-    this->push_history_sample_(in);
 
     const bool meat_cold_or_absent = !probe_present || in.meat_temp < MEAT_COLD_C;
     if (any_zone_on || !meat_cold_or_absent) {
@@ -165,12 +172,6 @@ class CookModel {
     this->rate_head_ = 0;
     this->rate_count_ = 0;
     this->rate_c_per_min_ = NAN;
-    for (auto &history : this->zone_history_) {
-      history.fill(NAN);
-    }
-    this->meat_history_.fill(NAN);
-    this->last_history_t_s_ = 0;
-    this->history_started_ = false;
     this->off_since_valid_ = false;
   }
 
