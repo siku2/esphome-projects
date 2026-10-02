@@ -57,6 +57,21 @@ script:
       id(grill_cook_main)->update();
   - script.execute: "ui_select_page"
 
+- id: "ui_shutdown_hold"
+  mode: "restart"
+  then:
+  - delay: "2s"
+  - climate.control:
+      id: "climate_west"
+      mode: "OFF"
+  - climate.control:
+      id: "climate_east"
+      mode: "OFF"
+  - lambda: |-
+      id(grill_cook_main)->end_cook();
+      id(ui_level) = 0;
+  - script.execute: "ui_input_done"
+
 - id: "ui_rotate"
   parameters:
     step: "int"
@@ -111,6 +126,10 @@ binary_sensor:
     - script.execute: "ui_input_done"
 
 - id: !extend "cp579epd_exit"
+  on_press:
+  - script.execute: "ui_shutdown_hold"
+  on_release:
+  - script.stop: "ui_shutdown_hold"
   on_click:
   - min_length: "50ms"
     max_length: "999ms"
@@ -127,18 +146,6 @@ binary_sensor:
         } else {
           id(ui_level) -= 1;
         }
-    - script.execute: "ui_input_done"
-  - min_length: "1s"
-    max_length: "60s"
-    then:
-    - climate.control:
-        id: "climate_west"
-        mode: "OFF"
-    - climate.control:
-        id: "climate_east"
-        mode: "OFF"
-    - lambda: |-
-        id(ui_level) = 0;
     - script.execute: "ui_input_done"
 
 - id: !extend "cp579epd_rotary_up"
