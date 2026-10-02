@@ -6,7 +6,7 @@ globals:
 - id: "wind_uy"
   type: "float"
   restore_value: no
-  initial_value: "-1.0f"
+  initial_value: "1.0f"
 - id: "wind_vx"
   type: "float"
   restore_value: no
@@ -181,82 +181,91 @@ lvgl:
                     pad_bottom: 18
 
         - obj:
-            x: 537
-            y: 26
-            width: 220
-            height: 220
+            x: 527
+            y: 5
+            width: 262
+            height: 262
             pad_all: 0
             border_width: 0
             bg_opa: "TRANSP"
+            scrollbar_mode: "OFF"
             widgets:
+            - obj:
+                x: 25
+                y: 25
+                width: 212
+                height: 212
+                pad_all: 0
+                radius: 106
+                border_width: 6
+                border_color: "color_ink"
+                bg_opa: "TRANSP"
+                scrollbar_mode: "OFF"
             - meter:
-                id: "lvgl_meter_compass"
-                x: 20
-                y: 20
-                width: 180
-                height: 180
+                x: 31
+                y: 31
+                width: 200
+                height: 200
                 pad_all: 0
                 bg_opa: "TRANSP"
                 border_width: 0
-                text_color: "color_ink"
                 scales:
                 - range_from: 0
                   range_to: 360
                   angle_range: 360
                   rotation: 270
                   ticks:
-                    width: 3
-                    count: 37
-                    length: 6
+                    width: 10
+                    count: 5
+                    length: 16
                     color: "color_ink"
-                - range_from: 0 # cardinal ticks
+                - range_from: 0
                   range_to: 360
                   angle_range: 360
-                  rotation: 270
+                  rotation: 315
                   ticks:
                     width: 6
                     count: 5
                     length: 10
                     color: "color_ink"
-            # Shaft + chevron in one polyline: tail at the rim, tip toward centre.
             - line:
                 id: "line_wind_arrow"
-                width: 220
-                height: 220
-                line_width: 10
+                width: 262
+                height: 262
+                line_width: 12
                 line_color: "color_ink"
                 line_rounded: true
                 points:
-                - x: 110
-                  y: 38
-                - x: 110
-                  y: 58
-                - x: 122
-                  y: 44
-                - x: 110
-                  y: 58
-                - x: 98
-                  y: 44
-            - label:
-                text: "N"
-                text_font: "font_label"
-                align: "TOP_MID"
-                y: 0
-            - label:
-                text: "E"
-                text_font: "font_label"
-                align: "RIGHT_MID"
-                x: -3
+                - x: 131
+                  y: 221
+                - x: 131
+                  y: 185
+                - x: 111
+                  y: 205
+                - x: 131
+                  y: 185
+                - x: 151
+                  y: 205
             - label:
                 text: "S"
-                text_font: "font_label"
+                text_font: "font_dial"
+                align: "TOP_MID"
+                y: -1
+            - label:
+                text: "N"
+                text_font: "font_dial"
                 align: "BOTTOM_MID"
-                y: 0
+                y: 1
+            - label:
+                text: "E"
+                text_font: "font_dial"
+                align: "LEFT_MID"
+                x: 5
             - label:
                 text: "W"
-                text_font: "font_label"
-                align: "LEFT_MID"
-                x: 3
+                text_font: "font_dial"
+                align: "RIGHT_MID"
+                x: -4
             - label:
                 id: "lbl_wind_speed"
                 text: "--"
@@ -295,24 +304,24 @@ script:
       else:
       - lambda: |-
           float rad = id(ha_wind_bearing).state * 3.14159265f / 180.0f;
-          id(wind_ux) = sinf(rad);
-          id(wind_uy) = -cosf(rad);
+          id(wind_ux) = -sinf(rad);
+          id(wind_uy) = cosf(rad);
           id(wind_vx) = cosf(rad);
           id(wind_vy) = sinf(rad);
       - lvgl.widget.show: "line_wind_arrow"
       - lvgl.line.update:
           id: "line_wind_arrow"
           points:
-          - x: !lambda "return (int) (110 + id(wind_ux) * 72);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 72);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 52);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 52);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 66 + id(wind_vx) * 12);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 66 + id(wind_vy) * 12);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 52);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 52);"
-          - x: !lambda "return (int) (110 + id(wind_ux) * 66 - id(wind_vx) * 12);"
-            y: !lambda "return (int) (110 + id(wind_uy) * 66 - id(wind_vy) * 12);"
+          - x: !lambda "return (int) (131 + id(wind_ux) * 90);"
+            y: !lambda "return (int) (131 + id(wind_uy) * 90);"
+          - x: !lambda "return (int) (131 + id(wind_ux) * 54);"
+            y: !lambda "return (int) (131 + id(wind_uy) * 54);"
+          - x: !lambda "return (int) (131 + id(wind_ux) * 74 + id(wind_vx) * 20);"
+            y: !lambda "return (int) (131 + id(wind_uy) * 74 + id(wind_vy) * 20);"
+          - x: !lambda "return (int) (131 + id(wind_ux) * 54);"
+            y: !lambda "return (int) (131 + id(wind_uy) * 54);"
+          - x: !lambda "return (int) (131 + id(wind_ux) * 74 - id(wind_vx) * 20);"
+            y: !lambda "return (int) (131 + id(wind_uy) * 74 - id(wind_vy) * 20);"
   - lvgl.label.update:
       id: "lbl_solar_value"
       text: !lambda |-

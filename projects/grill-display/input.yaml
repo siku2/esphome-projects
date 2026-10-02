@@ -1,5 +1,9 @@
 # Levels: 0 idle page, 1 panel, 2 item, 3 edit.
 globals:
+- id: "ui_input_pending"
+  type: "bool"
+  restore_value: no
+  initial_value: "false"
 - id: "ui_level"
   type: "int"
   restore_value: no
@@ -43,6 +47,8 @@ script:
 
 - id: "ui_input_done"
   then:
+  - lambda: |-
+      id(ui_input_pending) = true;
   - script.execute: "ui_timeout_item"
   - script.execute: "ui_timeout_panel"
   - lambda: |-
@@ -81,9 +87,7 @@ script:
 
 binary_sensor:
 - id: !extend "cp579epd_menu"
-  on_click:
-    min_length: "50ms"
-    max_length: "999ms"
+  on_press:
     then:
     - lambda: |-
         if (id(ui_level) == 0) {
@@ -106,7 +110,7 @@ binary_sensor:
 
 - id: !extend "cp579epd_exit"
   on_click:
-    min_length: "50ms"
+  - min_length: "50ms"
     max_length: "999ms"
     then:
     - lambda: |-
@@ -121,6 +125,12 @@ binary_sensor:
         } else {
           id(ui_level) -= 1;
         }
+    - script.execute: "ui_input_done"
+  - min_length: "1s"
+    max_length: "60s"
+    then:
+    - lambda: |-
+        id(ui_level) = 0;
     - script.execute: "ui_input_done"
 
 - id: !extend "cp579epd_rotary_up"

@@ -21,7 +21,7 @@ font:
   id: "font_dial"
   size: 26
   glyphs:
-  - "0123456789"
+  - "0123456789NESW"
 - file: "gfonts://Roboto Condensed@700"
   id: "font_wind"
   size: 40
@@ -49,7 +49,9 @@ script:
 - id: "ui_refresh"
   mode: "restart"
   then:
-  - delay: "500ms"
+  - delay: !lambda "return id(ui_input_pending) ? 50 : 1000;"
+  - lambda: |-
+      id(ui_input_pending) = false;
   - component.update: "cp579epd_display"
 
 - id: "ui_refresh_full"
