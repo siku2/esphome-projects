@@ -24,6 +24,10 @@
 #
 # - `cp579epd_display`: The 5.79in e-paper display.
 #
+# ### SPI
+#
+# - `cp579epd_spi`: SPI bus of the display.
+#
 # ### Switch
 #
 # - `cp579epd_epd_power`: EPD power control.
@@ -51,7 +55,7 @@ substitutions:
         run_full_update: "Display full update"
 
 external_components:
-- source: "github://siku2/esphome-crowpanel@61e697185c94add2e3d51ea967e6b15e160e391f"
+- source: "github://siku2/esphome-crowpanel@1eedeb90a321b81794cfd4f952b30d86e8c71989"
   components: ["crowpanel_epaper"]
 
 esp32:
@@ -127,12 +131,16 @@ binary_sensor:
     number: "GPIO2"
     inverted: true
 
+spi:
+- id: "cp579epd_spi"
+  clk_pin: "GPIO12"
+  mosi_pin: "GPIO11"
+
 display:
 - id: "cp579epd_display"
   platform: "crowpanel_epaper"
   model: "5.79in"
-  clk_pin: "GPIO12"
-  mosi_pin: "GPIO11"
+  spi_id: "cp579epd_spi"
   cs_pin:
     number: "GPIO45"
     ignore_strapping_warning: true

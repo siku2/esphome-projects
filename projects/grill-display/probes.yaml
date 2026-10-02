@@ -1,4 +1,5 @@
 spi:
+- id: "probes_spi"
   miso_pin: "GPIO18"
   clk_pin: "GPIO19"
 
@@ -10,6 +11,7 @@ sensor:
   - throttle_average: "2s"
   - round: 1
   platform: "max31855"
+  spi_id: "probes_spi"
   update_interval: "500ms"
   cs_pin: "GPIO20"
 
