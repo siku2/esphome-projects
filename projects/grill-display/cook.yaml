@@ -98,4 +98,4 @@ grill_cook:
       - event.trigger:
           id: "grill_event"
           event_type: !lambda "return x;"
-  - script.execute: "ui_cook_update"
+  - script.execute: "ui_select_page"

@@ -37,6 +37,7 @@ packages:
       x: 0
       focus: 0
   cook: !include cook.yaml
+  sleep: !include sleep.yaml
   input: !include input.yaml
 
 esphome:
@@ -66,8 +67,17 @@ time:
   on_time:
   - seconds: 0
     then:
-    - script.execute: "ui_idle_update"
+    - if:
+        condition:
+          not:
+            lvgl.page.is_showing: "ui_page_cook"
+        then:
+        - script.execute: "ui_select_page"
   - seconds: 0
     minutes: 0
     then:
-    - script.execute: "ui_refresh_full"
+    - if:
+        condition:
+          lambda: "return !id(ui_asleep);"
+        then:
+        - script.execute: "ui_refresh_full"

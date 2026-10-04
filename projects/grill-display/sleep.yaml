@@ -1,0 +1,113 @@
+globals:
+- id: "ui_asleep"
+  type: "bool"
+  restore_value: no
+  initial_value: "false"
+- id: "ui_last_activity"
+  type: "uint32_t"
+  restore_value: no
+  initial_value: "0"
+
+esphome:
+  on_boot:
+    priority: -90
+    then:
+    - lambda: |-
+        id(ui_last_activity) = millis_64() / 1000;
+
+switch:
+- id: "sleep_enabled"
+  name: "${i18n.grilldisplay[language].sleep_enabled}"
+  entity_category: "CONFIG"
+  platform: "template"
+  optimistic: true
+  restore_mode: "RESTORE_DEFAULT_ON"
+  on_turn_on:
+  - script.execute: "ui_select_page"
+  on_turn_off:
+  - script.execute: "ui_select_page"
+
+number:
+- id: "sleep_hold"
+  name: "${i18n.grilldisplay[language].sleep_hold}"
+  entity_category: "CONFIG"
+  platform: "template"
+  optimistic: true
+  restore_value: true
+  initial_value: 10
+  min_value: 1
+  max_value: 120
+  step: 1
+  unit_of_measurement: "min"
+  mode: "box"
+  on_value:
+  - script.execute: "ui_select_page"
+
+datetime:
+- id: "sleep_fallback_start"
+  name: "${i18n.grilldisplay[language].sleep_fallback_start}"
+  entity_category: "CONFIG"
+  platform: "template"
+  type: "time"
+  optimistic: true
+  restore_value: true
+  initial_value: "23:00:00"
+  on_value:
+  - script.execute: "ui_select_page"
+
+- id: "sleep_fallback_end"
+  name: "${i18n.grilldisplay[language].sleep_fallback_end}"
+  entity_category: "CONFIG"
+  platform: "template"
+  type: "time"
+  optimistic: true
+  restore_value: true
+  initial_value: "07:00:00"
+  on_value:
+  - script.execute: "ui_select_page"
+
+binary_sensor:
+- id: "sleep_active"
+  name: "${i18n.grilldisplay[language].sleep_active}"
+  entity_category: "DIAGNOSTIC"
+  platform: "template"
+  lambda: "return id(ui_asleep);"
+
+- id: !extend "ha_terrace_presence"
+  on_state:
+  - lambda: |-
+      id(ui_last_activity) = millis_64() / 1000;
+  - script.execute: "ui_select_page"
+
+lvgl:
+  pages:
+  - id: "ui_page_sleep"
+    widgets:
+    - obj:
+        width: 792
+        height: 272
+        pad_all: 0
+        border_width: 0
+        bg_color: "color_paper"
+        scrollbar_mode: "OFF"
+        widgets:
+        - obj:
+            x: 348
+            y: 88
+            width: 96
+            height: 96
+            radius: 48
+            pad_all: 0
+            border_width: 0
+            bg_color: "color_ink"
+            bg_opa: "COVER"
+        - obj:
+            x: 372
+            y: 72
+            width: 88
+            height: 88
+            radius: 44
+            pad_all: 0
+            border_width: 0
+            bg_color: "color_paper"
+            bg_opa: "COVER"

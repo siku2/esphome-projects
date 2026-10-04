@@ -19,6 +19,26 @@ sensor:
   internal: true
   platform: "template"
 
+binary_sensor:
+- id: "ha_terrace_presence"
+  internal: true
+  platform: "template"
+
+switch:
+- id: "sim_terrace_presence"
+  name: "Sim Terrace Presence"
+  platform: "template"
+  optimistic: true
+  restore_mode: "ALWAYS_ON"
+  turn_on_action:
+  - binary_sensor.template.publish:
+      id: "ha_terrace_presence"
+      state: true
+  turn_off_action:
+  - binary_sensor.template.publish:
+      id: "ha_terrace_presence"
+      state: false
+
 number:
 - id: "sim_wind_bearing"
   name: "Sim Wind Bearing"

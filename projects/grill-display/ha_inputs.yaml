@@ -30,3 +30,9 @@ sensor:
   entity_id: "sensor.solarleistung_gesamt"
   unit_of_measurement: "W"
   device_class: "power"
+
+binary_sensor:
+- id: "ha_terrace_presence"
+  platform: "homeassistant"
+  internal: true
+  entity_id: "binary_sensor.terrasse_terrasse_prasenzmelder_occupancy"

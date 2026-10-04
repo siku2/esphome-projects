@@ -62,6 +62,7 @@ script:
   then:
   - lambda: |-
       id(ui_input_pending) = true;
+      id(ui_last_activity) = millis_64() / 1000;
   - script.execute: "ui_timeout_item"
   - script.execute: "ui_timeout_panel"
   - lambda: |-
@@ -131,6 +132,8 @@ script:
     step: "int"
   then:
   - lambda: |-
+      if (id(ui_asleep))
+        return;
       if (id(ui_level) == 0) {
         id(ui_panel_enter)->execute();
       } else if (id(ui_level) == 1) {
@@ -156,6 +159,8 @@ binary_sensor:
   on_press:
     then:
     - lambda: |-
+        if (id(ui_asleep))
+          return;
         if (id(ui_level) == 0) {
           id(ui_panel_enter)->execute();
         } else if (id(ui_level) == 1) {
@@ -189,6 +194,8 @@ binary_sensor:
     max_length: "999ms"
     then:
     - lambda: |-
+        if (id(ui_asleep))
+          return;
         id(ui_panel_move)->execute(0);
         if (id(ui_level) == 0) {
           id(ui_panel_enter)->execute();

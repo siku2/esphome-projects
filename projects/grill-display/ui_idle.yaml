@@ -288,6 +288,11 @@ script:
 - id: "ui_idle_update"
   mode: "restart"
   then:
+  - if:
+      condition:
+        lambda: "return id(ui_asleep);"
+      then:
+      - script.stop: "ui_idle_update"
   - lambda: |-
       auto now = id(base_homeassistant_time).now();
       id(lvgl_minute_hand)->set_value(now.minute);

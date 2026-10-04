@@ -88,16 +88,50 @@ script:
           - lvgl.page.show: "ui_page_cook"
           - script.execute: "light_on"
       - script.execute: "ui_cook_update"
+      - lambda: |-
+          id(ui_asleep) = false;
+          id(ui_last_activity) = millis_64() / 1000;
       else:
       - if:
           condition:
-            not:
-              lvgl.page.is_showing: "ui_page_idle"
+            lambda: |-
+              if (!id(sleep_enabled).state)
+                return false;
+              const uint32_t now_s = millis_64() / 1000;
+              if (now_s - id(ui_last_activity) < (uint32_t) id(sleep_hold).state * 60)
+                return false;
+              if (api::global_api_server->is_connected() && id(ha_terrace_presence).has_state())
+                return !id(ha_terrace_presence).state;
+              const auto now = id(base_homeassistant_time).now();
+              if (!now.is_valid())
+                return false;
+              const int minute = now.hour * 60 + now.minute;
+              const int start = id(sleep_fallback_start).hour * 60 + id(sleep_fallback_start).minute;
+              const int end = id(sleep_fallback_end).hour * 60 + id(sleep_fallback_end).minute;
+              return start <= end ? (minute >= start && minute < end) : (minute >= start || minute < end);
           then:
-          - lvgl.page.show: "ui_page_idle"
-          - script.execute: "light_off"
-          - script.execute: "ui_refresh_full"
-      - script.execute: "ui_idle_update"
+          - if:
+              condition:
+                not:
+                  lvgl.page.is_showing: "ui_page_sleep"
+              then:
+              - lvgl.page.show: "ui_page_sleep"
+              - script.execute: "light_off"
+              - script.execute: "ui_refresh_full"
+              - lambda: |-
+                  id(ui_asleep) = true;
+          else:
+          - lambda: |-
+              id(ui_asleep) = false;
+          - if:
+              condition:
+                not:
+                  lvgl.page.is_showing: "ui_page_idle"
+              then:
+              - lvgl.page.show: "ui_page_idle"
+              - script.execute: "light_off"
+              - script.execute: "ui_refresh_full"
+          - script.execute: "ui_idle_update"
 
 esphome:
   on_boot:
