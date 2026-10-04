@@ -190,7 +190,7 @@ script:
       hidden: !lambda "return !(id(ui_level) >= 1 && id(ui_panel) == ${focus} && id(ui_panel_count) > 1);"
   - if:
       condition:
-        lambda: "return id(ui_level) == 2 && id(ui_panel) == ${focus} && id(ui_item) == 0;"
+        lambda: !lambda "return id(ui_level) == 2 && id(ui_panel) == ${focus} && id(ui_item) == 0;"
       then:
       - lvgl.label.update:
           id: "lbl_${zone}_power"
@@ -204,7 +204,7 @@ script:
           text_color: "color_ink"
   - if:
       condition:
-        lambda: "return id(ui_level) >= 2 && id(ui_panel) == ${focus} && id(ui_item) == 1;"
+        lambda: !lambda "return id(ui_level) >= 2 && id(ui_panel) == ${focus} && id(ui_item) == 1;"
       then:
       - lvgl.label.update:
           id: "lbl_${zone}_target"
@@ -225,7 +225,7 @@ script:
         snprintf(buf, sizeof(buf), "%.0f %%", duty * 100.0f);
         return std::string(buf);
   # History: repeat the last valid point across NaN gaps, draw nothing until two samples exist.
-  - lambda: |-
+  - lambda: !lambda |-
       const auto &hist = id(grill_cook_main)->zone_history(grill_cook::Zone::${zone_enum});
       size_t valid = 0;
       float lo = NAN, hi = NAN;

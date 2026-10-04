@@ -290,20 +290,20 @@ script:
   then:
   - if:
       condition:
-        lambda: "return id(ui_asleep);"
+        lambda: !lambda "return id(ui_asleep);"
       then:
       - script.stop: "ui_idle_update"
-  - lambda: |-
+  - lambda: !lambda |-
       auto now = id(base_homeassistant_time).now();
       id(lvgl_minute_hand)->set_value(now.minute);
       id(lvgl_hour_hand)->set_value((now.hour % 12) * 60 + now.minute);
   - if:
       condition:
-        lambda: "return std::isnan(id(ha_wind_bearing).state);"
+        lambda: !lambda "return std::isnan(id(ha_wind_bearing).state);"
       then:
       - lvgl.widget.hide: "line_wind_arrow"
       else:
-      - lambda: |-
+      - lambda: !lambda |-
           float rad = id(ha_wind_bearing).state * 3.14159265f / 180.0f;
           id(wind_ux) = -sinf(rad);
           id(wind_uy) = cosf(rad);

@@ -78,6 +78,6 @@ time:
     then:
     - if:
         condition:
-          lambda: "return !id(ui_asleep);"
+          lambda: !lambda "return !id(ui_asleep);"
         then:
         - script.execute: "ui_refresh_full"

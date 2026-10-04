@@ -119,7 +119,7 @@ esphome:
   on_boot:
     priority: -100
     then:
-    - lambda: |-
+    - lambda: !lambda |-
         id(ha_wind_bearing).publish_state(id(sim_wind_bearing).state);
         id(ha_wind_speed).publish_state(id(sim_wind_speed).state);
         id(ha_wind_gust).publish_state(id(sim_wind_gust).state);

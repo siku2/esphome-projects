@@ -12,7 +12,7 @@ esphome:
   on_boot:
     priority: -90
     then:
-    - lambda: |-
+    - lambda: !lambda |-
         id(ui_last_activity) = millis_64() / 1000;
 
 switch:
@@ -71,11 +71,11 @@ binary_sensor:
   name: "${i18n.grilldisplay[language].sleep_active}"
   entity_category: "DIAGNOSTIC"
   platform: "template"
-  lambda: "return id(ui_asleep);"
+  lambda: !lambda "return id(ui_asleep);"
 
 - id: !extend "ha_terrace_presence"
   on_state:
-  - lambda: |-
+  - lambda: !lambda |-
       id(ui_last_activity) = millis_64() / 1000;
   - script.execute: "ui_select_page"
 

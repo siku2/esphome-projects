@@ -14,13 +14,13 @@ switch:
 - id: "cook_active"
   name: "${i18n.grilldisplay[language].grill_cook_active}"
   platform: "template"
-  lambda: "return id(grill_cook_main)->is_cooking();"
+  lambda: !lambda "return id(grill_cook_main)->is_cooking();"
   turn_on_action:
-  - lambda: |-
+  - lambda: !lambda |-
       id(grill_cook_main)->start_cook();
       id(grill_cook_main)->update();
   turn_off_action:
-  - lambda: |-
+  - lambda: !lambda |-
       id(grill_cook_main)->end_cook();
       id(grill_cook_main)->update();
 
@@ -61,9 +61,9 @@ grill_cook:
       event_type: "started"
   - if:
       condition:
-        lambda: "return id(ui_level) == 0;"
+        lambda: !lambda "return id(ui_level) == 0;"
       then:
-      - lambda: |-
+      - lambda: !lambda |-
           id(ui_panel_enter)->execute();
       - script.execute: "ui_timeout_item"
       - script.execute: "ui_timeout_panel"
@@ -78,7 +78,7 @@ grill_cook:
   - script.execute:
       id: "ui_panel_move"
       step: 0
-  - lambda: |-
+  - lambda: !lambda |-
       const bool east = id(grill_cook_main)->zone_present(grill_cook::Zone::EAST);
       const bool west = id(grill_cook_main)->zone_present(grill_cook::Zone::WEST);
       if (id(ui_level) >= 1 && ((id(ui_panel) == 0 && !east) || (id(ui_panel) == 1 && !west))) {
@@ -93,7 +93,7 @@ grill_cook:
   on_phase:
   - if:
       condition:
-        lambda: "return x == \"done\" || x == \"stalled\";"
+        lambda: !lambda "return x == \"done\" || x == \"stalled\";"
       then:
       - event.trigger:
           id: "grill_event"

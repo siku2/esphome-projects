@@ -32,12 +32,12 @@ script:
   - delay: "20s"
   - if:
       condition:
-        lambda: "return id(ui_level) >= 2;"
+        lambda: !lambda "return id(ui_level) >= 2;"
       then:
       - script.execute:
           id: "ui_panel_move"
           step: 0
-      - lambda: |-
+      - lambda: !lambda |-
           id(ui_level) = id(ui_panel_count) == 1 ? 0 : 1;
       - script.execute: "ui_select_page"
       - script.execute: "ui_refresh_full"
@@ -48,24 +48,24 @@ script:
   - delay: "60s"
   - if:
       condition:
-        lambda: |-
+        lambda: !lambda |-
           return id(ui_level) == 1 &&
                  !id(grill_cook_main)->zone_on(grill_cook::Zone::WEST) &&
                  !id(grill_cook_main)->zone_on(grill_cook::Zone::EAST);
       then:
-      - lambda: |-
+      - lambda: !lambda |-
           id(ui_level) = 0;
       - script.execute: "ui_select_page"
       - script.execute: "ui_refresh_full"
 
 - id: "ui_input_done"
   then:
-  - lambda: |-
+  - lambda: !lambda |-
       id(ui_input_pending) = true;
       id(ui_last_activity) = millis_64() / 1000;
   - script.execute: "ui_timeout_item"
   - script.execute: "ui_timeout_panel"
-  - lambda: |-
+  - lambda: !lambda |-
       id(grill_cook_main)->update();
   - script.execute: "ui_select_page"
 
@@ -79,7 +79,7 @@ script:
   - climate.control:
       id: "climate_east"
       mode: "OFF"
-  - lambda: |-
+  - lambda: !lambda |-
       id(grill_cook_main)->end_cook();
       id(ui_level) = 0;
   - script.execute: "ui_input_done"
@@ -88,7 +88,7 @@ script:
   parameters:
     step: "int"
   then:
-  - lambda: |-
+  - lambda: !lambda |-
       const bool east = id(grill_cook_main)->zone_present(grill_cook::Zone::EAST);
       const bool west = id(grill_cook_main)->zone_present(grill_cook::Zone::WEST);
       const bool selectable[3] = {east, west, id(grill_cook_main)->meat_probe_present() || (!east && !west)};
@@ -108,13 +108,13 @@ script:
 - id: "ui_panel_first"
   then:
   # Stepping forward from the last panel wraps around to the first selectable one.
-  - lambda: |-
+  - lambda: !lambda |-
       id(ui_panel) = 2;
       id(ui_panel_move)->execute(1);
 
 - id: "ui_item_reset"
   then:
-  - lambda: |-
+  - lambda: !lambda |-
       id(ui_item) = id(ui_panel) == 2 && id(grill_cook_main)->is_cooking() &&
                             id(grill_cook_main)->meat_probe_present()
                         ? 1
@@ -122,7 +122,7 @@ script:
 
 - id: "ui_panel_enter"
   then:
-  - lambda: |-
+  - lambda: !lambda |-
       id(ui_panel_first)->execute();
       id(ui_level) = id(ui_panel_count) == 1 ? 2 : 1;
       id(ui_item_reset)->execute();
@@ -131,7 +131,7 @@ script:
   parameters:
     step: "int"
   then:
-  - lambda: |-
+  - lambda: !lambda |-
       if (id(ui_asleep))
         return;
       if (id(ui_level) == 0) {
@@ -158,7 +158,7 @@ binary_sensor:
 - id: !extend "cp579epd_menu"
   on_press:
     then:
-    - lambda: |-
+    - lambda: !lambda |-
         if (id(ui_asleep))
           return;
         if (id(ui_level) == 0) {
@@ -193,7 +193,7 @@ binary_sensor:
   - min_length: "50ms"
     max_length: "999ms"
     then:
-    - lambda: |-
+    - lambda: !lambda |-
         if (id(ui_asleep))
           return;
         id(ui_panel_move)->execute(0);

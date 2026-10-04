@@ -57,17 +57,17 @@ script:
   mode: "restart"
   then:
   - delay: !lambda "return id(ui_input_pending) ? 50 : 1000;"
-  - lambda: |-
+  - lambda: !lambda |-
       id(ui_input_pending) = false;
   - component.update: "cp579epd_display"
 
 - id: "ui_refresh_full"
   then:
-  - lambda: |-
+  - lambda: !lambda |-
       #ifndef USE_HOST
       id(cp579epd_display)->request_full_update();
       #endif
-  - lambda: |-
+  - lambda: !lambda |-
       lv_obj_invalidate(lv_screen_active());
 
 - id: "ui_select_page"
@@ -75,7 +75,7 @@ script:
   then:
   - if:
       condition:
-        lambda: |-
+        lambda: !lambda |-
           return id(ui_level) > 0 || id(grill_cook_main)->is_cooking() ||
                  id(grill_cook_main)->zone_on(grill_cook::Zone::WEST) ||
                  id(grill_cook_main)->zone_on(grill_cook::Zone::EAST);
@@ -88,13 +88,13 @@ script:
           - lvgl.page.show: "ui_page_cook"
           - script.execute: "light_on"
       - script.execute: "ui_cook_update"
-      - lambda: |-
+      - lambda: !lambda |-
           id(ui_asleep) = false;
           id(ui_last_activity) = millis_64() / 1000;
       else:
       - if:
           condition:
-            lambda: |-
+            lambda: !lambda |-
               if (!id(sleep_enabled).state)
                 return false;
               const uint32_t now_s = millis_64() / 1000;
@@ -118,10 +118,10 @@ script:
               - lvgl.page.show: "ui_page_sleep"
               - script.execute: "light_off"
               - script.execute: "ui_refresh_full"
-              - lambda: |-
+              - lambda: !lambda |-
                   id(ui_asleep) = true;
           else:
-          - lambda: |-
+          - lambda: !lambda |-
               id(ui_asleep) = false;
           - if:
               condition:
@@ -146,6 +146,6 @@ interval:
       condition:
         and:
         - lvgl.page.is_showing: "ui_page_cook"
-        - lambda: "return id(ui_level) <= 1;"
+        - lambda: !lambda "return id(ui_level) <= 1;"
       then:
       - script.execute: "ui_refresh_full"

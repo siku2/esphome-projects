@@ -35,7 +35,7 @@ sensor:
   - or:
     - delta: 0.5
     # Pass NaN and the first value after it, which delta would drop
-    - lambda: |-
+    - lambda: !lambda |-
         static bool was_nan = false;
         const bool pass = std::isnan(x) || was_nan;
         was_nan = std::isnan(x);
