@@ -55,7 +55,7 @@ substitutions:
         run_full_update: "Display full update"
 
 external_components:
-- source: "github://siku2/esphome-crowpanel@1eedeb90a321b81794cfd4f952b30d86e8c71989"
+- source: "github://siku2/esphome-crowpanel@e80512d2b4a5241ee838af24cec75a4ca8d26b95"
   components: ["crowpanel_epaper"]
 
 esp32:
