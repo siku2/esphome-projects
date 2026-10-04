@@ -248,22 +248,22 @@ lvgl:
                   y: 205
             - label:
                 text: "S"
-                text_font: "font_dial"
+                text_font: "font_compass"
                 align: "TOP_MID"
                 y: -1
             - label:
                 text: "N"
-                text_font: "font_dial"
+                text_font: "font_compass"
                 align: "BOTTOM_MID"
                 y: 1
             - label:
                 text: "E"
-                text_font: "font_dial"
+                text_font: "font_compass"
                 align: "LEFT_MID"
                 x: 5
             - label:
                 text: "W"
-                text_font: "font_dial"
+                text_font: "font_compass"
                 align: "RIGHT_MID"
                 x: -4
             - label:

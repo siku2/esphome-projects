@@ -9,22 +9,27 @@ font:
   size: 20
   glyphsets: ["GF_Latin_Core"]
   ignore_missing_glyphs: true
-- file: "gfonts://Roboto Condensed@700"
+- file: "gfonts://Squada One"
   id: "font_medium"
-  size: 32
-- file: "gfonts://Roboto Condensed@700"
+  size: 35
+- file: "gfonts://Squada One"
   id: "font_hero"
-  size: 96
+  size: 106
   glyphs:
   - "0123456789.-+:%C°"
-- file: "gfonts://Roboto Condensed@700"
+- file: "gfonts://Squada One"
   id: "font_dial"
+  size: 29
+  glyphs:
+  - "0123456789"
+- file: "gfonts://Roboto Condensed@700"
+  id: "font_compass"
   size: 26
   glyphs:
-  - "0123456789NESW"
-- file: "gfonts://Roboto Condensed@700"
+  - "NESW"
+- file: "gfonts://Squada One"
   id: "font_wind"
-  size: 40
+  size: 44
   glyphs:
   - "0123456789-"
 
