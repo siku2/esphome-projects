@@ -34,6 +34,7 @@ struct CookInputs {
   float zone_temp[2]{NAN, NAN};
   float meat_temp{NAN};  // NAN when the probe is absent or faulted
   float meat_target{NAN};
+  bool meat_fresh{false};  // The meat probe delivered a new reading with this update
 };
 
 // cooking_, done_, armed_, stalled_ and warmed_ are the latched values. Everything else
@@ -82,7 +83,8 @@ class CookModel {
 
     const bool probe_present = std::isfinite(in.meat_temp);
     if (probe_present) {
-      this->push_rate_sample_(in.t_s, in.meat_temp);
+      if (in.meat_fresh)
+        this->push_rate_sample_(in.t_s, in.meat_temp);
     } else {
       this->rate_head_ = 0;
       this->rate_count_ = 0;
@@ -165,7 +167,9 @@ class CookModel {
   static constexpr uint32_t RATE_WINDOW_S = 15 * 60;
   static constexpr uint32_t MIN_RATE_SPAN_S = 60;
   static constexpr float RATE_ETA_MIN_C_PER_MIN = 0.05f;
+  static constexpr uint32_t RATE_SAMPLE_STEP_S = 5;
   static constexpr size_t RATE_CAPACITY = 256;
+  static_assert(RATE_CAPACITY > RATE_WINDOW_S / RATE_SAMPLE_STEP_S, "rate buffer must cover the rate window");
 
   struct RateSample {
     uint32_t t_s;
@@ -231,6 +235,11 @@ class CookModel {
   }
 
   void push_rate_sample_(uint32_t t_s, float temp) {
+    if (this->rate_count_ > 0) {
+      const auto &newest = this->rate_samples_[(this->rate_head_ + this->rate_count_ - 1) % RATE_CAPACITY];
+      if ((t_s - newest.t_s) < RATE_SAMPLE_STEP_S)
+        return;
+    }
     size_t idx;
     if (this->rate_count_ < RATE_CAPACITY) {
       idx = (this->rate_head_ + this->rate_count_) % RATE_CAPACITY;

@@ -29,6 +29,7 @@ CookInputs make_inputs(uint32_t t_s, bool west_on, bool east_on, float zone_temp
   in.zone_temp[1] = zone_temp;
   in.meat_temp = meat_temp;
   in.meat_target = meat_target;
+  in.meat_fresh = true;
   return in;
 }
 
@@ -705,6 +706,67 @@ void test_rate_needs_one_minute_of_samples() {
   assert(model.remaining_minutes() > 0);
 }
 
+CookInputs other_event(CookInputs in) {
+  in.meat_fresh = false;
+  return in;
+}
+
+void test_non_meat_events_add_no_rate_samples() {
+  CookModel model;
+  model.start();
+
+  uint32_t t = 0;
+  for (; t <= 5 * 60; t += DT_S) {
+    model.update(make_inputs(t, true, false, 130.0f, 20.0f + 3.0f * t / 60.0f, 90.0f));
+  }
+  const float rate = model.meat_rate();
+  assert(std::fabs(rate - 3.0f) < 0.1f);
+
+  // A flat meat temperature reported without a new reading must not drag the rate down.
+  for (int i = 0; i < 600; i++, t++) {
+    model.update(other_event(make_inputs(t, true, false, 130.0f, 35.0f, 90.0f)));
+    assert(model.meat_rate() == rate);
+  }
+}
+
+void test_first_rate_sample_needs_fresh_reading() {
+  CookModel model;
+  model.start();
+
+  for (uint32_t t = 0; t <= 10 * 60; t += DT_S) {
+    model.update(other_event(make_inputs(t, true, false, 130.0f, 20.0f + 3.0f * t / 60.0f, 90.0f)));
+    assert(std::isnan(model.meat_rate()));
+  }
+}
+
+void test_rate_window_spans_15_minutes_at_2s_readings() {
+  CookModel model;
+  model.start();
+
+  // Flat for 10 minutes, then 3 C/min for 10 more. The window is 15 minutes, so the
+  // slope is that of a fit over the last 5 flat minutes and the full ramp.
+  const uint32_t read_step_s = 2;
+  const uint32_t end_s = 20 * 60;
+  auto meat_at = [](uint32_t t) { return t < 600 ? 20.0f : 20.0f + 3.0f * (t - 600) / 60.0f; };
+
+  for (uint32_t t = 0; t <= end_s; t += read_step_s) {
+    model.update(make_inputs(t, true, false, 130.0f, meat_at(t), 200.0f));
+  }
+
+  double n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
+  for (uint32_t t = end_s - 15 * 60; t <= end_s; t += read_step_s) {
+    const double x = t - (end_s - 15 * 60);
+    const double y = meat_at(t);
+    n++;
+    sx += x;
+    sy += y;
+    sxx += x * x;
+    sxy += x * y;
+  }
+  const double expected = (n * sxy - sx * sy) / (n * sxx - sx * sx) * 60.0;
+  assert(std::fabs(model.meat_rate() - expected) < 0.05 * expected);
+}
+
 }  // namespace
 
 int main() {
@@ -741,6 +803,9 @@ int main() {
   test_warmed_flag_clears_on_end();
   test_remaining_minutes_zero_after_done();
   test_rate_needs_one_minute_of_samples();
+  test_non_meat_events_add_no_rate_samples();
+  test_first_rate_sample_needs_fresh_reading();
+  test_rate_window_spans_15_minutes_at_2s_readings();
 
   std::printf("all cook_model tests passed\n");
   return 0;

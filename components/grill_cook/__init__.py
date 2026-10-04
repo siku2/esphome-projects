@@ -5,7 +5,6 @@ from esphome.components import climate, number, sensor, text_sensor, time
 from esphome.const import (
     CONF_ID,
     CONF_TIME_ID,
-    CONF_UPDATE_INTERVAL,
     STATE_CLASS_MEASUREMENT,
 )
 
@@ -27,9 +26,11 @@ CONF_ON_PHASE = "on_phase"
 CONF_ON_COOK_STARTED = "on_cook_started"
 CONF_ON_COOK_ENDED = "on_cook_ended"
 CONF_ON_ZONE_PRESENCE = "on_zone_presence"
+CONF_ON_CONTROL = "on_control"
+CONF_ON_MEASUREMENT = "on_measurement"
 
 grill_cook_ns = cg.esphome_ns.namespace("grill_cook")
-GrillCook = grill_cook_ns.class_("GrillCook", cg.PollingComponent)
+GrillCook = grill_cook_ns.class_("GrillCook", cg.Component)
 Zone = grill_cook_ns.enum("Zone", is_class=True)
 
 ZONE_SCHEMA = cv.Schema(
@@ -67,15 +68,10 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_ON_COOK_STARTED): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_COOK_ENDED): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_ZONE_PRESENCE): automation.validate_automation(single=True),
+        cv.Optional(CONF_ON_CONTROL): automation.validate_automation(single=True),
+        cv.Optional(CONF_ON_MEASUREMENT): automation.validate_automation(single=True),
     }
-).extend(cv.polling_component_schema("5s"))
-CONFIG_SCHEMA = cv.All(
-    CONFIG_SCHEMA,
-    cv.Schema(
-        {cv.Optional(CONF_UPDATE_INTERVAL): cv.Range(min=cv.TimePeriod(seconds=2))},
-        extra=cv.ALLOW_EXTRA,
-    ),
-)
+).extend(cv.COMPONENT_SCHEMA)
 
 
 async def to_code(config):
@@ -127,3 +123,9 @@ async def to_code(config):
 
     if action := config.get(CONF_ON_ZONE_PRESENCE):
         await automation.build_automation(var.get_zone_presence_trigger(), [], action)
+
+    if action := config.get(CONF_ON_CONTROL):
+        await automation.build_automation(var.get_control_trigger(), [], action)
+
+    if action := config.get(CONF_ON_MEASUREMENT):
+        await automation.build_automation(var.get_measurement_trigger(), [], action)

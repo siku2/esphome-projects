@@ -21,12 +21,13 @@ using Phase = grill_cook_model::Phase;
 
 // Wraps CookModel with the ESPHome entities it reads and publishes. All cook
 // logic lives in CookModel; this class only moves state in and out of it.
-class GrillCook : public PollingComponent {
+// Every state callback of an input entity recomputes the model.
+class GrillCook : public Component {
  public:
   static constexpr size_t HISTORY_LEN = grill_cook_model::CookModel::HISTORY_LEN;
   static constexpr uint32_t HISTORY_STEP_S = grill_cook_model::CookModel::HISTORY_STEP_S;
 
-  void update() override;
+  void setup() override;
   void dump_config() override;
 
   void set_time(time::RealTimeClock *time) { this->time_ = time; }
@@ -46,9 +47,17 @@ class GrillCook : public PollingComponent {
   Trigger<> *get_cook_started_trigger() { return &this->cook_started_trigger_; }
   Trigger<> *get_cook_ended_trigger() { return &this->cook_ended_trigger_; }
   Trigger<> *get_zone_presence_trigger() { return &this->zone_presence_trigger_; }
+  Trigger<> *get_control_trigger() { return &this->control_trigger_; }
+  Trigger<> *get_measurement_trigger() { return &this->measurement_trigger_; }
 
-  void start_cook() { this->model_.start(); }
-  void end_cook() { this->model_.end(); }
+  void start_cook() {
+    this->model_.start();
+    this->recompute_(false);
+  }
+  void end_cook() {
+    this->model_.end();
+    this->recompute_(false);
+  }
   bool is_cooking() const { return this->model_.is_cooking(); }
   Phase phase() const { return this->model_.phase(); }
   const char *phase_str() const { return this->model_.phase_str(); }
@@ -75,7 +84,9 @@ class GrillCook : public PollingComponent {
   };
 
   static float sensor_state_or_nan_(sensor::Sensor *sensor);
-  static void publish_if_changed_(text_sensor::TextSensor *sensor, const std::string &value, std::string *memo);
+  static bool changed_(float value, float *memo);
+
+  void recompute_(bool meat_fresh);
 
   time::RealTimeClock *time_{nullptr};
   ZoneIo zones_[2]{};
@@ -91,6 +102,8 @@ class GrillCook : public PollingComponent {
   Trigger<> cook_started_trigger_;
   Trigger<> cook_ended_trigger_;
   Trigger<> zone_presence_trigger_;
+  Trigger<> control_trigger_;
+  Trigger<> measurement_trigger_;
 
   grill_cook_model::CookModel model_;
 
@@ -99,6 +112,11 @@ class GrillCook : public PollingComponent {
   Phase last_phase_{Phase::IDLE};
   std::string last_phase_text_;
   std::string last_eta_text_;
+  bool last_zone_on_[2]{false, false};
+  float last_zone_target_[2]{NAN, NAN};
+  float last_meat_target_{NAN};
+  float last_zone_temp_[2]{NAN, NAN};
+  float last_meat_temp_{NAN};
   float last_meat_rate_{NAN};
   int last_remaining_minutes_{-1};
 };

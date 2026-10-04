@@ -13,13 +13,10 @@ float GrillCook::sensor_state_or_nan_(sensor::Sensor *sensor) {
   return (sensor != nullptr && sensor->has_state()) ? sensor->state : NAN;
 }
 
-void GrillCook::publish_if_changed_(text_sensor::TextSensor *sensor, const std::string &value, std::string *memo) {
-  if (sensor == nullptr)
-    return;
-  if (*memo == value)
-    return;
-  sensor->publish_state(value);
+bool GrillCook::changed_(float value, float *memo) {
+  const bool changed = std::isnan(value) != std::isnan(*memo) || (!std::isnan(value) && value != *memo);
   *memo = value;
+  return changed;
 }
 
 bool GrillCook::zone_on(Zone zone) const {
@@ -62,12 +59,25 @@ void GrillCook::dump_config() {
   ESP_LOGCONFIG(TAG, "  East climate: %p, probe: %p", static_cast<void *>(this->zones_[1].climate),
                 static_cast<void *>(this->zones_[1].probe));
   ESP_LOGCONFIG(TAG, "  Meat probe: %p", static_cast<void *>(this->meat_probe_));
-  LOG_UPDATE_INTERVAL(this);
 }
 
-void GrillCook::update() {
+void GrillCook::setup() {
+  for (auto &zone : this->zones_) {
+    if (zone.climate != nullptr)
+      zone.climate->add_on_state_callback([this](climate::Climate &) { this->recompute_(false); });
+    if (zone.probe != nullptr)
+      zone.probe->add_on_state_callback([this](float) { this->recompute_(false); });
+  }
+  if (this->meat_probe_ != nullptr)
+    this->meat_probe_->add_on_state_callback([this](float) { this->recompute_(true); });
+  if (this->meat_target_number_ != nullptr)
+    this->meat_target_number_->add_on_state_callback([this](float) { this->recompute_(false); });
+}
+
+void GrillCook::recompute_(bool meat_fresh) {
   grill_cook_model::CookInputs in{};
   in.t_s = static_cast<uint32_t>(millis_64() / 1000);
+  in.meat_fresh = meat_fresh;
 
   for (size_t z = 0; z < 2; z++) {
     const auto *climate = this->zones_[z].climate;
@@ -84,16 +94,21 @@ void GrillCook::update() {
   this->model_.update(in);
 
   bool presence_changed = false;
+  bool control_changed = false;
+  bool measurement_changed = false;
   for (size_t z = 0; z < 2; z++) {
     const bool present = this->model_.zone_present(static_cast<Zone>(z));
     presence_changed |= present != this->last_zone_present_[z];
     this->last_zone_present_[z] = present;
 
-    auto *climate = this->zones_[z].climate;
-    if (in.zone_on[z] && !present && climate != nullptr) {
-      climate->make_call().set_mode(climate::CLIMATE_MODE_OFF).perform();
-    }
+    control_changed |= in.zone_on[z] != this->last_zone_on_[z];
+    this->last_zone_on_[z] = in.zone_on[z];
+    control_changed |= changed_(in.zone_target[z], &this->last_zone_target_[z]);
+    measurement_changed |= changed_(in.zone_temp[z], &this->last_zone_temp_[z]);
   }
+  control_changed |= changed_(in.meat_target, &this->last_meat_target_);
+  measurement_changed |= changed_(in.meat_temp, &this->last_meat_temp_);
+
   if (presence_changed)
     this->zone_presence_trigger_.trigger();
 
@@ -109,21 +124,47 @@ void GrillCook::update() {
   this->last_cooking_ = now_cooking;
   this->last_phase_ = now_phase;
 
-  this->publish_if_changed_(this->phase_sensor_, std::string(this->model_.phase_str()), &this->last_phase_text_);
-  this->publish_if_changed_(this->eta_sensor_, this->eta_clock(), &this->last_eta_text_);
+  const std::string phase_text(this->model_.phase_str());
+  if (phase_text != this->last_phase_text_) {
+    this->last_phase_text_ = phase_text;
+    if (this->phase_sensor_ != nullptr)
+      this->phase_sensor_->publish_state(phase_text);
+  }
+
+  const std::string eta = this->eta_clock();
+  if (eta != this->last_eta_text_) {
+    this->last_eta_text_ = eta;
+    measurement_changed = true;
+    if (this->eta_sensor_ != nullptr)
+      this->eta_sensor_->publish_state(eta);
+  }
 
   const float rate = std::round(this->model_.meat_rate() * 100.0f) / 100.0f;
-  const bool rate_changed =
-      std::isnan(rate) != std::isnan(this->last_meat_rate_) || (!std::isnan(rate) && rate != this->last_meat_rate_);
-  if (this->meat_rate_sensor_ != nullptr && rate_changed) {
-    this->meat_rate_sensor_->publish_state(rate);
-    this->last_meat_rate_ = rate;
+  if (changed_(rate, &this->last_meat_rate_)) {
+    measurement_changed = true;
+    if (this->meat_rate_sensor_ != nullptr)
+      this->meat_rate_sensor_->publish_state(rate);
   }
 
   const int remaining = this->model_.remaining_minutes();
-  if (this->remaining_minutes_sensor_ != nullptr && remaining != this->last_remaining_minutes_) {
-    this->remaining_minutes_sensor_->publish_state(remaining < 0 ? NAN : static_cast<float>(remaining));
+  if (remaining != this->last_remaining_minutes_) {
     this->last_remaining_minutes_ = remaining;
+    measurement_changed = true;
+    if (this->remaining_minutes_sensor_ != nullptr)
+      this->remaining_minutes_sensor_->publish_state(remaining < 0 ? NAN : static_cast<float>(remaining));
+  }
+
+  if (control_changed)
+    this->control_trigger_.trigger();
+  if (measurement_changed)
+    this->measurement_trigger_.trigger();
+
+  // The climate callback calls back into this method, so this comes last.
+  for (size_t z = 0; z < 2; z++) {
+    auto *climate = this->zones_[z].climate;
+    if (in.zone_on[z] && !this->last_zone_present_[z] && climate != nullptr) {
+      climate->make_call().set_mode(climate::CLIMATE_MODE_OFF).perform();
+    }
   }
 }
 
