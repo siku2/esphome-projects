@@ -374,8 +374,3 @@ script:
           snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_gust_label} %.0f", v);
         }
         return std::string(buf);
-  - if:
-      condition:
-        lvgl.page.is_showing: "ui_page_idle"
-      then:
-      - script.execute: "ui_refresh"

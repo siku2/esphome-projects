@@ -36,6 +36,8 @@ color:
   hex: "000000"
 
 lvgl:
+  on_draw_end:
+  - script.execute: "ui_refresh"
   displays:
   - "cp579epd_display"
   buffer_size: "12%"
@@ -60,7 +62,8 @@ script:
       #ifndef USE_HOST
       id(cp579epd_display)->request_full_update();
       #endif
-  - script.execute: "ui_refresh"
+  - lambda: |-
+      lv_obj_invalidate(lv_screen_active());
 
 - id: "ui_select_page"
   mode: "restart"

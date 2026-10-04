@@ -254,8 +254,3 @@ script:
             char buf[24];
             snprintf(buf, sizeof(buf), "${i18n.grilldisplay[language].ui_remaining_format}", remaining / 60, remaining % 60);
             return std::string(buf);
-  - if:
-      condition:
-        lvgl.page.is_showing: "ui_page_cook"
-      then:
-      - script.execute: "ui_refresh"
