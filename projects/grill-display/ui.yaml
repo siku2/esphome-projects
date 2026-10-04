@@ -78,6 +78,7 @@ script:
               lvgl.page.is_showing: "ui_page_cook"
           then:
           - lvgl.page.show: "ui_page_cook"
+          - script.execute: "light_on"
       - script.execute: "ui_cook_update"
       else:
       - if:
@@ -86,6 +87,7 @@ script:
               lvgl.page.is_showing: "ui_page_idle"
           then:
           - lvgl.page.show: "ui_page_idle"
+          - script.execute: "light_off"
           - script.execute: "ui_refresh_full"
       - script.execute: "ui_idle_update"
 

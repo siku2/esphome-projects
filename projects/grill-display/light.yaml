@@ -1,0 +1,38 @@
+api:
+  homeassistant_services: true
+
+number:
+- id: "light_brightness"
+  name: "${i18n.grilldisplay[language].light_brightness}"
+  entity_category: "CONFIG"
+  platform: "template"
+  optimistic: true
+  restore_value: true
+  initial_value: 100
+  min_value: 1
+  max_value: 100
+  step: 1
+  unit_of_measurement: "%"
+  mode: "box"
+  on_value:
+  - if:
+      condition:
+        lvgl.page.is_showing: "ui_page_cook"
+      then:
+      - script.execute: "light_on"
+
+script:
+- id: "light_on"
+  then:
+  - homeassistant.action:
+      action: "light.turn_on"
+      data:
+        entity_id: "light.terrasse_chemine_licht"
+        brightness_pct: !lambda "return (int) id(light_brightness).state;"
+
+- id: "light_off"
+  then:
+  - homeassistant.action:
+      action: "light.turn_off"
+      data:
+        entity_id: "light.terrasse_chemine_licht"

@@ -18,6 +18,7 @@ substitutions:
 
 packages:
   heaters: !include heaters.yaml
+  light: !include light.yaml
   ui: !include ui.yaml
   ui_idle: !include ui_idle.yaml
   ui_cook: !include ui_cook.yaml
