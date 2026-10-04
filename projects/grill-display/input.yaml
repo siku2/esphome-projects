@@ -95,7 +95,7 @@ script:
         call.set_value(id(target_meat_core_temperature).state + step);
         call.perform();
       } else {
-        climate::Climate *zone = id(ui_panel) == 0 ? id(climate_west) : id(climate_east);
+        climate::Climate *zone = id(ui_panel) == 0 ? id(climate_east) : id(climate_west);
         auto call = zone->make_call();
         call.set_target_temperature(std::max(40.0f, std::min(300.0f, zone->target_temperature + 5.0f * step)));
         call.perform();
@@ -114,7 +114,7 @@ binary_sensor:
           id(ui_level) = 2;
           id(ui_item) = id(ui_panel) == 2 ? 1 : 0;
         } else if (id(ui_level) == 2 && id(ui_item) == 0) {
-          climate::Climate *zone = id(ui_panel) == 0 ? id(climate_west) : id(climate_east);
+          climate::Climate *zone = id(ui_panel) == 0 ? id(climate_east) : id(climate_west);
           auto call = zone->make_call();
           call.set_mode(zone->mode == climate::CLIMATE_MODE_OFF ? climate::CLIMATE_MODE_HEAT : climate::CLIMATE_MODE_OFF);
           call.perform();

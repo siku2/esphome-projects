@@ -26,15 +26,15 @@ packages:
     vars:
       zone: "west"
       zone_enum: "WEST"
-      x: 0
-      focus: 0
+      x: 528
+      focus: 1
   ui_cook_east: !include
     file: ui_cook_zone.yaml
     vars:
       zone: "east"
       zone_enum: "EAST"
-      x: 528
-      focus: 1
+      x: 0
+      focus: 0
   cook: !include cook.yaml
   input: !include input.yaml
 
