@@ -47,7 +47,7 @@ class GrillCook : public PollingComponent {
   Trigger<> *get_cook_ended_trigger() { return &this->cook_ended_trigger_; }
   Trigger<> *get_zone_presence_trigger() { return &this->zone_presence_trigger_; }
 
-  void start_cook() { this->model_.start_manual(); }
+  void start_cook() { this->model_.start(); }
   void end_cook() { this->model_.end(); }
   bool is_cooking() const { return this->model_.is_cooking(); }
   Phase phase() const { return this->model_.phase(); }

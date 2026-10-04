@@ -39,6 +39,8 @@ float GrillCook::zone_temperature(Zone zone) const {
 float GrillCook::meat_temperature() const { return sensor_state_or_nan_(this->meat_probe_); }
 
 std::string GrillCook::eta_clock() const {
+  if (this->model_.phase() == Phase::DONE)
+    return "";
   const int remaining = this->model_.remaining_minutes();
   if (remaining < 0 || this->time_ == nullptr)
     return "";
