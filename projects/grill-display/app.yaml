@@ -64,9 +64,7 @@ time:
     then:
     - script.execute: "ui_idle_update"
   on_time:
-  # Every 5 minutes, offset by 2:30
-  - seconds: "30"
-    minutes: "2/5"
+  - seconds: 0
     then:
     - script.execute: "ui_idle_update"
   - seconds: 0

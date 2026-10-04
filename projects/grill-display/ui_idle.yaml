@@ -289,13 +289,9 @@ script:
   mode: "restart"
   then:
   - lambda: |-
-      const uint32_t five_minutes = 5 * 60;
-      const uint32_t twelve_hours = 12 * 60 * 60;
       auto now = id(base_homeassistant_time).now();
-      uint32_t seconds = now.second + 60 * now.minute + 3600 * now.hour;
-      seconds = (seconds + five_minutes / 2) / five_minutes * five_minutes;
-      id(lvgl_minute_hand)->set_value((seconds % 3600) / 60.0);
-      id(lvgl_hour_hand)->set_value((seconds % twelve_hours) / 60.0);
+      id(lvgl_minute_hand)->set_value(now.minute);
+      id(lvgl_hour_hand)->set_value((now.hour % 12) * 60 + now.minute);
   - if:
       condition:
         lambda: "return std::isnan(id(ha_wind_bearing).state);"
