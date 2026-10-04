@@ -67,6 +67,19 @@ climate:
     kp: 0.02829
     ki: 0.00016
     kd: 1.21726
+  on_state:
+  # Fires on every publish, so only react when the mode changes.
+  - if:
+      condition:
+        lambda: !lambda |-
+          static climate::ClimateMode last = climate::CLIMATE_MODE_OFF;
+          const bool changed = x.mode != last;
+          last = x.mode;
+          return changed;
+      then:
+      - lambda: !lambda |-
+          id(grill_cook_main)->update();
+      - script.execute: "ui_select_page"
 
 - <<: *climate_west
   id: "climate_east"
