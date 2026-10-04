@@ -81,6 +81,20 @@ void GrillCook::update() {
 
   this->model_.update(in);
 
+  bool presence_changed = false;
+  for (size_t z = 0; z < 2; z++) {
+    const bool present = this->model_.zone_present(static_cast<Zone>(z));
+    presence_changed |= present != this->last_zone_present_[z];
+    this->last_zone_present_[z] = present;
+
+    auto *climate = this->zones_[z].climate;
+    if (in.zone_on[z] && !present && climate != nullptr) {
+      climate->make_call().set_mode(climate::CLIMATE_MODE_OFF).perform();
+    }
+  }
+  if (presence_changed)
+    this->zone_presence_trigger_.trigger();
+
   const bool now_cooking = this->model_.is_cooking();
   const Phase now_phase = this->model_.phase();
 

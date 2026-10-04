@@ -45,14 +45,16 @@ class GrillCook : public PollingComponent {
   Trigger<std::string> *get_phase_trigger() { return &this->phase_trigger_; }
   Trigger<> *get_cook_started_trigger() { return &this->cook_started_trigger_; }
   Trigger<> *get_cook_ended_trigger() { return &this->cook_ended_trigger_; }
+  Trigger<> *get_zone_presence_trigger() { return &this->zone_presence_trigger_; }
 
-  void start_cook() { this->model_.start(); }
+  void start_cook() { this->model_.start_manual(); }
   void end_cook() { this->model_.end(); }
   bool is_cooking() const { return this->model_.is_cooking(); }
   Phase phase() const { return this->model_.phase(); }
   const char *phase_str() const { return this->model_.phase_str(); }
 
   bool zone_on(Zone zone) const;
+  bool zone_present(Zone zone) const { return this->model_.zone_present(zone); }
   bool zone_at_setpoint(Zone zone) const { return this->model_.zone_at_setpoint(zone); }
   float zone_target(Zone zone) const;
   float zone_temperature(Zone zone) const;
@@ -88,10 +90,12 @@ class GrillCook : public PollingComponent {
   Trigger<std::string> phase_trigger_;
   Trigger<> cook_started_trigger_;
   Trigger<> cook_ended_trigger_;
+  Trigger<> zone_presence_trigger_;
 
   grill_cook_model::CookModel model_;
 
   bool last_cooking_{false};
+  bool last_zone_present_[2]{false, false};
   Phase last_phase_{Phase::IDLE};
   std::string last_phase_text_;
   std::string last_eta_text_;

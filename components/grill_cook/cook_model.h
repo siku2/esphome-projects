@@ -59,6 +59,15 @@ class CookModel {
     this->reset_cook_state_();
   }
 
+  // A manual cook only auto-ends once the meat probe is gone, because cold meat
+  // can stay below MEAT_COLD_C for a long time.
+  void start_manual() {
+    if (this->cooking_)
+      return;
+    this->start();
+    this->manual_ = true;
+  }
+
   void end() {
     if (!this->cooking_)
       return;
@@ -68,8 +77,12 @@ class CookModel {
 
   void update(const CookInputs &in) {
     this->latest_ = in;
+    this->update_zone_presence_(in);
+    for (size_t z = 0; z < 2; z++) {
+      this->latest_.zone_on[z] = in.zone_on[z] && this->zone_present_[z];
+    }
 
-    const bool any_zone_on = in.zone_on[0] || in.zone_on[1];
+    const bool any_zone_on = this->latest_.zone_on[0] || this->latest_.zone_on[1];
     if (!this->cooking_ && any_zone_on && !this->prev_any_zone_on_) {
       this->start();
     }
@@ -91,8 +104,8 @@ class CookModel {
     this->update_done_(in, probe_present);
     this->update_stalled_(any_zone_on, probe_present);
 
-    const bool meat_cold_or_absent = !probe_present || in.meat_temp < MEAT_COLD_C;
-    if (any_zone_on || !meat_cold_or_absent) {
+    const bool meat_idle = this->manual_ ? !probe_present : (!probe_present || in.meat_temp < MEAT_COLD_C);
+    if (any_zone_on || !meat_idle) {
       this->off_since_valid_ = false;
     } else if (!this->off_since_valid_) {
       this->off_since_valid_ = true;
@@ -103,6 +116,8 @@ class CookModel {
   }
 
   bool is_cooking() const { return this->cooking_; }
+
+  bool zone_present(Zone zone) const { return this->zone_present_[static_cast<size_t>(zone)]; }
 
   Phase phase() const {
     if (!this->cooking_)
@@ -154,6 +169,7 @@ class CookModel {
   static constexpr float STALL_EXIT_RATE_C_PER_MIN = 0.2f;
   static constexpr float MEAT_COLD_C = 30.0f;
   static constexpr uint32_t AUTO_END_S = 5 * 60;
+  static constexpr uint32_t ZONE_PRESENCE_DEBOUNCE_S = 10;
   static constexpr uint32_t RATE_WINDOW_S = 15 * 60;
   static constexpr uint32_t MIN_RATE_SPAN_S = 5 * 60;
   static constexpr float RATE_ETA_MIN_C_PER_MIN = 0.05f;
@@ -173,6 +189,25 @@ class CookModel {
     this->rate_count_ = 0;
     this->rate_c_per_min_ = NAN;
     this->off_since_valid_ = false;
+    this->manual_ = false;
+  }
+
+  void update_zone_presence_(const CookInputs &in) {
+    for (size_t z = 0; z < 2; z++) {
+      const bool raw = std::isfinite(in.zone_temp[z]);
+      if (!this->presence_started_) {
+        this->zone_present_[z] = raw;
+      } else if (raw == this->zone_present_[z]) {
+        this->presence_change_pending_[z] = false;
+      } else if (!this->presence_change_pending_[z]) {
+        this->presence_change_pending_[z] = true;
+        this->presence_change_since_s_[z] = in.t_s;
+      } else if ((in.t_s - this->presence_change_since_s_[z]) >= ZONE_PRESENCE_DEBOUNCE_S) {
+        this->zone_present_[z] = raw;
+        this->presence_change_pending_[z] = false;
+      }
+    }
+    this->presence_started_ = true;
   }
 
   // The probe can read hot before it is inserted, so DONE only arms once the
@@ -275,6 +310,7 @@ class CookModel {
   }
 
   bool cooking_{false};
+  bool manual_{false};
   bool done_{false};
   float done_target_{NAN};
   bool armed_{false};
@@ -295,6 +331,11 @@ class CookModel {
 
   bool off_since_valid_{false};
   uint32_t off_since_s_{0};
+
+  bool presence_started_{false};
+  bool zone_present_[2]{false, false};
+  bool presence_change_pending_[2]{false, false};
+  uint32_t presence_change_since_s_[2]{0, 0};
 };
 
 }  // namespace grill_cook_model

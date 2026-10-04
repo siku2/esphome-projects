@@ -553,6 +553,133 @@ void test_history_survives_cook_start_and_end() {
   assert(valid_count(model.meat_history()) == CookModel::HISTORY_LEN);
 }
 
+CookInputs zone_inputs(uint32_t t_s, float west_temp, float east_temp) {
+  CookInputs in = make_inputs(t_s, false, false, 20.0f, NAN, 90.0f);
+  in.zone_temp[0] = west_temp;
+  in.zone_temp[1] = east_temp;
+  return in;
+}
+
+void test_zone_presence_takes_first_sample() {
+  CookModel model;
+  assert(!model.zone_present(Zone::WEST));
+  model.update(zone_inputs(0, 20.0f, NAN));
+  assert(model.zone_present(Zone::WEST));
+  assert(!model.zone_present(Zone::EAST));
+}
+
+void test_zone_presence_debounce() {
+  CookModel model;
+  model.update(zone_inputs(0, 20.0f, 20.0f));
+  assert(model.zone_present(Zone::WEST));
+
+  model.update(zone_inputs(5, NAN, 20.0f));
+  model.update(zone_inputs(10, NAN, 20.0f));
+  assert(model.zone_present(Zone::WEST));
+  model.update(zone_inputs(15, NAN, 20.0f));
+  assert(!model.zone_present(Zone::WEST));
+  assert(model.zone_present(Zone::EAST));
+
+  model.update(zone_inputs(20, 20.0f, 20.0f));
+  model.update(zone_inputs(29, 20.0f, 20.0f));
+  assert(!model.zone_present(Zone::WEST));
+  model.update(zone_inputs(30, 20.0f, 20.0f));
+  assert(model.zone_present(Zone::WEST));
+}
+
+void test_zone_presence_glitch_is_ignored() {
+  CookModel model;
+  model.update(zone_inputs(0, 20.0f, 20.0f));
+  model.update(zone_inputs(5, NAN, 20.0f));
+  model.update(zone_inputs(10, NAN, 20.0f));
+  model.update(zone_inputs(14, 20.0f, 20.0f));
+  model.update(zone_inputs(19, NAN, 20.0f));
+  model.update(zone_inputs(25, NAN, 20.0f));
+  assert(model.zone_present(Zone::WEST));
+  model.update(zone_inputs(29, NAN, 20.0f));
+  assert(!model.zone_present(Zone::WEST));
+}
+
+void test_absent_zone_does_not_start_cook() {
+  CookModel model;
+  CookInputs in = zone_inputs(0, NAN, 20.0f);
+  in.zone_on[0] = true;
+  model.update(in);
+  assert(!model.is_cooking());
+}
+
+void test_manual_cook_survives_cold_meat() {
+  CookModel model;
+  model.update(make_inputs(0, false, false, 20.0f, 10.0f, 90.0f));
+  model.start_manual();
+  assert(model.is_cooking());
+  uint32_t t = 5;
+  for (; t < 60 * 60; t += DT_S) {
+    model.update(make_inputs(t, false, false, 20.0f, 10.0f, 90.0f));
+  }
+  assert(model.is_cooking());
+}
+
+void test_manual_cook_ends_when_probe_absent() {
+  CookModel model;
+  model.update(make_inputs(0, false, false, 20.0f, 10.0f, 90.0f));
+  model.start_manual();
+  uint32_t t = 5;
+  for (; t < 4 * 60; t += DT_S) {
+    model.update(make_inputs(t, false, false, 20.0f, NAN, 90.0f));
+  }
+  assert(model.is_cooking());
+  for (; t < 6 * 60; t += DT_S) {
+    model.update(make_inputs(t, false, false, 20.0f, NAN, 90.0f));
+  }
+  assert(!model.is_cooking());
+}
+
+void test_manual_cook_keeps_manual_rule_with_zone_on() {
+  CookModel model;
+  model.update(make_inputs(0, false, false, 20.0f, 10.0f, 90.0f));
+  model.start_manual();
+  uint32_t t = 5;
+  for (; t < 60; t += DT_S) {
+    model.update(make_inputs(t, true, false, 100.0f, 10.0f, 90.0f));
+  }
+  for (; t < 20 * 60; t += DT_S) {
+    model.update(make_inputs(t, false, false, 20.0f, 10.0f, 90.0f));
+  }
+  assert(model.is_cooking());
+}
+
+void test_zone_cook_still_ends_when_meat_cold() {
+  CookModel model;
+  model.update(make_inputs(0, true, false, 100.0f, 10.0f, 90.0f));
+  assert(model.is_cooking());
+  uint32_t t = 5;
+  for (; t < 60; t += DT_S) {
+    model.update(make_inputs(t, true, false, 100.0f, 10.0f, 90.0f));
+  }
+  for (; t < 8 * 60; t += DT_S) {
+    model.update(make_inputs(t, false, false, 20.0f, 10.0f, 90.0f));
+  }
+  assert(!model.is_cooking());
+}
+
+void test_manual_flag_clears_on_end() {
+  CookModel model;
+  model.update(make_inputs(0, false, false, 20.0f, 10.0f, 90.0f));
+  model.start_manual();
+  model.end();
+  model.update(make_inputs(5, true, false, 100.0f, 10.0f, 90.0f));
+  assert(model.is_cooking());
+  uint32_t t = 10;
+  for (; t < 60; t += DT_S) {
+    model.update(make_inputs(t, true, false, 100.0f, 10.0f, 90.0f));
+  }
+  for (; t < 8 * 60; t += DT_S) {
+    model.update(make_inputs(t, false, false, 20.0f, 10.0f, 90.0f));
+  }
+  assert(!model.is_cooking());
+}
+
 }  // namespace
 
 int main() {
@@ -578,6 +705,15 @@ int main() {
   test_second_manual_cook_matches_first();
   test_history_fills_while_idle();
   test_history_survives_cook_start_and_end();
+  test_zone_presence_takes_first_sample();
+  test_zone_presence_debounce();
+  test_zone_presence_glitch_is_ignored();
+  test_absent_zone_does_not_start_cook();
+  test_manual_cook_survives_cold_meat();
+  test_manual_cook_ends_when_probe_absent();
+  test_manual_cook_keeps_manual_rule_with_zone_on();
+  test_zone_cook_still_ends_when_meat_cold();
+  test_manual_flag_clears_on_end();
 
   std::printf("all cook_model tests passed\n");
   return 0;

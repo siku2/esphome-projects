@@ -26,6 +26,7 @@ CONF_REMAINING_MINUTES = "remaining_minutes"
 CONF_ON_PHASE = "on_phase"
 CONF_ON_COOK_STARTED = "on_cook_started"
 CONF_ON_COOK_ENDED = "on_cook_ended"
+CONF_ON_ZONE_PRESENCE = "on_zone_presence"
 
 grill_cook_ns = cg.esphome_ns.namespace("grill_cook")
 GrillCook = grill_cook_ns.class_("GrillCook", cg.PollingComponent)
@@ -65,6 +66,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_ON_PHASE): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_COOK_STARTED): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_COOK_ENDED): automation.validate_automation(single=True),
+        cv.Optional(CONF_ON_ZONE_PRESENCE): automation.validate_automation(single=True),
     }
 ).extend(cv.polling_component_schema("5s"))
 CONFIG_SCHEMA = cv.All(
@@ -122,3 +124,6 @@ async def to_code(config):
 
     if action := config.get(CONF_ON_COOK_ENDED):
         await automation.build_automation(var.get_cook_ended_trigger(), [], action)
+
+    if action := config.get(CONF_ON_ZONE_PRESENCE):
+        await automation.build_automation(var.get_zone_presence_trigger(), [], action)
