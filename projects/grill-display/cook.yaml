@@ -10,6 +10,20 @@ number:
   step: 0.5
   mode: "box"
 
+switch:
+- id: "cook_active"
+  name: "${i18n.grilldisplay[language].grill_cook_active}"
+  platform: "template"
+  lambda: "return id(grill_cook_main)->is_cooking();"
+  turn_on_action:
+  - lambda: |-
+      id(grill_cook_main)->start_cook();
+      id(grill_cook_main)->update();
+  turn_off_action:
+  - lambda: |-
+      id(grill_cook_main)->end_cook();
+      id(grill_cook_main)->update();
+
 event:
 - id: "grill_event"
   name: "${i18n.grilldisplay[language].grill_event}"
