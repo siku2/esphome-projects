@@ -12,8 +12,28 @@ esphome:
   on_boot:
     priority: -90
     then:
-    - lambda: !lambda |-
-        id(ui_last_activity) = millis_64() / 1000;
+    - script.execute: "ui_activity"
+
+script:
+- id: "ui_activity"
+  then:
+  - lambda: !lambda |-
+      id(ui_last_activity) = millis_64() / 1000;
+  - script.execute: "sleep_timer"
+
+- id: "sleep_timer"
+  mode: "restart"
+  then:
+  - delay: !lambda |-
+      const uint32_t hold_s = (uint32_t) id(sleep_hold).state * 60;
+      const uint32_t idle_s = millis_64() / 1000 - id(ui_last_activity);
+      return idle_s >= hold_s ? 0 : (hold_s - idle_s) * 1000;
+  - if:
+      condition:
+        not:
+          lvgl.page.is_showing: "ui_page_cook"
+      then:
+      - script.execute: "ui_select_page"
 
 switch:
 - id: "sleep_enabled"
@@ -41,6 +61,7 @@ number:
   unit_of_measurement: "min"
   mode: "box"
   on_value:
+  - script.execute: "sleep_timer"
   - script.execute: "ui_select_page"
 
 datetime:
@@ -75,8 +96,7 @@ binary_sensor:
 
 - id: !extend "ha_terrace_presence"
   on_state:
-  - lambda: !lambda |-
-      id(ui_last_activity) = millis_64() / 1000;
+  - script.execute: "ui_activity"
   - script.execute: "ui_select_page"
 
 lvgl:

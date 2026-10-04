@@ -62,11 +62,9 @@ script:
   then:
   - lambda: !lambda |-
       id(ui_input_pending) = true;
-      id(ui_last_activity) = millis_64() / 1000;
+  - script.execute: "ui_activity"
   - script.execute: "ui_timeout_item"
   - script.execute: "ui_timeout_panel"
-  - lambda: !lambda |-
-      id(grill_cook_main)->update();
   - script.execute: "ui_select_page"
 
 - id: "ui_shutdown_hold"

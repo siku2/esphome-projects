@@ -90,7 +90,7 @@ script:
       - script.execute: "ui_cook_update"
       - lambda: !lambda |-
           id(ui_asleep) = false;
-          id(ui_last_activity) = millis_64() / 1000;
+      - script.execute: "ui_activity"
       else:
       - if:
           condition:

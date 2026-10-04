@@ -14,15 +14,18 @@ switch:
 - id: "cook_active"
   name: "${i18n.grilldisplay[language].grill_cook_active}"
   platform: "template"
-  lambda: !lambda "return id(grill_cook_main)->is_cooking();"
   turn_on_action:
-  - lambda: !lambda |-
-      id(grill_cook_main)->start_cook();
-      id(grill_cook_main)->update();
+  - lambda: !lambda "id(grill_cook_main)->start_cook();"
   turn_off_action:
-  - lambda: !lambda |-
-      id(grill_cook_main)->end_cook();
-      id(grill_cook_main)->update();
+  - lambda: !lambda "id(grill_cook_main)->end_cook();"
+
+esphome:
+  on_boot:
+    priority: -100
+    then:
+    - switch.template.publish:
+        id: "cook_active"
+        state: false
 
 event:
 - id: "grill_event"
@@ -34,10 +37,20 @@ event:
   - "stalled"
   - "ended"
 
+script:
+- id: "ui_cook_measurement"
+  mode: "single"
+  then:
+  - if:
+      condition:
+        lvgl.page.is_showing: "ui_page_cook"
+      then:
+      - script.execute: "ui_cook_update"
+      - delay: "30s"
+
 grill_cook:
   id: "grill_cook_main"
   time_id: "base_homeassistant_time"
-  update_interval: "5s"
   zones:
     west:
       climate: "climate_west"
@@ -59,6 +72,9 @@ grill_cook:
   - event.trigger:
       id: "grill_event"
       event_type: "started"
+  - switch.template.publish:
+      id: "cook_active"
+      state: true
   - if:
       condition:
         lambda: !lambda "return id(ui_level) == 0;"
@@ -72,8 +88,20 @@ grill_cook:
   - event.trigger:
       id: "grill_event"
       event_type: "ended"
+  - switch.template.publish:
+      id: "cook_active"
+      state: false
   - script.execute: "ui_timeout_panel"
   - script.execute: "ui_select_page"
+  on_control:
+  - script.execute: "ui_select_page"
+  on_measurement:
+  - if:
+      condition:
+        not:
+          script.is_running: "ui_cook_measurement"
+      then:
+      - script.execute: "ui_cook_measurement"
   on_zone_presence:
   - script.execute:
       id: "ui_panel_move"

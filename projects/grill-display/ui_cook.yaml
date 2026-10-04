@@ -166,15 +166,6 @@ lvgl:
                 clickable: false
                 hidden: true
 
-interval:
-- interval: "30s"
-  then:
-  - if:
-      condition:
-        lvgl.page.is_showing: "ui_page_cook"
-      then:
-      - script.execute: "ui_cook_update"
-
 script:
 - id: "ui_cook_update"
   mode: "restart"
