@@ -25,6 +25,18 @@ binary_sensor:
   - switch.toggle: "sim_meat_probe"
 
 switch:
+- id: "sim_west_probe"
+  name: "Sim West Probe"
+  platform: "template"
+  optimistic: true
+  restore_mode: "ALWAYS_ON"
+
+- id: "sim_east_probe"
+  name: "Sim East Probe"
+  platform: "template"
+  optimistic: true
+  restore_mode: "ALWAYS_ON"
+
 - id: "sim_meat_probe"
   name: "Sim Meat Probe"
   platform: "template"
@@ -75,7 +87,7 @@ sensor:
     const float duty = std::max(0.0f, std::min(1.0f, id(climate_west)->get_output_value()));
     id(sim_west_element) += (duty - id(sim_west_element)) / 60.0f;
     id(sim_west_temperature) += (20.0f + 330.0f * id(sim_west_element) - id(sim_west_temperature)) / 180.0f;
-    return id(sim_west_temperature);
+    return id(sim_west_probe).state ? id(sim_west_temperature) : NAN;
 
 - <<: *sim_zone
   id: "probe_east_temperature"
@@ -83,7 +95,7 @@ sensor:
     const float duty = std::max(0.0f, std::min(1.0f, id(climate_east)->get_output_value()));
     id(sim_east_element) += (duty - id(sim_east_element)) / 60.0f;
     id(sim_east_temperature) += (20.0f + 330.0f * id(sim_east_element) - id(sim_east_temperature)) / 180.0f;
-    return id(sim_east_temperature);
+    return id(sim_east_probe).state ? id(sim_east_temperature) : NAN;
 
 - <<: *sim_zone
   id: "probe_meat_temperature"

@@ -10,6 +10,7 @@ lvgl:
         bg_color: "color_paper"
         widgets:
         - line:
+            id: "divider_east"
             x: 264
             y: 26
             points:
@@ -21,6 +22,7 @@ lvgl:
             line_color: "color_ink"
 
         - line:
+            id: "divider_west"
             x: 528
             y: 26
             points:
@@ -32,6 +34,7 @@ lvgl:
             line_color: "color_ink"
 
         - obj:
+            id: "panel_meat"
             x: 264
             y: 0
             width: 264
@@ -53,6 +56,20 @@ lvgl:
                 pad_right: 10
                 align: "TOP_MID"
                 y: 8
+
+            - label:
+                id: "lbl_meat_start"
+                text: "${i18n.grilldisplay[language].ui_start}"
+                text_font: "font_label"
+                text_color: "color_ink"
+                bg_opa: "TRANSP"
+                radius: 8
+                pad_top: 2
+                pad_bottom: 2
+                pad_left: 10
+                pad_right: 10
+                align: "TOP_MID"
+                y: 32
 
             - label:
                 id: "lbl_meat_hint"
@@ -162,11 +179,49 @@ script:
 - id: "ui_cook_update"
   mode: "restart"
   then:
+  - script.execute:
+      id: "ui_panel_move"
+      step: 0
   - script.execute: "ui_cook_update_west"
   - script.execute: "ui_cook_update_east"
   - lvgl.obj.update:
+      id: "divider_east"
+      hidden: !lambda "return !id(grill_cook_main)->zone_present(grill_cook::Zone::EAST);"
+  - lvgl.obj.update:
+      id: "divider_west"
+      hidden: !lambda "return !id(grill_cook_main)->zone_present(grill_cook::Zone::WEST);"
+  - lambda: |-
+      const bool east = id(grill_cook_main)->zone_present(grill_cook::Zone::EAST);
+      const bool west = id(grill_cook_main)->zone_present(grill_cook::Zone::WEST);
+      const int width = 264 * (1 + !east + !west);
+      lv_obj_set_x(id(panel_meat), east ? 264 : 0);
+      lv_obj_set_width(id(panel_meat), width);
+      lv_obj_set_width(id(grp_meat_present), width);
+      lv_obj_set_width(id(frame_meat), width - 5);
+  - lvgl.label.update:
+      id: "lbl_meat_start"
+      hidden: !lambda "return !id(ui_meat_selectable);"
+      text: !lambda |-
+        if (id(grill_cook_main)->is_cooking())
+          return std::string("${i18n.grilldisplay[language].ui_stop}");
+        return std::string("${i18n.grilldisplay[language].ui_start}");
+  - if:
+      condition:
+        lambda: "return id(ui_level) == 2 && id(ui_panel) == 2 && id(ui_item) == 0;"
+      then:
+      - lvgl.label.update:
+          id: "lbl_meat_start"
+          bg_opa: "COVER"
+          bg_color: "color_ink"
+          text_color: "color_paper"
+      else:
+      - lvgl.label.update:
+          id: "lbl_meat_start"
+          bg_opa: "TRANSP"
+          text_color: "color_ink"
+  - lvgl.obj.update:
       id: "frame_meat"
-      hidden: !lambda "return !(id(ui_level) >= 1 && id(ui_panel) == 2);"
+      hidden: !lambda "return !(id(ui_level) >= 1 && id(ui_panel) == 2 && id(ui_panel_count) > 1);"
   - lvgl.obj.update:
       id: "grp_meat_present"
       hidden: !lambda "return !id(grill_cook_main)->meat_probe_present();"
@@ -194,7 +249,7 @@ script:
             return std::string(buf);
       - if:
           condition:
-            lambda: "return id(ui_level) >= 2 && id(ui_panel) == 2;"
+            lambda: "return id(ui_level) >= 2 && id(ui_panel) == 2 && id(ui_item) == 1;"
           then:
           - lvgl.label.update:
               id: "lbl_meat_target"

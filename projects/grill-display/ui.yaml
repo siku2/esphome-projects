@@ -70,7 +70,10 @@ script:
   then:
   - if:
       condition:
-        lambda: "return id(ui_level) > 0 || id(grill_cook_main)->is_cooking();"
+        lambda: |-
+          return id(ui_level) > 0 || id(grill_cook_main)->is_cooking() ||
+                 id(grill_cook_main)->zone_on(grill_cook::Zone::WEST) ||
+                 id(grill_cook_main)->zone_on(grill_cook::Zone::EAST);
       then:
       - if:
           condition:

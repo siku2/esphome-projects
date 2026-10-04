@@ -8,6 +8,7 @@ lvgl:
   - id: !extend "ui_page_cook"
     widgets:
     - obj:
+        id: "panel_${zone}"
         x: ${x}
         y: 0
         width: 264
@@ -141,6 +142,9 @@ script:
 - id: "ui_cook_update_${zone}"
   mode: "restart"
   then:
+  - lvgl.obj.update:
+      id: "panel_${zone}"
+      hidden: !lambda "return !id(grill_cook_main)->zone_present(grill_cook::Zone::${zone_enum});"
   - lvgl.label.update:
       id: "lbl_${zone}_temp"
       text: !lambda |-
@@ -183,7 +187,7 @@ script:
         return std::string(buf);
   - lvgl.obj.update:
       id: "frame_${zone}"
-      hidden: !lambda "return !(id(ui_level) >= 1 && id(ui_panel) == ${focus});"
+      hidden: !lambda "return !(id(ui_level) >= 1 && id(ui_panel) == ${focus} && id(ui_panel_count) > 1);"
   - if:
       condition:
         lambda: "return id(ui_level) == 2 && id(ui_panel) == ${focus} && id(ui_item) == 0;"

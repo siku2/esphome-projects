@@ -50,8 +50,8 @@ grill_cook:
         lambda: "return id(ui_level) == 0;"
       then:
       - lambda: |-
-          id(ui_level) = 1;
-          id(ui_panel) = 0;
+          id(ui_panel_enter)->execute();
+      - script.execute: "ui_timeout_item"
       - script.execute: "ui_timeout_panel"
   - script.execute: "ui_select_page"
   on_cook_ended:
@@ -60,6 +60,22 @@ grill_cook:
       event_type: "ended"
   - script.execute: "ui_timeout_panel"
   - script.execute: "ui_select_page"
+  on_zone_presence:
+  - script.execute:
+      id: "ui_panel_move"
+      step: 0
+  - lambda: |-
+      const bool east = id(grill_cook_main)->zone_present(grill_cook::Zone::EAST);
+      const bool west = id(grill_cook_main)->zone_present(grill_cook::Zone::WEST);
+      if (id(ui_level) >= 1 && ((id(ui_panel) == 0 && !east) || (id(ui_panel) == 1 && !west))) {
+        id(ui_panel_enter)->execute();
+      }
+  - script.execute: "ui_select_page"
+  - if:
+      condition:
+        lvgl.page.is_showing: "ui_page_cook"
+      then:
+      - script.execute: "ui_refresh_full"
   on_phase:
   - if:
       condition:

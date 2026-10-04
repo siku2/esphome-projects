@@ -16,6 +16,14 @@ globals:
   type: "int"
   restore_value: no
   initial_value: "0"
+- id: "ui_panel_count"
+  type: "int"
+  restore_value: no
+  initial_value: "1"
+- id: "ui_meat_selectable"
+  type: "bool"
+  restore_value: no
+  initial_value: "true"
 
 script:
 - id: "ui_timeout_item"
@@ -26,9 +34,12 @@ script:
       condition:
         lambda: "return id(ui_level) >= 2;"
       then:
+      - script.execute:
+          id: "ui_panel_move"
+          step: 0
       - lambda: |-
-          id(ui_level) = 1;
-      - script.execute: "ui_cook_update"
+          id(ui_level) = id(ui_panel_count) == 1 ? 0 : 1;
+      - script.execute: "ui_select_page"
       - script.execute: "ui_refresh_full"
 
 - id: "ui_timeout_panel"
@@ -72,22 +83,60 @@ script:
       id(ui_level) = 0;
   - script.execute: "ui_input_done"
 
+- id: "ui_panel_move"
+  parameters:
+    step: "int"
+  then:
+  - lambda: |-
+      const bool east = id(grill_cook_main)->zone_present(grill_cook::Zone::EAST);
+      const bool west = id(grill_cook_main)->zone_present(grill_cook::Zone::WEST);
+      const bool selectable[3] = {east, west, id(grill_cook_main)->meat_probe_present() || (!east && !west)};
+      id(ui_panel_count) = selectable[0] + selectable[1] + selectable[2];
+      id(ui_meat_selectable) = selectable[2];
+      if (id(ui_panel_count) == 1 && id(ui_level) == 1) {
+        id(ui_level) = 0;
+      }
+      int panel = id(ui_panel);
+      for (int i = 0; i < 3 && step != 0; i++) {
+        panel = (panel + step + 3) % 3;
+        if (selectable[panel])
+          break;
+      }
+      id(ui_panel) = panel;
+
+- id: "ui_panel_first"
+  then:
+  # Stepping forward from the last panel wraps around to the first selectable one.
+  - lambda: |-
+      id(ui_panel) = 2;
+      id(ui_panel_move)->execute(1);
+
+- id: "ui_item_reset"
+  then:
+  - lambda: |-
+      id(ui_item) = id(ui_panel) == 2 && id(grill_cook_main)->is_cooking() &&
+                            id(grill_cook_main)->meat_probe_present()
+                        ? 1
+                        : 0;
+
+- id: "ui_panel_enter"
+  then:
+  - lambda: |-
+      id(ui_panel_first)->execute();
+      id(ui_level) = id(ui_panel_count) == 1 ? 2 : 1;
+      id(ui_item_reset)->execute();
+
 - id: "ui_rotate"
   parameters:
     step: "int"
   then:
   - lambda: |-
       if (id(ui_level) == 0) {
-        id(ui_level) = 1;
-        id(ui_panel) = 0;
+        id(ui_panel_enter)->execute();
       } else if (id(ui_level) == 1) {
-        int panel = (id(ui_panel) + step + 3) % 3;
-        if (panel == 2 && !id(grill_cook_main)->meat_probe_present()) {
-          panel = (panel + step + 3) % 3;
-        }
-        id(ui_panel) = panel;
+        id(ui_panel_move)->execute(step);
       } else if (id(ui_level) == 2) {
-        if (id(ui_panel) != 2) {
+        if (id(ui_panel) != 2 || id(grill_cook_main)->meat_probe_present()) {
           id(ui_item) = 1 - id(ui_item);
         }
       } else if (id(ui_panel) == 2) {
@@ -108,11 +157,16 @@ binary_sensor:
     then:
     - lambda: |-
         if (id(ui_level) == 0) {
-          id(ui_level) = 1;
-          id(ui_panel) = 0;
+          id(ui_panel_enter)->execute();
         } else if (id(ui_level) == 1) {
           id(ui_level) = 2;
-          id(ui_item) = id(ui_panel) == 2 ? 1 : 0;
+          id(ui_item_reset)->execute();
+        } else if (id(ui_level) == 2 && id(ui_item) == 0 && id(ui_panel) == 2) {
+          if (id(grill_cook_main)->is_cooking()) {
+            id(grill_cook_main)->end_cook();
+          } else {
+            id(grill_cook_main)->start_cook();
+          }
         } else if (id(ui_level) == 2 && id(ui_item) == 0) {
           climate::Climate *zone = id(ui_panel) == 0 ? id(climate_east) : id(climate_west);
           auto call = zone->make_call();
@@ -135,14 +189,16 @@ binary_sensor:
     max_length: "999ms"
     then:
     - lambda: |-
+        id(ui_panel_move)->execute(0);
         if (id(ui_level) == 0) {
-          id(ui_level) = 1;
-          id(ui_panel) = 0;
+          id(ui_panel_enter)->execute();
         } else if (id(ui_level) == 1) {
           if (!id(grill_cook_main)->zone_on(grill_cook::Zone::WEST) &&
               !id(grill_cook_main)->zone_on(grill_cook::Zone::EAST)) {
             id(ui_level) = 0;
           }
+        } else if (id(ui_level) == 2 && id(ui_panel_count) == 1) {
+          id(ui_level) = 0;
         } else {
           id(ui_level) -= 1;
         }
