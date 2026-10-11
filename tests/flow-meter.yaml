@@ -1,0 +1,10 @@
+packages:
+  project: !include
+    file: ../projects/flow-meter/esp32.yaml
+    vars:
+      name: "test-flow-meter"
+      friendly_name: "Test Flow Meter"
+      language: "de"
+
+      api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
+      ota_password: "test-ota-password"
