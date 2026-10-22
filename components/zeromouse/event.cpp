@@ -4,6 +4,8 @@
 
 #include <algorithm>
 
+#include "esp_timer.h"
+
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
@@ -76,6 +78,7 @@ void ZeroMouse::check_scan_complete_() {
         this->end_event_("capture_failed");
         return;
       }
+      this->notify_captured_();
       this->publish_event_(false);
       break;
     case Outcome::EMPTY:
@@ -89,6 +92,26 @@ void ZeroMouse::check_scan_complete_() {
         this->try_start_event_();
       }
       break;
+  }
+}
+
+void ZeroMouse::notify_captured_() {
+  if (this->captured_callbacks_.empty()) {
+    return;
+  }
+  const int64_t age_us = esp_timer_get_time() - this->time_zero_us_;
+  const CapturedEvent event{this->frames_,
+                            this->scan_samples(),
+                            this->scan_params_,
+                            this->scan_result_,
+                            outcome_name_(this->scan_message_.outcome),
+                            this->time_zero_us_,
+                            static_cast<int32_t>((this->pir_us_ - this->time_zero_us_) / 1000),
+                            this->read_number_(this->ir_ambient_, 1000),
+                            this->calibration_.raw_value,
+                            static_cast<time_t>(this->time_->utcnow().timestamp - age_us / 1000000)};
+  for (const auto &callback : this->captured_callbacks_) {
+    callback(event);
   }
 }
 
@@ -115,6 +138,11 @@ void ZeroMouse::publish_event_(bool empty) {
 }
 
 void ZeroMouse::on_published_(bool empty, bool published, uint32_t event_id) {
+  if (!empty) {
+    for (const auto &callback : this->published_callbacks_) {
+      callback(published, event_id);
+    }
+  }
   if (this->state_ != State::PUBLISHING) {
     return;
   }

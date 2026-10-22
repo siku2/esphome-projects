@@ -3,6 +3,8 @@
 #ifdef USE_ESP32
 
 #include <atomic>
+#include <ctime>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -34,6 +36,24 @@
 
 namespace esphome::zeromouse {
 
+/// An event with frames, as seen right after the scan ended. Only valid during the callback.
+struct CapturedEvent {
+  const std::vector<std::shared_ptr<burst_camera::BurstCameraImage>> &frames;
+  const std::vector<zeromouse_air::AirSample> &samples;
+  const ScanParams &settings;
+  const ScanResult &scan;
+  const char *result;
+  int64_t time_zero_us;
+  int32_t pir_to_t0_ms;
+  int32_t ambient;
+  uint16_t free_value_raw;
+  /// Wall clock time of time zero in UTC.
+  time_t time_zero_epoch;
+  int32_t sample_time_ms(const zeromouse_air::AirSample &sample) const {
+    return static_cast<int32_t>((sample.time_us - this->time_zero_us) / 1000);
+  }
+};
+
 /// Detects cat flap events with the IR sensor.
 class ZeroMouse : public Component {
  public:
@@ -63,6 +83,21 @@ class ZeroMouse : public Component {
 #endif
   void set_ir_free_value_sensor(sensor::Sensor *sensor) { this->ir_free_value_sensor_ = sensor; }
   void set_ir_free_value_raw_sensor(sensor::Sensor *sensor) { this->ir_free_value_raw_sensor_ = sensor; }
+
+  using CapturedCallback = std::function<void(const CapturedEvent &)>;
+  using PublishedCallback = std::function<void(bool published, uint32_t event_id)>;
+  using ClassificationCallback = std::function<void(const std::string &class_name, int class_index, bool block)>;
+
+  /// Runs for every event with frames, before it is published.
+  void add_on_event_captured(CapturedCallback callback) { this->captured_callbacks_.push_back(std::move(callback)); }
+  /// Runs for every event with frames, once the cloud upload is decided. The event id is only valid if published.
+  void add_on_event_published(PublishedCallback callback) {
+    this->published_callbacks_.push_back(std::move(callback));
+  }
+  /// Runs for every classification from the cloud.
+  void add_on_classification(ClassificationCallback callback) {
+    this->classification_callbacks_.push_back(std::move(callback));
+  }
 
   Trigger<> *get_event_start_trigger() { return &this->event_start_trigger_; }
   Trigger<int> *get_time_zero_trigger() { return &this->time_zero_trigger_; }
@@ -145,6 +180,7 @@ class ZeroMouse : public Component {
   void set_blocker_(bool on);
   void start_capture_(int64_t time_zero_us);
   void check_scan_complete_();
+  void notify_captured_();
   void publish_event_(bool empty);
   void on_published_(bool empty, bool published, uint32_t event_id);
   void on_classification_(int class_index, bool block);
@@ -188,6 +224,10 @@ class ZeroMouse : public Component {
 #endif
   sensor::Sensor *ir_free_value_sensor_{nullptr};
   sensor::Sensor *ir_free_value_raw_sensor_{nullptr};
+
+  std::vector<CapturedCallback> captured_callbacks_;
+  std::vector<PublishedCallback> published_callbacks_;
+  std::vector<ClassificationCallback> classification_callbacks_;
 
   Trigger<> event_start_trigger_;
   Trigger<int> time_zero_trigger_;

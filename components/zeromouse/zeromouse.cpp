@@ -84,8 +84,12 @@ void ZeroMouse::setup() {
   }
 #ifdef USE_ZEROMOUSE_CONTROLLER_CLOUD
   if (this->cloud_ != nullptr) {
-    this->cloud_->add_on_classification_callback(
-        [this](const std::string &, int class_index, bool block) { this->on_classification_(class_index, block); });
+    this->cloud_->add_on_classification_callback([this](const std::string &class_name, int class_index, bool block) {
+      this->on_classification_(class_index, block);
+      for (const auto &callback : this->classification_callbacks_) {
+        callback(class_name, class_index, block);
+      }
+    });
   }
 #endif
 
