@@ -2,11 +2,26 @@ external_components:
 - source: "${components_source}"
   components: ["zeromouse"]
 
+time:
+- id: "zm_sntp"
+  platform: "sntp"
+
 zeromouse:
   id: "zm_controller"
   time_id: "zm_sntp"
+  camera: "zm_camera"
+  blocker: "zm_rfid_blocker"
   settings:
     upload_empty: "zm_upload_empty"
+    block_enabled: "zm_block_enabled"
+    undecidable_mode: "zm_undecidable_mode"
+    clean_event_time: "zm_clean_event_time"
+    finale_interval_max_count: "zm_finale_interval_max_count"
+    finale_interval_delta: "zm_finale_interval_delta"
+    last_ref_event_max_count: "zm_last_ref_event_max_count"
+    last_ref_event_max_time_sec: "zm_last_ref_event_max_time_sec"
+  state:
+    name: "${i18n.zeromouse[language].event_state}"
   ir_free_value:
     name: "${i18n.zeromouse[language].ir_free_value}"
   ir_free_value_raw:
@@ -39,3 +54,8 @@ zeromouse:
       format: "Scan result: %s"
       args:
       - !lambda "result.c_str()"
+  on_event_end:
+  - logger.log:
+      format: "Event end: %s"
+      args:
+      - !lambda "reason.c_str()"

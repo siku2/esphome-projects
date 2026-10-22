@@ -132,20 +132,6 @@ number:
   step: 1
   mode: "box"
 
-zeromouse_cloud:
-  settings:
-    brightness: "zm_brightness"
-    auto_gain_ctrl_min: "zm_auto_gain_ctrl_min"
-    auto_gain_ctrl_max: "zm_auto_gain_ctrl_max"
-    auto_gain_stbl_min: "zm_auto_gain_stbl_min"
-    auto_gain_stbl_max: "zm_auto_gain_stbl_max"
-    cam_shots_before_t0: "zm_cam_shots_before_t0"
-    ir_range_ignore_event: "zm_ir_range_ignore_event"
-    ir_prey_event_time: "zm_ir_prey_event_time"
-    ir_median_count: "zm_ir_median_count"
-    ir_ambient: "zm_ir_ambient"
-    ir_slope_thresh_value: "zm_ir_slope_thresh_value"
-
 zeromouse:
   air_sensor: "zm_air"
   presence: "zm_pir"
@@ -155,3 +141,4 @@ zeromouse:
     ir_range_ignore_event: "zm_ir_range_ignore_event"
     ir_ambient: "zm_ir_ambient"
     cam_shots_before_t0: "zm_cam_shots_before_t0"
+    ir_prey_event_time: "zm_ir_prey_event_time"

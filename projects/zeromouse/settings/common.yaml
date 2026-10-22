@@ -133,25 +133,3 @@ switch:
   entity_category: "CONFIG"
   optimistic: true
   restore_mode: "RESTORE_DEFAULT_ON"
-
-- id: "zm_accept_cloud_settings"
-  name: "${i18n.zeromouse[language].accept_cloud_settings}"
-  platform: "template"
-  entity_category: "CONFIG"
-  optimistic: true
-  restore_mode: "RESTORE_DEFAULT_ON"
-
-zeromouse_cloud:
-  settings:
-    clean_event_time: "zm_clean_event_time"
-    undecidable_mode: "zm_undecidable_mode"
-    finale_interval_max_count: "zm_finale_interval_max_count"
-    finale_interval_delta: "zm_finale_interval_delta"
-    upload_empty: "zm_upload_empty"
-    log_enabled: "zm_log_enabled"
-    auto_exp_level: "zm_auto_exp_level"
-    gain_ceiling: "zm_gain_ceiling"
-    block_enabled: "zm_block_enabled"
-    response_timeout: "zm_response_timeout"
-    last_ref_event_max_count: "zm_last_ref_event_max_count"
-    last_ref_event_max_time_sec: "zm_last_ref_event_max_time_sec"
