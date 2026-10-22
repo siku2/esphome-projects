@@ -32,6 +32,7 @@ zeromouse_cloud:
   event_count: "${zeromouse_event_count}"
   time_id: "zm_sntp"
   accept_settings: "zm_accept_cloud_settings"
+  upload_events: "zm_upload_events"
   on_classification:
   - text_sensor.template.publish:
       id: "zm_last_classification"
@@ -74,3 +75,24 @@ binary_sensor:
   name: "${i18n.zeromouse[language].cloud_connected}"
   device_class: "connectivity"
   entity_category: "DIAGNOSTIC"
+
+switch:
+- id: "zm_cloud_enabled"
+  name: "${i18n.zeromouse[language].cloud_enabled}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_mode: "RESTORE_DEFAULT_ON"
+  on_turn_on:
+  - aws_iot.enable:
+      id: "zm_aws_iot"
+  on_turn_off:
+  - aws_iot.disable:
+      id: "zm_aws_iot"
+
+- id: "zm_upload_events"
+  name: "${i18n.zeromouse[language].upload_events}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_mode: "RESTORE_DEFAULT_ON"
