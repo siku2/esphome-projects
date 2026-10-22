@@ -52,6 +52,12 @@ class AwsIotClient : public Component {
   }
   bool is_connected() const { return this->connected_; }
 
+  /// Starts the connection again if it was disabled.
+  void enable();
+  /// Closes the connection and keeps it closed until enable() is called.
+  void disable();
+  bool is_enabled() const { return this->enabled_; }
+
  protected:
   struct Subscription {
     std::string topic;
@@ -82,6 +88,8 @@ class AwsIotClient : public Component {
 
   esp_mqtt_client_handle_t client_{nullptr};
   bool connected_{false};
+  bool enabled_{true};
+  bool setup_done_{false};
   std::vector<Subscription> subscriptions_;
   LazyCallbackManager<void()> connect_callbacks_;
   LazyCallbackManager<void()> disconnect_callbacks_;
@@ -89,6 +97,26 @@ class AwsIotClient : public Component {
   Mutex events_mutex_;
   std::deque<Event> events_;
   MessageReassembler reassembler_;
+};
+
+template<typename... Ts> class EnableAction : public Action<Ts...> {
+ public:
+  explicit EnableAction(AwsIotClient *parent) : parent_(parent) {}
+
+  void play(const Ts &...x) override { this->parent_->enable(); }
+
+ protected:
+  AwsIotClient *parent_;
+};
+
+template<typename... Ts> class DisableAction : public Action<Ts...> {
+ public:
+  explicit DisableAction(AwsIotClient *parent) : parent_(parent) {}
+
+  void play(const Ts &...x) override { this->parent_->disable(); }
+
+ protected:
+  AwsIotClient *parent_;
 };
 
 class ConnectTrigger : public Trigger<> {

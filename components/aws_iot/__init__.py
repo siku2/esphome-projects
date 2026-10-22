@@ -35,6 +35,8 @@ ConnectTrigger = aws_iot_ns.class_("ConnectTrigger", automation.Trigger.template
 DisconnectTrigger = aws_iot_ns.class_(
     "DisconnectTrigger", automation.Trigger.template()
 )
+EnableAction = aws_iot_ns.class_("EnableAction", automation.Action)
+DisableAction = aws_iot_ns.class_("DisableAction", automation.Action)
 
 _PEM_BEGIN = re.compile(r"-----BEGIN [A-Z0-9 ]+-----")
 _PEM_END = re.compile(r"-----END [A-Z0-9 ]+-----")
@@ -101,3 +103,22 @@ async def to_code(config: ConfigType) -> None:
     for conf in config.get(CONF_ON_DISCONNECT, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)
+
+
+ENABLE_SCHEMA = cv.Schema({cv.GenerateID(): cv.use_id(AwsIotClient)})
+
+
+@automation.register_action(
+    "aws_iot.enable", EnableAction, ENABLE_SCHEMA, synchronous=True
+)
+@automation.register_action(
+    "aws_iot.disable", DisableAction, ENABLE_SCHEMA, synchronous=True
+)
+async def enable_to_code(
+    config: ConfigType,
+    action_id: cg.ID,
+    template_arg: cg.TemplateArguments,
+    args: list,
+) -> cg.MockObj:
+    parent = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, parent)

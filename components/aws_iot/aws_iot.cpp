@@ -45,7 +45,35 @@ void AwsIotClient::setup() {
   this->time_->add_on_time_sync_callback([this]() { this->start_client_(); });
   if (this->time_->utcnow().is_valid())
     this->start_client_();
+  this->setup_done_ = true;
   this->disable_loop();
+}
+
+void AwsIotClient::enable() {
+  this->enabled_ = true;
+  ESP_LOGI(TAG, "Enabled");
+  if (this->setup_done_ && this->time_->utcnow().is_valid())
+    this->start_client_();
+}
+
+void AwsIotClient::disable() {
+  this->enabled_ = false;
+  if (this->client_ != nullptr) {
+    esp_mqtt_client_stop(this->client_);
+    esp_mqtt_client_destroy(this->client_);
+    this->client_ = nullptr;
+  }
+  {
+    LockGuard guard(this->events_mutex_);
+    this->events_.clear();
+  }
+  this->reassembler_.reset();
+  if (this->connected_) {
+    this->connected_ = false;
+    ESP_LOGW(TAG, "Disconnected");
+    this->disconnect_callbacks_.call();
+  }
+  ESP_LOGI(TAG, "Disabled");
 }
 
 void AwsIotClient::dump_config() {
@@ -53,12 +81,14 @@ void AwsIotClient::dump_config() {
                 "AWS IoT:\n"
                 "  Endpoint: %s:%u\n"
                 "  Client ID: %s\n"
-                "  Username: %s",
-                this->endpoint_.c_str(), this->port_, this->client_id_.c_str(), this->username_.c_str());
+                "  Username: %s\n"
+                "  Enabled: %s",
+                this->endpoint_.c_str(), this->port_, this->client_id_.c_str(), this->username_.c_str(),
+                YESNO(this->enabled_));
 }
 
 void AwsIotClient::start_client_() {
-  if (this->client_ != nullptr)
+  if (!this->enabled_ || this->client_ != nullptr)
     return;
 
   esp_mqtt_client_config_t config{};
