@@ -4,6 +4,7 @@
 
 #include <mqtt_client.h>
 
+#include <atomic>
 #include <deque>
 #include <functional>
 #include <string>
@@ -38,7 +39,7 @@ class AwsIotClient : public Component {
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::AFTER_CONNECTION; }
 
-  /// Publishes with QoS 1. The data is copied, so the caller can free it right away.
+  /// Publishes with QoS 1. The data is copied, so the caller can free it right away. Safe to call from any task.
   /// Large payloads are sent by the MQTT task. Returns false if not connected or out of memory.
   bool publish(const std::string &topic, const char *data, size_t len);
   /// Subscribes with QoS 1 on every connect. The callback runs in the main loop.
@@ -86,8 +87,9 @@ class AwsIotClient : public Component {
   std::string username_;
   time::RealTimeClock *time_{nullptr};
 
+  Mutex client_mutex_;
   esp_mqtt_client_handle_t client_{nullptr};
-  bool connected_{false};
+  std::atomic<bool> connected_{false};
   bool enabled_{true};
   bool setup_done_{false};
   std::vector<Subscription> subscriptions_;

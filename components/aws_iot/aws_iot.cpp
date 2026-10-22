@@ -58,10 +58,13 @@ void AwsIotClient::enable() {
 
 void AwsIotClient::disable() {
   this->enabled_ = false;
-  if (this->client_ != nullptr) {
-    esp_mqtt_client_stop(this->client_);
-    esp_mqtt_client_destroy(this->client_);
-    this->client_ = nullptr;
+  {
+    LockGuard guard(this->client_mutex_);
+    if (this->client_ != nullptr) {
+      esp_mqtt_client_stop(this->client_);
+      esp_mqtt_client_destroy(this->client_);
+      this->client_ = nullptr;
+    }
   }
   {
     LockGuard guard(this->events_mutex_);
@@ -127,6 +130,10 @@ void AwsIotClient::start_client_() {
 bool AwsIotClient::publish(const std::string &topic, const char *data, size_t len) {
   if (!this->connected_) {
     ESP_LOGW(TAG, "Not connected, dropping publish on %s", topic.c_str());
+    return false;
+  }
+  LockGuard guard(this->client_mutex_);
+  if (this->client_ == nullptr) {
     return false;
   }
   // Enqueue copies the message into the outbox and lets the MQTT task send it.
