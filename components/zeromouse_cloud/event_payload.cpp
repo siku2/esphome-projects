@@ -36,29 +36,28 @@ std::string build_head(const EventInfo &info) {
   out += ",\"updatedAt\":\"" + time + '"';
   out += ",\"pir_time_to_time0\":" + std::to_string(info.pir_time_to_time0_ms);
   out += ", \"swVersion\":\"" + info.sw_version + '"';
-  out += ",\"air\":[";
+  out += ",\"air\": [";
   for (size_t i = 0; i < info.air.size(); i++) {
     const AirPoint &point = info.air[i];
     if (i != 0)
       out += ',';
-    out += "{\"v\":" + std::to_string(point.v) + ",\"t\":" + std::to_string(point.t) +
-           ",\"s\":" + std::to_string(point.s) + ",\"e\":" + std::to_string(point.e) + '}';
+    out += "{\"v\":" + std::to_string(point.v) + ", \"t\":" + std::to_string(point.t) +
+           ", \"s\":" + std::to_string(point.s) + ", \"e\":" + std::to_string(point.e);
+    if (point.has_presence)
+      out += ", \"m\":" + std::to_string(point.motion) + ", \"p\":" + std::to_string(point.presence);
+    out += '}';
   }
   out += ']';
   out += ",\"sensor_ref_brightness\":" + std::to_string(info.sensor_ref_brightness);
   out += ",\"sensor_ref_exposureCtrl\":" + std::to_string(info.sensor_ref_exposure_ctrl);
-  if (info.has_previous) {
-    out += ",\"prevEventLogs\":{\"eventID\":" + std::to_string(info.previous_event_id);
-    out += ",\"eventTime\":" + std::to_string(static_cast<unsigned long long>(info.previous_event_time));
-    out += ",\"messages\":[],\"air\":[]}";
-  }
   out += ",\"images\":[";
   return out;
 }
 
-std::string build_image_prefix(size_t index, const EventImage &image) {
+std::string build_image_prefix(size_t index, const EventImage &image, int32_t brightness) {
   return "{\"imageIndex\":" + std::to_string(index) + ",\"milliSeconds\":" + std::to_string(image.milliseconds) +
-         ",\"gain\":0,\"exposure\":0,\"sensor_current_brightness\":0,\"imageData\":\"";
+         ",\"gain\":" + std::to_string(image.gain) + ",\"exposure\":" + std::to_string(image.exposure) +
+         ",\"sensor_current_brightness\":" + std::to_string(brightness) + ",\"imageData\":\"";
 }
 
 size_t base64_length(size_t length) { return (length + 2) / 3 * 4; }
@@ -71,7 +70,7 @@ bool EventPayload::build(const EventInfo &info, const std::vector<EventImage> &i
   std::vector<size_t> entry_sizes;
   std::vector<bool> included(images.size(), true);
   for (size_t i = 0; i < images.size(); i++) {
-    prefixes.push_back(build_image_prefix(i, images[i]));
+    prefixes.push_back(build_image_prefix(i, images[i], info.sensor_ref_brightness));
     entry_sizes.push_back(prefixes[i].size() + base64_length(images[i].length) + IMAGE_CLOSE_LEN);
   }
 

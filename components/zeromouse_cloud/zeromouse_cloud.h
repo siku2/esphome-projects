@@ -46,6 +46,7 @@ class ZeroMouseCloud : public Component {
   void set_owner_id(const std::string &owner_id) { this->shadow_.system.owner_id = owner_id; }
   void set_identity_id(const std::string &identity_id) { this->shadow_.system.identity_id = identity_id; }
   void set_event_count(uint32_t event_count) { this->event_count_ = event_count; }
+  void set_boot_count(uint32_t boot_count) { this->boot_count_ = boot_count; }
   void set_sw_version(uint8_t major, uint8_t minor, uint8_t revision);
 
   void setup() override;
@@ -69,6 +70,13 @@ class ZeroMouseCloud : public Component {
     int64_t time_zero_us;
     int32_t pir_to_t0_ms;
     std::vector<AirPoint> air;
+    /// From reserve_event(). 0 takes the next id when the event is published.
+    uint32_t event_id{0};
+    time_t event_time{0};
+  };
+  struct EventReservation {
+    uint32_t id{0};
+    time_t time{0};
   };
   using PublishCallback = std::function<void(bool published, uint32_t event_id)>;
   using ClassificationCallback = std::function<void(const std::string &class_name, int class_index, bool block)>;
@@ -77,6 +85,14 @@ class ZeroMouseCloud : public Component {
   /// If upload is off or not connected, the callback runs on the next loop iteration with published=false and the
   /// event count is not incremented.
   void publish_event_async(EventData data, PublishCallback callback);
+  /// Takes the next event id and the event time, as the stock firmware does at time zero. The id is 0 if an event
+  /// could not be published now. The id is used up even if the event is never published.
+  EventReservation reserve_event();
+  /// Reports the sensor values after they changed.
+  void update_sensor_state(uint32_t ir_free_value, uint32_t ir_free_value_raw, uint32_t ir_sensor_status,
+                           uint32_t sensor_id);
+  /// Test events are refused while this returns false.
+  void set_idle_check(std::function<bool()> check) { this->idle_check_ = std::move(check); }
   /// Captures a burst and publishes it as an event.
   void publish_test_event(burst_camera::BurstCamera *camera);
 
@@ -105,6 +121,9 @@ class ZeroMouseCloud : public Component {
   void apply_delta_(JsonObject state);
   void apply_setting_(const char *section, const char *key, JsonVariantConst raw);
   void on_binding_state_(Setting setting);
+  bool can_publish_event_() const;
+  bool apply_system_extra_(const char *key, JsonVariantConst raw, std::string &previous);
+  void save_system_extras_();
   void schedule_report_();
   void on_command_(const std::string &payload);
   void publish_shadow_();
@@ -127,16 +146,14 @@ class ZeroMouseCloud : public Component {
   ESPPreferenceObject boot_count_pref_;
   uint32_t event_count_{0};
   uint32_t boot_count_{0};
-  bool has_previous_event_{false};
-  uint32_t previous_event_id_{0};
-  time_t previous_event_time_{0};
+  ESPPreferenceObject system_extras_pref_;
+  std::function<bool()> idle_check_;
 
   QueueHandle_t job_queue_{nullptr};
   QueueHandle_t result_queue_{nullptr};
   TaskHandle_t worker_{nullptr};
   bool building_{false};
   uint32_t pending_event_id_{0};
-  time_t pending_event_time_{0};
   PublishCallback pending_callback_;
   std::vector<ClassificationCallback> classification_callbacks_;
 

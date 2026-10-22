@@ -17,6 +17,7 @@ CONF_AWS_IOT_ID = "aws_iot_id"
 CONF_OWNER_ID = "owner_id"
 CONF_IDENTITY_ID = "identity_id"
 CONF_EVENT_COUNT = "event_count"
+CONF_BOOT_COUNT = "boot_count"
 CONF_SW_VERSION = "sw_version"
 CONF_ON_CLASSIFICATION = "on_classification"
 CONF_CAMERA_ID = "camera_id"
@@ -83,6 +84,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_OWNER_ID): cv.All(cv.string_strict, cv.Length(min=1)),
         cv.Required(CONF_IDENTITY_ID): cv.All(cv.string_strict, cv.Length(min=1)),
         cv.Optional(CONF_EVENT_COUNT, default=0): cv.uint32_t,
+        cv.Optional(CONF_BOOT_COUNT, default=0): cv.uint32_t,
         cv.Optional(CONF_SW_VERSION, default="0.17.12"): sw_version,
         cv.Required(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
         cv.Optional(CONF_ACCEPT_SETTINGS): cv.use_id(switch.Switch),
@@ -110,6 +112,7 @@ async def to_code(config: ConfigType) -> None:
     cg.add(var.set_owner_id(config[CONF_OWNER_ID]))
     cg.add(var.set_identity_id(config[CONF_IDENTITY_ID]))
     cg.add(var.set_event_count(config[CONF_EVENT_COUNT]))
+    cg.add(var.set_boot_count(config[CONF_BOOT_COUNT]))
     cg.add(var.set_sw_version(*config[CONF_SW_VERSION]))
 
     if accept_id := config.get(CONF_ACCEPT_SETTINGS):

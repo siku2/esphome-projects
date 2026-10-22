@@ -20,6 +20,10 @@ struct AirPoint {
   int32_t s;
   /// Environment value.
   int32_t e;
+  /// The motion and presence channels are only sent if the sensor has them.
+  bool has_presence;
+  int32_t motion;
+  int32_t presence;
 };
 
 struct EventInfo {
@@ -32,10 +36,6 @@ struct EventInfo {
   int32_t pir_time_to_time0_ms;
   int32_t sensor_ref_brightness;
   int32_t sensor_ref_exposure_ctrl;
-  /// The previous event is only reported if there was one.
-  bool has_previous;
-  uint32_t previous_event_id;
-  time_t previous_event_time;
   std::vector<AirPoint> air;
 };
 
@@ -44,6 +44,9 @@ struct EventImage {
   size_t length;
   /// Time of the frame relative to time zero. Negative for frames before time zero.
   int32_t milliseconds;
+  /// Sensor gain (16 is 1x) and exposure rows of the frame.
+  uint32_t gain;
+  uint32_t exposure;
 };
 
 /// The JSON message of an event, with the JPEG images as base64. Lives in PSRAM.

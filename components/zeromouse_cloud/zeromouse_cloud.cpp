@@ -3,6 +3,9 @@
 #include "zeromouse_cloud.h"
 
 #include <cmath>
+#include <algorithm>
+#include <cstring>
+#include <type_traits>
 
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
@@ -21,6 +24,15 @@ static constexpr UBaseType_t WORKER_PRIORITY = 1;
 static constexpr BaseType_t WORKER_CORE = 0;
 
 namespace {
+
+struct SystemExtras {
+  uint32_t reboot_timer;
+  uint16_t kkzm_out_close_at;
+  uint16_t kkzm_out_open_at;
+  uint8_t kkzm_block_mode_in;
+  uint8_t kkzm_block_mode_out;
+  char time_zone[64];
+};
 
 bool read_binding(const ZeroMouseCloud::Binding &binding, int64_t &value) {
   if (binding.number != nullptr) {
@@ -116,6 +128,7 @@ void ZeroMouseCloud::set_sw_version(uint8_t major, uint8_t minor, uint8_t revisi
 void ZeroMouseCloud::setup() {
   this->event_count_pref_ = global_preferences->make_preference<uint32_t>(fnv1_hash("zeromouse_cloud.event_count"));
   this->boot_count_pref_ = global_preferences->make_preference<uint32_t>(fnv1_hash("zeromouse_cloud.boot_count"));
+  this->system_extras_pref_ = global_preferences->make_preference<SystemExtras>(fnv1_hash("zeromouse_cloud.system"));
 
   uint32_t stored;
   if (this->event_count_pref_.load(&stored))
@@ -124,6 +137,18 @@ void ZeroMouseCloud::setup() {
     this->boot_count_ = stored;
   this->boot_count_++;
   this->boot_count_pref_.save(&this->boot_count_);
+
+  SystemExtras extras{};
+  if (this->system_extras_pref_.load(&extras)) {
+    SystemShadow &system = this->shadow_.system;
+    extras.time_zone[sizeof(extras.time_zone) - 1] = '\0';
+    system.time_zone = extras.time_zone;
+    system.reboot_timer = std::clamp<uint32_t>(extras.reboot_timer, 1, 24);
+    system.kkzm_block_mode_in = extras.kkzm_block_mode_in;
+    system.kkzm_block_mode_out = extras.kkzm_block_mode_out;
+    system.kkzm_out_close_at = extras.kkzm_out_close_at;
+    system.kkzm_out_open_at = extras.kkzm_out_open_at;
+  }
 
   this->job_queue_ = xQueueCreate(1, sizeof(Job *));
   this->result_queue_ = xQueueCreate(1, sizeof(bool));
@@ -148,7 +173,7 @@ void ZeroMouseCloud::setup() {
                               this->publish_shadow_();
                             });
   this->aws_iot_->subscribe(this->shadow_topic_("update/accepted"),
-                            [this](const std::string &, const std::string &) { this->publish_metrics_(); });
+                            [](const std::string &, const std::string &) { ESP_LOGV(TAG, "Shadow update accepted"); });
   this->aws_iot_->subscribe(this->shadow_topic_("update/rejected"),
                             [](const std::string &, const std::string &payload) {
                               ESP_LOGW(TAG, "Shadow update rejected: %s", payload.c_str());
@@ -182,8 +207,7 @@ void ZeroMouseCloud::dump_config() {
 }
 
 void ZeroMouseCloud::on_connect_() {
-  const std::string topic = this->shadow_topic_("get");
-  this->aws_iot_->publish(topic, "{}", 2);
+  this->aws_iot_->publish_async(this->shadow_topic_("get"), "{}", 2);
 }
 
 void ZeroMouseCloud::schedule_report_() {
@@ -212,6 +236,13 @@ void ZeroMouseCloud::on_shadow_(const std::string &payload) {
       return true;
     }
     this->shadow_version_ = version;
+    for (const char *name : {"reported", "desired"}) {
+      JsonObject system = root["state"][name]["system"];
+      for (JsonPair entry : system) {
+        std::string previous;
+        this->apply_system_extra_(entry.key().c_str(), entry.value(), previous);
+      }
+    }
     JsonObject delta = root["state"]["delta"];
     if (!delta.isNull())
       this->apply_delta_(delta);
@@ -251,9 +282,76 @@ void ZeroMouseCloud::apply_delta_(JsonObject state) {
   }
 }
 
+bool ZeroMouseCloud::apply_system_extra_(const char *key, JsonVariantConst raw, std::string &previous) {
+  SystemShadow &system = this->shadow_.system;
+  int64_t number = 0;
+  const bool is_number = to_integer(raw, number);
+  bool changed = false;
+  auto assign = [&](auto &field) {
+    using Field = std::remove_reference_t<decltype(field)>;
+    previous = std::to_string(field);
+    const Field value = static_cast<Field>(number);
+    if (is_number && value != field) {
+      field = value;
+      changed = true;
+    }
+  };
+  if (strcmp(key, "timeZone") == 0) {
+    previous = system.time_zone;
+    if (raw.is<const char *>()) {
+      const std::string zone = raw.as<std::string>();
+      if (!zone.empty() && zone.size() < sizeof(SystemExtras::time_zone) && zone != system.time_zone) {
+        system.time_zone = zone;
+        changed = true;
+      }
+    }
+  } else if (strcmp(key, "rebootTimer") == 0) {
+    previous = std::to_string(system.reboot_timer);
+    if (is_number) {
+      const uint32_t timer = static_cast<uint32_t>(std::clamp<int64_t>(number, 1, 24));
+      if (timer != system.reboot_timer) {
+        system.reboot_timer = timer;
+        changed = true;
+      }
+    }
+  } else if (strcmp(key, "kkzmBlockModeIn") == 0) {
+    assign(system.kkzm_block_mode_in);
+  } else if (strcmp(key, "kkzmBlockModeOut") == 0) {
+    assign(system.kkzm_block_mode_out);
+  } else if (strcmp(key, "kkzmOutCloseAt") == 0) {
+    assign(system.kkzm_out_close_at);
+  } else if (strcmp(key, "kkzmOutOpenAt") == 0) {
+    assign(system.kkzm_out_open_at);
+  } else {
+    return false;
+  }
+  if (changed)
+    this->save_system_extras_();
+  return true;
+}
+
+void ZeroMouseCloud::save_system_extras_() {
+  const SystemShadow &system = this->shadow_.system;
+  SystemExtras extras{};
+  extras.reboot_timer = system.reboot_timer;
+  extras.kkzm_out_close_at = system.kkzm_out_close_at;
+  extras.kkzm_out_open_at = system.kkzm_out_open_at;
+  extras.kkzm_block_mode_in = system.kkzm_block_mode_in;
+  extras.kkzm_block_mode_out = system.kkzm_block_mode_out;
+  strlcpy(extras.time_zone, system.time_zone.c_str(), sizeof(extras.time_zone));
+  this->system_extras_pref_.save(&extras);
+}
+
 void ZeroMouseCloud::apply_setting_(const char *section, const char *key, JsonVariantConst raw) {
   const std::string name = std::string(section) + "." + key;
   const std::string value = to_text(raw);
+  std::string stored_previous;
+  if (strcmp(section, "system") == 0 && this->apply_system_extra_(key, raw, stored_previous)) {
+    ESP_LOGI(TAG, "Setting %s = %s is stored and reported, not applied", name.c_str(), value.c_str());
+    this->setting_change_trigger_.trigger(name, stored_previous, value, false);
+    this->schedule_report_();
+    return;
+  }
   const SettingInfo *info = find_setting(section, key);
   const Binding *binding = nullptr;
   if (info != nullptr) {
@@ -272,13 +370,18 @@ void ZeroMouseCloud::apply_setting_(const char *section, const char *key, JsonVa
   int64_t current = 0;
   const bool has_current = read_binding(*binding, current);
   const std::string previous = has_current ? std::to_string(current) : "";
-  int64_t target;
-  if (!to_integer(raw, target) || !fit_binding(*binding, name.c_str(), target)) {
+  int64_t requested;
+  if (!to_integer(raw, requested)) {
     ESP_LOGW(TAG, "Setting %s = %s is not applicable", name.c_str(), value.c_str());
     this->setting_change_trigger_.trigger(name, previous, value, false);
     return;
   }
-  if (has_current && target == current)
+  int64_t target = requested;
+  const bool fits = fit_binding(*binding, name.c_str(), target);
+  // The shadow keeps the cloud value so that the delta clears. The entity only gets a value it accepts.
+  const bool beyond = (binding->number != nullptr && target != requested) || (binding->select != nullptr && !fits);
+  const bool unchanged = fits && has_current && target == current;
+  if (unchanged && !beyond)
     return;
   if (this->accept_settings_ != nullptr && !this->accept_settings_->state) {
     ESP_LOGI(TAG, "Cloud settings are not accepted, ignoring %s = %s", name.c_str(), value.c_str());
@@ -286,19 +389,27 @@ void ZeroMouseCloud::apply_setting_(const char *section, const char *key, JsonVa
     return;
   }
   ESP_LOGI(TAG, "Setting %s: %s -> %s", name.c_str(), previous.c_str(), value.c_str());
-  write_binding(*binding, target);
-  this->setting_change_trigger_.trigger(name, previous, value, true);
+  if (fits && !unchanged)
+    write_binding(*binding, target);
+  if (beyond) {
+    set_setting(this->shadow_, info->setting, requested);
+    this->schedule_report_();
+  }
+  this->setting_change_trigger_.trigger(name, previous, value, fits);
 }
 
 void ZeroMouseCloud::publish_shadow_() {
   const std::string payload = build_reported_shadow(this->shadow_);
-  this->aws_iot_->publish(this->shadow_topic_("update"), payload.data(), payload.size());
+  this->aws_iot_->publish_async(this->shadow_topic_("update"), payload.data(), payload.size(), [this](bool sent) {
+    if (sent)
+      this->publish_metrics_();
+  });
 }
 
 void ZeroMouseCloud::publish_metrics_() {
   const std::string payload =
       build_metrics(this->shadow_, {this->device_id_, this->thing_name_, this->boot_count_, this->event_count_});
-  this->aws_iot_->publish(this->device_topic_("flaps_dev"), payload.data(), payload.size());
+  this->aws_iot_->publish_async(this->device_topic_("flaps_dev"), payload.data(), payload.size());
 }
 
 void ZeroMouseCloud::on_command_(const std::string &payload) {
@@ -333,6 +444,33 @@ void ZeroMouseCloud::fail_async_(PublishCallback callback) {
   });
 }
 
+bool ZeroMouseCloud::can_publish_event_() const {
+  return !this->is_failed() && (this->upload_events_ == nullptr || this->upload_events_->state) &&
+         this->aws_iot_->is_connected();
+}
+
+ZeroMouseCloud::EventReservation ZeroMouseCloud::reserve_event() {
+  if (!this->can_publish_event_())
+    return {};
+  this->event_count_++;
+  this->event_count_pref_.save(&this->event_count_);
+  return {this->event_count_, this->time_->timestamp_now()};
+}
+
+void ZeroMouseCloud::update_sensor_state(uint32_t ir_free_value, uint32_t ir_free_value_raw, uint32_t ir_sensor_status,
+                                         uint32_t sensor_id) {
+  ProximityShadow &proximity = this->shadow_.proximity;
+  CameraShadow &camera = this->shadow_.camera;
+  if (proximity.ir_free_value == ir_free_value && proximity.ir_free_value_raw == ir_free_value_raw &&
+      proximity.ir_sensor_status == ir_sensor_status && camera.sensor_id == sensor_id)
+    return;
+  proximity.ir_free_value = ir_free_value;
+  proximity.ir_free_value_raw = ir_free_value_raw;
+  proximity.ir_sensor_status = ir_sensor_status;
+  camera.sensor_id = sensor_id;
+  this->schedule_report_();
+}
+
 void ZeroMouseCloud::publish_event_async(EventData data, PublishCallback callback) {
   if (this->is_failed() || this->building_) {
     ESP_LOGW(TAG, "Event worker is not available, dropping event");
@@ -350,31 +488,27 @@ void ZeroMouseCloud::publish_event_async(EventData data, PublishCallback callbac
     return;
   }
 
-  this->event_count_++;
-  this->event_count_pref_.save(&this->event_count_);
+  EventReservation reservation{data.event_id, data.event_time};
+  if (reservation.id == 0)
+    reservation = this->reserve_event();
 
-  const time_t now = this->time_->timestamp_now();
   const CameraShadow &camera = this->shadow_.camera;
   auto *job = new Job{std::move(data),
                       {this->device_id_,
                        this->shadow_.system.owner_id,
                        this->shadow_.system.identity_id,
                        this->sw_version_,
-                       this->event_count_,
-                       now,
+                       reservation.id,
+                       reservation.time,
                        0,
                        camera.brightness,
                        camera.exposure_ctrl,
-                       this->has_previous_event_,
-                       this->previous_event_id_,
-                       this->previous_event_time_,
                        {}},
                       this->device_topic_("events_full_dev")};
   job->info.pir_time_to_time0_ms = job->data.pir_to_t0_ms;
   job->info.air = job->data.air;
 
-  this->pending_event_id_ = this->event_count_;
-  this->pending_event_time_ = now;
+  this->pending_event_id_ = reservation.id;
   this->pending_callback_ = std::move(callback);
   this->building_ = true;
   if (xQueueSend(this->job_queue_, &job, 0) != pdTRUE) {
@@ -405,7 +539,8 @@ void ZeroMouseCloud::build_and_publish_(Job &job, bool &ok) {
   for (const auto &frame : job.data.frames) {
     const timeval time = frame->get_timestamp();
     const int64_t us = static_cast<int64_t>(time.tv_sec) * 1000000 + time.tv_usec - job.data.time_zero_us;
-    images.push_back({frame->get_data_buffer(), frame->get_data_length(), static_cast<int32_t>(us / 1000)});
+    images.push_back({frame->get_data_buffer(), frame->get_data_length(), static_cast<int32_t>(us / 1000),
+                      frame->get_gain(), frame->get_exposure()});
   }
 
   EventPayload payload;
@@ -414,18 +549,13 @@ void ZeroMouseCloud::build_and_publish_(Job &job, bool &ok) {
   ESP_LOGI(TAG, "Event %u: %u bytes, %u of %u images", static_cast<unsigned>(job.info.event_id),
            static_cast<unsigned>(payload.size()), static_cast<unsigned>(payload.image_count()),
            static_cast<unsigned>(images.size()));
-  ok = this->aws_iot_->publish(job.topic, payload.data(), payload.size());
+  ok = this->aws_iot_->publish_blocking(job.topic, payload.data(), payload.size());
 }
 
 void ZeroMouseCloud::loop() {
   bool ok;
   while (xQueueReceive(this->result_queue_, &ok, 0) == pdTRUE) {
     this->building_ = false;
-    if (ok) {
-      this->has_previous_event_ = true;
-      this->previous_event_id_ = this->pending_event_id_;
-      this->previous_event_time_ = this->pending_event_time_;
-    }
     auto callback = std::move(this->pending_callback_);
     this->pending_callback_ = nullptr;
     if (callback)
@@ -435,8 +565,16 @@ void ZeroMouseCloud::loop() {
 }
 
 void ZeroMouseCloud::publish_test_event(burst_camera::BurstCamera *camera) {
+  if (this->idle_check_ && !this->idle_check_()) {
+    ESP_LOGW(TAG, "An event is running, not sending a test event");
+    return;
+  }
   const bool started = camera->capture_burst(
       TEST_EVENT_FRAMES, [this](std::vector<std::shared_ptr<burst_camera::BurstCameraImage>> frames) {
+        if (this->idle_check_ && !this->idle_check_()) {
+          ESP_LOGW(TAG, "An event started, dropping the test event");
+          return;
+        }
         if (frames.empty()) {
           ESP_LOGW(TAG, "No frames, dropping test event");
           return;
