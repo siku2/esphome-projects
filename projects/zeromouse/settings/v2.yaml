@@ -1,0 +1,169 @@
+number:
+- id: "zm_brightness"
+  name: "${i18n.zeromouse[language].brightness}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 0
+  min_value: -3
+  max_value: 3
+  step: 1
+  mode: "box"
+
+- id: "zm_auto_gain_ctrl_min"
+  name: "${i18n.zeromouse[language].auto_gain_ctrl_min}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 98
+  min_value: 0
+  max_value: 255
+  step: 1
+  mode: "box"
+
+- id: "zm_auto_gain_ctrl_max"
+  name: "${i18n.zeromouse[language].auto_gain_ctrl_max}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 128
+  min_value: 0
+  max_value: 255
+  step: 1
+  mode: "box"
+
+- id: "zm_auto_gain_stbl_min"
+  name: "${i18n.zeromouse[language].auto_gain_stbl_min}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 106
+  min_value: 0
+  max_value: 255
+  step: 1
+  mode: "box"
+
+- id: "zm_auto_gain_stbl_max"
+  name: "${i18n.zeromouse[language].auto_gain_stbl_max}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 120
+  min_value: 0
+  max_value: 255
+  step: 1
+  mode: "box"
+
+- id: "zm_cam_shots_before_t0"
+  name: "${i18n.zeromouse[language].cam_shots_before_t0}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 4
+  min_value: 0
+  max_value: 9
+  step: 1
+  mode: "box"
+
+- id: "zm_ir_range_ignore_event"
+  name: "${i18n.zeromouse[language].ir_range_ignore_event}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 15
+  min_value: 0
+  max_value: 65535
+  step: 1
+  mode: "box"
+
+- id: "zm_ir_prey_event_time"
+  name: "${i18n.zeromouse[language].ir_prey_event_time}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 30
+  min_value: 1
+  max_value: 3600
+  step: 1
+  mode: "box"
+  unit_of_measurement: "s"
+
+- id: "zm_ir_median_count"
+  name: "${i18n.zeromouse[language].ir_median_count}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 5
+  min_value: 1
+  max_value: 50
+  step: 1
+  mode: "box"
+
+- id: "zm_ir_ambient"
+  name: "${i18n.zeromouse[language].ir_ambient}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 1000
+  min_value: 0
+  max_value: 65535
+  step: 1
+  mode: "box"
+
+- id: "zm_ir_slope_thresh_value"
+  name: "${i18n.zeromouse[language].ir_slope_thresh_value}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 3
+  min_value: -65535
+  max_value: 65535
+  step: 1
+  mode: "box"
+
+- id: "zm_ir_motion_thresh"
+  name: "${i18n.zeromouse[language].ir_motion_thresh}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 150
+  min_value: 0
+  max_value: 65535
+  step: 1
+  mode: "box"
+
+- id: "zm_ir_presence_thresh"
+  name: "${i18n.zeromouse[language].ir_presence_thresh}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 300
+  min_value: 0
+  max_value: 65535
+  step: 1
+  mode: "box"
+
+zeromouse:
+  air_sensor: "zm_air"
+  presence: "zm_presence"
+  presence_sampler: "zm_presence"
+  settings:
+    ir_slope_thresh_value: "zm_ir_slope_thresh_value"
+    ir_median_count: "zm_ir_median_count"
+    ir_range_ignore_event: "zm_ir_range_ignore_event"
+    ir_ambient: "zm_ir_ambient"
+    cam_shots_before_t0: "zm_cam_shots_before_t0"
+    ir_prey_event_time: "zm_ir_prey_event_time"

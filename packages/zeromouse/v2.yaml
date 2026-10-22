@@ -1,0 +1,59 @@
+# ZeroMOUSE V2
+#
+# See `common.yaml` for the shared hardware.
+#
+# ## Variables
+#
+# ## Namespace
+#
+# `zm`
+#
+# ## Components
+#
+# ### Binary Sensor
+#
+# - `zm_presence`: Presence sensor (STHS34PF80).
+#
+# ### I2C
+#
+# - `zm_i2c`: Sensor bus.
+#
+# ### ZeroMOUSE Air
+#
+# - `zm_air`: IR proximity sensor (VCNL4040).
+
+substitutions:
+  i18n:
+    zm:
+      de:
+        presence: "Anwesenheit"
+
+      en:
+        presence: "Presence"
+
+packages:
+  zeromouse: !include common.yaml
+
+external_components:
+- source: "${components_source}"
+  components: ["sths34pf80", "zeromouse_air"]
+
+i2c:
+  id: "zm_i2c"
+  sda: "GPIO44"
+  scl: "GPIO43"
+  frequency: "100kHz"
+
+zeromouse_air:
+  id: "zm_air"
+  type: "vcnl4040"
+  i2c_id: "zm_i2c"
+
+binary_sensor:
+- id: "zm_presence"
+  name: "${i18n.zm[language].presence}"
+  platform: "sths34pf80"
+  i2c_id: "zm_i2c"
+  interrupt_pin: "GPIO40"
+  motion_threshold: "zm_ir_motion_thresh"
+  presence_threshold: "zm_ir_presence_thresh"
