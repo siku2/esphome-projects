@@ -57,11 +57,25 @@ class BurstCamera final : public camera::Camera {
   /// Returns false if busy or failed. Call from the main loop only.
   bool capture_burst(uint8_t count, BurstCallback callback);
 
+  /// Turns the light on and keeps the latest `pre_frames` raw frames until capture_event or disarm_event. Main loop only.
+  bool arm_event(uint8_t pre_frames);
+  /// Uses up to `pre_frames` held frames that started before t0_us, then grabs frames that start at or after t0_us
+  /// until `total` frames are held, JPEG encodes them in the framebuffer task and calls back in the main loop with the
+  /// frames sorted by timestamp. Main loop only. Returns false if not armed or busy.
+  bool capture_event(int64_t t0_us, uint8_t total, BurstCallback callback);
+  /// Returns all held frames and releases the light. Safe to call at any time.
+  void disarm_event();
+  bool is_armed() const { return this->event_state_.load() == EventState::ARMED; }
+
  protected:
+  enum class EventState : uint8_t { IDLE, ARMED, CAPTURING, DELIVERING };
+  enum class ImageKind : uint8_t { NORMAL, BURST, EVENT, EVENT_END };
+
   /// An encoded frame on its way from the framebuffer task to the main loop.
   struct QueuedImage {
     std::shared_ptr<BurstCameraImage> image;
-    bool burst;
+    ImageKind kind;
+    uint32_t generation;
   };
 
   static void framebuffer_task(void *pv);
@@ -69,9 +83,17 @@ class BurstCamera final : public camera::Camera {
   bool has_requested_image_() const { return this->single_requesters_ != 0 || this->stream_requesters_ != 0; }
   bool wants_frame_() const;
   void process_frame_(camera_fb_t *fb);
-  void push_image_(std::shared_ptr<BurstCameraImage> image, bool burst);
+  void push_image_(std::shared_ptr<BurstCameraImage> image, ImageKind kind, uint32_t generation = 0);
   void dispatch_(const QueuedImage &queued);
   void finish_burst_();
+  void finish_event_();
+  static int64_t frame_time_us_(const camera_fb_t *fb);
+  std::shared_ptr<BurstCameraImage> encode_(camera_fb_t *fb, uint8_t requesters);
+  void event_step_();
+  void hold_frame_(camera_fb_t *fb, size_t keep);
+  void prepare_capture_();
+  void finish_capture_(uint32_t generation);
+  void release_held_();
   void wake_task_();
   void update_light_();
   void note_request_();
@@ -97,6 +119,20 @@ class BurstCamera final : public camera::Camera {
   uint8_t burst_count_{0};
   std::vector<std::shared_ptr<BurstCameraImage>> burst_frames_;
   BurstCallback burst_callback_;
+
+  std::atomic<EventState> event_state_{EventState::IDLE};
+  std::atomic<uint8_t> event_pre_frames_{0};
+  std::atomic<uint8_t> event_total_{0};
+  std::atomic<int64_t> event_t0_us_{0};
+  std::atomic<uint32_t> event_generation_{0};
+  std::vector<std::shared_ptr<BurstCameraImage>> event_frames_;
+  BurstCallback event_callback_;
+
+  // Only used by the framebuffer task.
+  std::vector<camera_fb_t *> held_;
+  std::vector<camera_fb_t *> post_;
+  uint32_t prepared_generation_{0};
+  size_t keep_{0};
 };
 
 }  // namespace esphome::burst_camera

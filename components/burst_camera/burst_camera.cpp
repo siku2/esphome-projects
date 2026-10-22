@@ -6,6 +6,8 @@
 #include <esp_timer.h>
 #include <img_converters.h>
 
+#include <algorithm>
+
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
@@ -132,21 +134,33 @@ void BurstCamera::loop() {
 }
 
 void BurstCamera::dispatch_(const QueuedImage &queued) {
-  if (!queued.burst) {
-    for (auto *listener : this->listeners_) {
-      listener->on_camera_image(queued.image);
-    }
-    return;
+  switch (queued.kind) {
+    case ImageKind::NORMAL:
+      for (auto *listener : this->listeners_) {
+        listener->on_camera_image(queued.image);
+      }
+      break;
+    case ImageKind::BURST:
+      if (!this->burst_active_)
+        break;
+      this->burst_frames_.push_back(queued.image);
+      if (this->burst_frames_.size() >= this->burst_count_)
+        this->finish_burst_();
+      break;
+    case ImageKind::EVENT:
+      if (queued.generation == this->event_generation_ && this->event_state_ != EventState::IDLE)
+        this->event_frames_.push_back(queued.image);
+      break;
+    case ImageKind::EVENT_END:
+      if (queued.generation == this->event_generation_ && this->event_state_ != EventState::IDLE)
+        this->finish_event_();
+      break;
   }
-  if (!this->burst_active_)
-    return;
-  this->burst_frames_.push_back(queued.image);
-  if (this->burst_frames_.size() >= this->burst_count_)
-    this->finish_burst_();
 }
 
 bool BurstCamera::capture_burst(uint8_t count, BurstCallback callback) {
-  if (this->is_failed() || this->task_ == nullptr || count == 0 || !callback || this->burst_active_)
+  if (this->is_failed() || this->task_ == nullptr || count == 0 || !callback || this->burst_active_ ||
+      this->event_state_ != EventState::IDLE)
     return false;
 
   this->burst_active_ = true;
@@ -181,7 +195,80 @@ void BurstCamera::finish_burst_() {
   callback(std::move(frames));
 }
 
+bool BurstCamera::arm_event(uint8_t pre_frames) {
+  if (this->is_failed() || this->task_ == nullptr || this->burst_active_ || this->event_state_ != EventState::IDLE)
+    return false;
+  if (static_cast<unsigned>(pre_frames) + 1 > this->config_.fb_count) {
+    ESP_LOGE(TAG, "Cannot hold %u frames with %u frame buffers", static_cast<unsigned>(pre_frames),
+             static_cast<unsigned>(this->config_.fb_count));
+    return false;
+  }
+  this->event_pre_frames_ = pre_frames;
+  this->event_generation_++;
+  this->event_frames_.clear();
+  this->event_state_ = EventState::ARMED;
+  this->update_light_();
+  this->min_frame_time_us_ = esp_timer_get_time();
+  this->wake_task_();
+  return true;
+}
+
+bool BurstCamera::capture_event(int64_t t0_us, uint8_t total, BurstCallback callback) {
+  if (this->event_state_ != EventState::ARMED || total == 0 || !callback)
+    return false;
+  if (static_cast<unsigned>(total) + 1 > this->config_.fb_count) {
+    ESP_LOGE(TAG, "Cannot capture %u frames with %u frame buffers", static_cast<unsigned>(total),
+             static_cast<unsigned>(this->config_.fb_count));
+    return false;
+  }
+  this->event_callback_ = std::move(callback);
+  this->event_frames_.clear();
+  this->event_t0_us_ = t0_us;
+  this->event_total_ = total;
+  this->set_timeout("event", BURST_BASE_TIMEOUT_MS + total * BURST_FRAME_TIMEOUT_MS, [this]() {
+    ESP_LOGW(TAG, "Event capture timed out with %u frames", static_cast<unsigned>(this->event_frames_.size()));
+    this->finish_event_();
+  });
+  this->event_state_ = EventState::CAPTURING;
+  this->enable_loop_soon_any_context();
+  this->wake_task_();
+  return true;
+}
+
+void BurstCamera::disarm_event() {
+  if (this->event_state_ == EventState::IDLE)
+    return;
+  this->cancel_timeout("event");
+  this->event_generation_++;
+  this->event_state_ = EventState::IDLE;
+  this->event_frames_.clear();
+  this->event_callback_ = nullptr;
+  this->update_light_();
+  this->wake_task_();
+}
+
+void BurstCamera::finish_event_() {
+  this->cancel_timeout("event");
+  this->event_generation_++;
+  this->event_state_ = EventState::IDLE;
+  auto frames = std::move(this->event_frames_);
+  auto callback = std::move(this->event_callback_);
+  this->event_frames_.clear();
+  this->event_callback_ = nullptr;
+  std::sort(frames.begin(), frames.end(), [](const auto &a, const auto &b) {
+    const timeval x = a->get_timestamp();
+    const timeval y = b->get_timestamp();
+    return x.tv_sec != y.tv_sec ? x.tv_sec < y.tv_sec : x.tv_usec < y.tv_usec;
+  });
+  this->update_light_();
+  this->wake_task_();
+  if (callback)
+    callback(std::move(frames));
+}
+
 bool BurstCamera::wants_frame_() const {
+  if (this->event_state_ != EventState::IDLE)
+    return false;
   if (this->burst_remaining_ != 0)
     return true;
   // Hold back while a listener still uses the previous image.
@@ -189,7 +276,7 @@ bool BurstCamera::wants_frame_() const {
 }
 
 void BurstCamera::process_frame_(camera_fb_t *fb) {
-  const int64_t frame_time_us = static_cast<int64_t>(fb->timestamp.tv_sec) * 1000000 + fb->timestamp.tv_usec;
+  const int64_t frame_time_us = frame_time_us_(fb);
   const bool burst = this->burst_remaining_ != 0;
   if (frame_time_us < this->min_frame_time_us_ || !this->wants_frame_()) {
     esp_camera_fb_return(fb);
@@ -203,6 +290,20 @@ void BurstCamera::process_frame_(camera_fb_t *fb) {
     requesters = single | this->stream_requesters_;
   }
 
+  auto image = this->encode_(fb, requesters);
+  this->last_encode_us_ = esp_timer_get_time();
+  if (!image) {
+    this->single_requesters_ |= single;
+    return;
+  }
+  this->push_image_(std::move(image), burst ? ImageKind::BURST : ImageKind::NORMAL);
+}
+
+int64_t BurstCamera::frame_time_us_(const camera_fb_t *fb) {
+  return static_cast<int64_t>(fb->timestamp.tv_sec) * 1000000 + fb->timestamp.tv_usec;
+}
+
+std::shared_ptr<BurstCameraImage> BurstCamera::encode_(camera_fb_t *fb, uint8_t requesters) {
   uint8_t *jpeg = nullptr;
   size_t length = 0;
   const bool ok = frame2jpg(fb, this->jpeg_quality_, &jpeg, &length);
@@ -210,18 +311,15 @@ void BurstCamera::process_frame_(camera_fb_t *fb) {
   const uint16_t height = fb->height;
   const timeval timestamp = fb->timestamp;
   esp_camera_fb_return(fb);
-  this->last_encode_us_ = esp_timer_get_time();
   if (!ok) {
     ESP_LOGE(TAG, "Failed to convert frame to JPEG");
-    this->single_requesters_ |= single;
-    return;
+    return nullptr;
   }
-  this->push_image_(
-      std::make_shared<BurstCameraImage>(jpeg, length, width, height, timestamp, requesters, this->tracker_), burst);
+  return std::make_shared<BurstCameraImage>(jpeg, length, width, height, timestamp, requesters, this->tracker_);
 }
 
-void BurstCamera::push_image_(std::shared_ptr<BurstCameraImage> image, bool burst) {
-  auto *queued = new QueuedImage{std::move(image), burst};
+void BurstCamera::push_image_(std::shared_ptr<BurstCameraImage> image, ImageKind kind, uint32_t generation) {
+  auto *queued = new QueuedImage{std::move(image), kind, generation};
   this->enable_loop_soon_any_context();
   App.wake_loop_threadsafe();
   if (xQueueSend(this->image_queue_, &queued, pdMS_TO_TICKS(IMAGE_QUEUE_TIMEOUT_MS)) != pdTRUE) {
@@ -229,14 +327,14 @@ void BurstCamera::push_image_(std::shared_ptr<BurstCameraImage> image, bool burs
     delete queued;
     return;
   }
-  if (burst)
+  if (kind == ImageKind::BURST)
     this->burst_remaining_--;
   this->enable_loop_soon_any_context();
   App.wake_loop_threadsafe();
 }
 
 void BurstCamera::update_light_() {
-  const bool wanted = this->burst_active_ || ((this->single_requesters_ | this->stream_requesters_) & ~IDLE_MASK) != 0;
+  const bool wanted = this->burst_active_ || this->event_state_ != EventState::IDLE || ((this->single_requesters_ | this->stream_requesters_) & ~IDLE_MASK) != 0;
   if (this->power_.set_light_on(wanted) && wanted)
     this->min_frame_time_us_ = esp_timer_get_time();
 }
@@ -277,9 +375,106 @@ void BurstCamera::wake_task_() {
     xTaskNotifyGive(this->task_);
 }
 
+void BurstCamera::release_held_() {
+  for (auto *fb : this->held_)
+    esp_camera_fb_return(fb);
+  for (auto *fb : this->post_)
+    esp_camera_fb_return(fb);
+  this->held_.clear();
+  this->post_.clear();
+}
+
+void BurstCamera::hold_frame_(camera_fb_t *fb, size_t keep) {
+  this->held_.push_back(fb);
+  while (this->held_.size() > keep) {
+    esp_camera_fb_return(this->held_.front());
+    this->held_.erase(this->held_.begin());
+  }
+}
+
+void BurstCamera::prepare_capture_() {
+  const int64_t t0 = this->event_t0_us_;
+  const uint8_t total = this->event_total_;
+  const uint8_t pre = this->event_pre_frames_;
+  this->keep_ = std::min<size_t>(pre, total - 1);
+  const int64_t min_time = this->min_frame_time_us_;
+  std::vector<camera_fb_t *> kept;
+  for (auto *fb : this->held_) {
+    const int64_t time = frame_time_us_(fb);
+    if (time < t0 && time >= min_time)
+      kept.push_back(fb);
+    else
+      esp_camera_fb_return(fb);
+  }
+  this->held_.clear();
+  for (auto *fb : kept)
+    this->hold_frame_(fb, this->keep_);
+}
+
+void BurstCamera::finish_capture_(uint32_t generation) {
+  EventState expected = EventState::CAPTURING;
+  if (!this->event_state_.compare_exchange_strong(expected, EventState::DELIVERING)) {
+    this->release_held_();
+    return;
+  }
+  std::vector<camera_fb_t *> frames = std::move(this->held_);
+  frames.insert(frames.end(), this->post_.begin(), this->post_.end());
+  this->held_.clear();
+  this->post_.clear();
+  for (auto *fb : frames) {
+    auto image = this->encode_(fb, 0);
+    if (image)
+      this->push_image_(std::move(image), ImageKind::EVENT, generation);
+  }
+  this->push_image_(nullptr, ImageKind::EVENT_END, generation);
+}
+
+void BurstCamera::event_step_() {
+  camera_fb_t *fb = esp_camera_fb_get();
+  if (fb == nullptr) {
+    ESP_LOGW(TAG, "Got invalid frame from camera");
+    vTaskDelay(pdMS_TO_TICKS(100));
+    return;
+  }
+  const EventState state = this->event_state_;
+  const int64_t time = frame_time_us_(fb);
+  if ((state != EventState::ARMED && state != EventState::CAPTURING) || time < this->min_frame_time_us_) {
+    esp_camera_fb_return(fb);
+    return;
+  }
+  if (state == EventState::ARMED) {
+    for (auto *old : this->post_)
+      esp_camera_fb_return(old);
+    this->post_.clear();
+    this->hold_frame_(fb, this->event_pre_frames_);
+    return;
+  }
+
+  const uint32_t generation = this->event_generation_;
+  if (this->prepared_generation_ != generation) {
+    this->prepare_capture_();
+    this->prepared_generation_ = generation;
+  }
+  if (time >= this->event_t0_us_)
+    this->post_.push_back(fb);
+  else if (this->post_.empty())
+    this->hold_frame_(fb, this->keep_);
+  else
+    esp_camera_fb_return(fb);
+  if (this->held_.size() + this->post_.size() >= this->event_total_)
+    this->finish_capture_(generation);
+}
+
 void BurstCamera::framebuffer_task(void *pv) {
   auto *that = static_cast<BurstCamera *>(pv);
   while (true) {
+    const EventState state = that->event_state_;
+    if (state == EventState::ARMED || state == EventState::CAPTURING) {
+      that->event_step_();
+      continue;
+    }
+    if (state == EventState::IDLE)
+      that->release_held_();
     if (!that->wants_frame_()) {
       ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
       continue;
