@@ -122,6 +122,9 @@ void Sths34pf80::loop() {
   this->edge_ = false;
   this->publish_state(true);
   this->arm_hold_();
+  for (const auto &callback : this->motion_callbacks_) {
+    callback();
+  }
 }
 
 void Sths34pf80::dump_config() {
@@ -167,6 +170,23 @@ uint16_t Sths34pf80::presence_threshold_value_() const {
 }
 
 void Sths34pf80::on_threshold_change_() {
+  if (!this->busy_) {
+    this->apply_pending_thresholds_();
+  }
+}
+
+void Sths34pf80::set_busy(bool busy) {
+  this->busy_ = busy;
+  if (!busy) {
+    this->defer([this]() {
+      if (!this->busy_) {
+        this->apply_pending_thresholds_();
+      }
+    });
+  }
+}
+
+void Sths34pf80::apply_pending_thresholds_() {
   if (this->is_failed() || (this->motion_threshold_value_() == this->applied_motion_threshold_ &&
                             this->presence_threshold_value_() == this->applied_presence_threshold_)) {
     return;

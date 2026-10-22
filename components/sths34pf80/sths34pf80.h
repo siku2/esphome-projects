@@ -3,6 +3,8 @@
 #ifdef USE_ESP32
 
 #include <cstdint>
+#include <functional>
+#include <vector>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -34,6 +36,11 @@ class Sths34pf80 final : public binary_sensor::BinarySensor,
 
   /// Called from a FreeRTOS task, not from the main loop.
   bool read_sample(int16_t &motion, int16_t &presence) override;
+  bool add_on_motion_callback(std::function<void()> callback) override {
+    this->motion_callbacks_.push_back(std::move(callback));
+    return true;
+  }
+  void set_busy(bool busy) override;
 
  protected:
   static void isr_(Sths34pf80 *self);
@@ -41,6 +48,7 @@ class Sths34pf80 final : public binary_sensor::BinarySensor,
   uint16_t motion_threshold_value_() const;
   uint16_t presence_threshold_value_() const;
   void on_threshold_change_();
+  void apply_pending_thresholds_();
   void on_hold_expired_();
   void arm_hold_();
 
@@ -64,7 +72,9 @@ class Sths34pf80 final : public binary_sensor::BinarySensor,
   uint16_t presence_threshold_{300};
   uint16_t applied_motion_threshold_{0};
   uint16_t applied_presence_threshold_{0};
+  std::vector<std::function<void()>> motion_callbacks_;
   bool powered_down_{false};
+  bool busy_{false};
   volatile bool edge_{false};
 };
 
