@@ -28,6 +28,7 @@ FinaleResult run_finale(zeromouse_air::AirSensor &air, const FinaleParams &param
   const int32_t free_value = params.free_value;
   const int32_t drift_limit = (free_value > DRIFT_MIN_FREE_VALUE ? free_value : DRIFT_MIN_FREE_VALUE) * DRIFT_PERCENT / 100;
 
+  air.power_on();
   air.set_one_shot(true);
   TickType_t last_wake = xTaskGetTickCount();
   for (;;) {
@@ -65,6 +66,7 @@ FinaleResult run_finale(zeromouse_air::AirSensor &air, const FinaleParams &param
         if (stable_since_ms == 0) {
           stable_since_ms = now_ms;
         } else if (now_ms - stable_since_ms >= STABLE_HOLD_MS) {
+          air.power_off();
           return FinaleResult::STABLE;
         }
       } else {
@@ -73,6 +75,7 @@ FinaleResult run_finale(zeromouse_air::AirSensor &air, const FinaleParams &param
     }
 
     if (elapsed_ms >= params.max_duration_ms) {
+      air.power_off();
       return FinaleResult::TIMEOUT;
     }
     vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(SAMPLE_PERIOD_MS));

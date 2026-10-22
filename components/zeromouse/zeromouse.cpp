@@ -150,7 +150,7 @@ void ZeroMouse::task_main_() {
 }
 
 void ZeroMouse::run_scan_() {
-  this->scan_result_ = this->scan_.run(*this->air_, this->scan_params_, [this](int64_t time_zero_us) {
+  this->scan_result_ = this->scan_.run(*this->air_, this->presence_sampler_, this->scan_params_, [this](int64_t time_zero_us) {
     this->post_({MessageType::TIME_ZERO, Outcome::TIME_ZERO, true, 0, time_zero_us});
   });
 
@@ -244,6 +244,7 @@ bool ZeroMouse::try_start_event_() {
   this->scan_params_.mean_window = this->read_number_(this->ir_median_count_, 5);
   this->scan_params_.range_ignore_event = this->read_number_(this->ir_range_ignore_event_, 100);
   this->scan_params_.shots_before_t0 = this->read_number_(this->cam_shots_before_t0_, 0);
+  this->scan_params_.ambient = this->read_number_(this->ir_ambient_, 1000);
   this->scan_params_.ir_free_value = this->calibration_.free_value;
   this->scan_params_.forced = this->forced_scan_.exchange(false);
   this->upload_empty_value_ = this->upload_empty_ != nullptr && this->upload_empty_->state;

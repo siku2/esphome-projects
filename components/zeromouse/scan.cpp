@@ -22,7 +22,8 @@ static constexpr int32_t SHOT_MS = 80;
 static constexpr int32_t EXTRA_POST_SAMPLES = 10;
 static constexpr int32_t INVALID_VALUE = 0xFFFF;
 
-ScanResult Scan::run(zeromouse_air::AirSensor &air, const ScanParams &params, const TimeZeroCallback &on_time_zero) {
+ScanResult Scan::run(zeromouse_air::AirSensor &air, zeromouse_air::PresenceSampler *sampler, const ScanParams &params,
+                     const TimeZeroCallback &on_time_zero) {
   ScanResult result;
   result.min_mean = INVALID_VALUE;
   result.max_mean = 0;
@@ -45,6 +46,13 @@ ScanResult Scan::run(zeromouse_air::AirSensor &air, const ScanParams &params, co
   TickType_t last_wake = xTaskGetTickCount();
   for (;;) {
     AirSample &sample = this->ring_[index];
+    if (sampler != nullptr) {
+      sample.has_presence = sampler->read_sample(sample.motion, sample.presence);
+      if (!sample.has_presence) {
+        sample.motion = 0;
+        sample.presence = 0;
+      }
+    }
     if (!air.read(sample)) {
       result.failed = true;
       break;
@@ -114,15 +122,26 @@ ScanResult Scan::run(zeromouse_air::AirSensor &air, const ScanParams &params, co
   if (params.forced) {
     result.threshold_reached = true;
   }
-  if (result.threshold_reached && this->is_sunlight_(result, params)) {
+  if (result.threshold_reached && this->is_sunlight_(result, params, sampler != nullptr)) {
     result.threshold_reached = false;
   }
   return result;
 }
 
-bool Scan::is_sunlight_(const ScanResult &result, const ScanParams &params) const {
-  // The flat and bright rule of the V2 sensor belongs here.
-  return (result.max_mean - result.min_mean) < params.range_ignore_event;
+bool Scan::is_sunlight_(const ScanResult &result, const ScanParams &params, bool has_sampler) const {
+  if ((result.max_mean - result.min_mean) < params.range_ignore_event) {
+    return true;
+  }
+  if (!has_sampler) {
+    return false;
+  }
+  bool flat = true;
+  bool bright = true;
+  for (const AirSample &sample : this->chronological_) {
+    flat &= !sample.has_presence || sample.presence == sample.motion;
+    bright &= sample.environment >= params.ambient;
+  }
+  return flat && bright;
 }
 
 }  // namespace esphome::zeromouse

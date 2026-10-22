@@ -11,7 +11,7 @@ from esphome.components import (
     time,
 )
 from esphome.components.burst_camera import BurstCamera
-from esphome.components.zeromouse_air import AirSensor
+from esphome.components.zeromouse_air import AirSensor, PresenceSampler
 from esphome.const import (
     CONF_ID,
     CONF_TIME_ID,
@@ -25,6 +25,7 @@ DEPENDENCIES = ["burst_camera", "esp32", "network", "time", "zeromouse_air"]
 
 CONF_AIR_SENSOR = "air_sensor"
 CONF_PRESENCE = "presence"
+CONF_PRESENCE_SAMPLER = "presence_sampler"
 CONF_STARTUP_DELAY = "startup_delay"
 CONF_SETTINGS = "settings"
 CONF_IR_FREE_VALUE = "ir_free_value"
@@ -75,6 +76,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.GenerateID(): cv.declare_id(ZeroMouse),
         cv.Required(CONF_AIR_SENSOR): cv.use_id(AirSensor),
         cv.Required(CONF_PRESENCE): cv.use_id(binary_sensor.BinarySensor),
+        cv.Optional(CONF_PRESENCE_SAMPLER): cv.use_id(PresenceSampler),
         cv.Required(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
         cv.Required(CONF_CAMERA): cv.use_id(BurstCamera),
         cv.Optional(CONF_BLOCKER): cv.use_id(switch.Switch),
@@ -106,6 +108,8 @@ async def to_code(config: ConfigType) -> None:
 
     cg.add(var.set_air_sensor(await cg.get_variable(config[CONF_AIR_SENSOR])))
     cg.add(var.set_presence(await cg.get_variable(config[CONF_PRESENCE])))
+    if sampler := config.get(CONF_PRESENCE_SAMPLER):
+        cg.add(var.set_presence_sampler(await cg.get_variable(sampler)))
     cg.add(var.set_time(await cg.get_variable(config[CONF_TIME_ID])))
     cg.add(var.set_startup_delay(config[CONF_STARTUP_DELAY]))
     cg.add(var.set_camera(await cg.get_variable(config[CONF_CAMERA])))

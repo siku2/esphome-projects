@@ -59,6 +59,7 @@ class ZeroMouse : public Component {
  public:
   void set_air_sensor(zeromouse_air::AirSensor *air) { this->air_ = air; }
   void set_presence(binary_sensor::BinarySensor *presence) { this->presence_ = presence; }
+  void set_presence_sampler(zeromouse_air::PresenceSampler *sampler) { this->presence_sampler_ = sampler; }
   void set_time(time::RealTimeClock *time) { this->time_ = time; }
   void set_startup_delay(uint32_t delay_ms) { this->startup_delay_ms_ = delay_ms; }
   void set_ir_slope_thresh_value(number::Number *number) { this->ir_slope_thresh_value_ = number; }
@@ -201,6 +202,7 @@ class ZeroMouse : public Component {
 
   zeromouse_air::AirSensor *air_{nullptr};
   binary_sensor::BinarySensor *presence_{nullptr};
+  zeromouse_air::PresenceSampler *presence_sampler_{nullptr};
   time::RealTimeClock *time_{nullptr};
   number::Number *ir_slope_thresh_value_{nullptr};
   number::Number *ir_median_count_{nullptr};

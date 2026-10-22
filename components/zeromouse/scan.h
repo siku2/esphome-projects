@@ -15,6 +15,7 @@ struct ScanParams {
   int32_t mean_window{5};
   int32_t range_ignore_event{100};
   int32_t shots_before_t0{0};
+  int32_t ambient{1000};
   uint16_t ir_free_value{50};
   bool forced{false};
 };
@@ -37,13 +38,14 @@ class Scan {
 
   explicit Scan(const std::atomic<bool> *presence) : presence_(presence) {}
 
-  ScanResult run(zeromouse_air::AirSensor &air, const ScanParams &params, const TimeZeroCallback &on_time_zero);
+  ScanResult run(zeromouse_air::AirSensor &air, zeromouse_air::PresenceSampler *sampler, const ScanParams &params,
+                 const TimeZeroCallback &on_time_zero);
 
   /// The ring contents of the last scan, oldest first.
   const std::vector<zeromouse_air::AirSample> &samples() const { return this->chronological_; }
 
  protected:
-  bool is_sunlight_(const ScanResult &result, const ScanParams &params) const;
+  bool is_sunlight_(const ScanResult &result, const ScanParams &params, bool has_sampler) const;
 
   const std::atomic<bool> *presence_;
   std::array<zeromouse_air::AirSample, SAMPLES> ring_{};
