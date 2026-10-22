@@ -2,7 +2,7 @@
   description = "ESPHome components, packages and device configurations";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixgl = {
       url = "github:nix-community/nixGL";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -45,7 +45,7 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           python = pkgs.python3;
-          nixGL = lib.optional pkgs.stdenv.isLinux nixgl.packages.${system}.nixGLIntel;
+          nixGL = lib.optional pkgs.stdenv.hostPlatform.isLinux nixgl.packages.${system}.nixGLIntel;
           # The nixpkgs sdl2-config has an empty includedir and prints -I/SDL2.
           sdl2 = pkgs.SDL2.overrideAttrs (old: {
             postFixup = (old.postFixup or "") + ''
@@ -53,9 +53,52 @@
                 --replace-fail "in /SDL2 " 'in ''${includedir}/SDL2 '
             '';
           });
+          # nixpkgs quotes the values of ESPHOME_USE_SUBPROCESS and
+          # PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION twice. Drop this once fixed.
+          esphomeUnwrapped = pkgs.esphome.overridePythonAttrs (old: {
+            makeWrapperArgs = map (
+              arg:
+              if arg == "''" then
+                ""
+              else if arg == "'python'" then
+                "python"
+              else
+                arg
+            ) old.makeWrapperArgs;
+          });
+          # ESPHome downloads generic Linux binaries for the ESP-IDF toolchain.
+          esphome =
+            if pkgs.stdenv.hostPlatform.isLinux then
+              pkgs.buildFHSEnv {
+                pname = "esphome";
+                inherit (esphomeUnwrapped) version;
+                targetPkgs = _: [
+                  esphomeUnwrapped
+                  pkgs.python3
+                  pkgs.zlib
+                  pkgs.libusb1
+                  pkgs.udev
+                  pkgs.ncurses
+                  pkgs.libffi
+                  pkgs.openssl
+                  pkgs.stdenv.cc.cc.lib
+                ];
+                runScript = "esphome";
+                extraInstallCommands = ''
+                  ln -s ${esphomeUnwrapped}/share $out/share
+                '';
+                meta.mainProgram = "esphome";
+              }
+            else
+              esphomeUnwrapped;
         in
         {
-          inherit pkgs sdl2 nixGL;
+          inherit
+            pkgs
+            sdl2
+            nixGL
+            esphome
+            ;
           pythonDev = python.withPackages (ps: [
             ps.aioesphomeapi
             ps.mypy
@@ -83,7 +126,7 @@
               ":"
               (lib.makeBinPath (
                 [
-                  pkgs.esphome
+                  esphome
                   sdl2
                   sdl2.dev
                   pkgs.openssl
@@ -107,7 +150,7 @@
           validateConfigs = pkgs.writeShellApplication {
             name = "validate-configs";
             runtimeInputs = [
-              pkgs.esphome
+              esphome
               pkgs.git
               sdl2.dev
             ];
@@ -218,6 +261,7 @@
       devShells = forSystems (
         {
           pkgs,
+          esphome,
           sdl2,
           nixGL,
           treefmt,
@@ -229,7 +273,7 @@
         {
           default = pkgs.mkShell {
             packages = [
-              pkgs.esphome
+              esphome
               sdl2
               sdl2.dev
               pkgs.openssl

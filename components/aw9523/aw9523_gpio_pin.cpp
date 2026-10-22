@@ -22,10 +22,8 @@ void AW9523GPIOPin::forward_interrupt(bool enable) {
 gpio::Flags AW9523GPIOPin::get_flags() const { return this->flags_; }
 bool AW9523GPIOPin::digital_read() { return this->parent_->digital_read(this->pin_) != this->inverted_; }
 void AW9523GPIOPin::digital_write(bool value) { this->parent_->digital_write(this->pin_, value != this->inverted_); }
-std::string AW9523GPIOPin::dump_summary() const {
-  char buffer[32];
-  snprintf(buffer, sizeof(buffer), "%u via AW9523", pin_);
-  return buffer;
+size_t AW9523GPIOPin::dump_summary(char *buffer, size_t len) const {
+  return buf_append_printf(buffer, len, 0, "%u via AW9523", pin_);
 }
 }  // namespace aw9523
 }  // namespace esphome

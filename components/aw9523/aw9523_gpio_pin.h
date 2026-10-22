@@ -22,7 +22,7 @@ class AW9523GPIOPin : public GPIOPin {
   void set_flags(gpio::Flags flags) { flags_ = flags; }
   void set_forward_interrupt(bool forward_interrupt) { forward_interrupt_ = forward_interrupt; }
 
-  std::string dump_summary() const override;
+  size_t dump_summary(char *buffer, size_t len) const override;
 
  protected:
   AW9523Component *parent_;
