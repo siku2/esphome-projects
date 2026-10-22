@@ -70,20 +70,26 @@ class BurstCamera final : public camera::Camera {
   /// Returns false if busy or failed. Call from the main loop only.
   bool capture_burst(uint8_t count, BurstCallback callback);
 
-  /// Turns the light on and keeps the latest `pre_frames` raw frames until capture_event or disarm_event. Main loop only.
+  /// Turns the light on and keeps the latest `pre_frames` + 1 raw frames until capture_event or disarm_event. Main loop only.
+  /// Finishes a running burst early.
   /// Event frames start at least `frame_spacing_us` apart (with a small tolerance for timestamp jitter). 0 keeps every frame.
   bool arm_event(uint8_t pre_frames, uint32_t frame_spacing_us = 0);
   /// Uses up to `pre_frames` held frames that started before t0_us, then grabs frames that start at or after t0_us
   /// until `total` frames are held, JPEG encodes them in the framebuffer task and calls back in the main loop with the
   /// frames sorted by timestamp. Main loop only. Returns false if not armed or busy.
   bool capture_event(int64_t t0_us, uint8_t total, BurstCallback callback);
+  /// Runs in the main loop once the second encodings of an event are ready or have failed. The event itself was
+  /// delivered earlier, and its images report the second encoding through get_secondary_data().
+  void add_on_event_secondary_ready(std::function<void()> callback) {
+    this->secondary_ready_callbacks_.push_back(std::move(callback));
+  }
   /// Returns all held frames and releases the light. Safe to call at any time.
   void disarm_event();
   bool is_armed() const { return this->event_state_.load() == EventState::ARMED; }
 
  protected:
   enum class EventState : uint8_t { IDLE, ARMED, CAPTURING, DELIVERING };
-  enum class ImageKind : uint8_t { NORMAL, BURST, EVENT, EVENT_END };
+  enum class ImageKind : uint8_t { NORMAL, BURST, EVENT, EVENT_END, SECONDARY_READY };
 
   /// An encoded frame on its way from the framebuffer task to the main loop.
   struct QueuedImage {
@@ -102,7 +108,8 @@ class BurstCamera final : public camera::Camera {
   void finish_burst_();
   void finish_event_();
   static int64_t frame_time_us_(const camera_fb_t *fb);
-  std::shared_ptr<BurstCameraImage> encode_(camera_fb_t *fb, uint8_t requesters, uint8_t secondary_quality = 0);
+  uint8_t *encode_jpeg_(camera_fb_t *fb, uint8_t quality, size_t &length);
+  std::shared_ptr<BurstCameraImage> encode_(camera_fb_t *fb, uint8_t requesters);
   void event_step_();
   void hold_frame_(camera_fb_t *fb, size_t keep);
   void prepare_capture_();
@@ -125,6 +132,7 @@ class BurstCamera final : public camera::Camera {
   uint16_t sensor_pid_{0};
   bool sensor_ready_{false};
   std::vector<std::function<void()>> sensor_ready_callbacks_;
+  std::vector<std::function<void()>> secondary_ready_callbacks_;
 
   TaskHandle_t task_{nullptr};
   QueueHandle_t image_queue_{nullptr};
@@ -143,6 +151,7 @@ class BurstCamera final : public camera::Camera {
 
   std::atomic<EventState> event_state_{EventState::IDLE};
   std::atomic<uint8_t> event_pre_frames_{0};
+  std::atomic<uint8_t> event_hold_frames_{0};
   std::atomic<uint8_t> event_total_{0};
   std::atomic<uint32_t> event_spacing_us_{0};
   std::atomic<int64_t> event_t0_us_{0};
@@ -151,6 +160,7 @@ class BurstCamera final : public camera::Camera {
   BurstCallback event_callback_;
 
   // Only used by the framebuffer task.
+  uint8_t *scratch_{nullptr};
   std::vector<camera_fb_t *> held_;
   std::vector<camera_fb_t *> post_;
   uint32_t prepared_generation_{0};

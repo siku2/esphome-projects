@@ -2,14 +2,29 @@
 
 #include "camera_image.h"
 
-#include <cstdlib>
+#include <esp_heap_caps.h>
 
 namespace esphome::burst_camera {
 
 BurstCameraImage::~BurstCameraImage() {
-  free(this->jpeg_);       // NOLINT(cppcoreguidelines-no-malloc)
-  free(this->secondary_);  // NOLINT(cppcoreguidelines-no-malloc)
-  this->tracker_.release();
+  heap_caps_free(this->jpeg_);
+  if (this->secondary_state_ == SecondaryState::READY)
+    heap_caps_free(this->secondary_);
+  if (this->tracked_)
+    this->tracker_.release();
+}
+
+void BurstCameraImage::set_secondary(uint8_t *jpeg, size_t length) {
+  this->secondary_ = jpeg;
+  this->secondary_length_ = length;
+  SecondaryState expected = SecondaryState::PENDING;
+  if (!this->secondary_state_.compare_exchange_strong(expected, SecondaryState::READY))
+    heap_caps_free(jpeg);
+}
+
+void BurstCameraImage::discard_secondary() {
+  if (this->secondary_state_.exchange(SecondaryState::NONE) == SecondaryState::READY)
+    heap_caps_free(this->secondary_);
 }
 
 void BurstCameraImageReader::set_image(std::shared_ptr<camera::CameraImage> image) {

@@ -4,6 +4,7 @@
 
 #include <sys/time.h>
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 
@@ -24,19 +25,27 @@ class BurstCameraImage : public camera::CameraImage {
         height_(height),
         timestamp_(timestamp),
         requesters_(requesters),
+        tracked_(requesters != 0),
         tracker_(tracker) {
-    this->tracker_.acquire();
+    if (this->tracked_)
+      this->tracker_.acquire();
   }
   ~BurstCameraImage() override;
 
-  /// Takes ownership of a second encoding of the same frame.
-  void set_secondary(uint8_t *jpeg, size_t length) {
-    this->secondary_ = jpeg;
-    this->secondary_length_ = length;
+  /// Announces a second encoding that the framebuffer task will add later. Call before sharing the image.
+  void expect_secondary() { this->secondary_state_ = SecondaryState::PENDING; }
+  /// Framebuffer task only. Takes ownership of the second encoding (a heap_caps_malloc buffer).
+  void set_secondary(uint8_t *jpeg, size_t length);
+  /// Frees the second encoding or cancels a pending one. Safe from any thread.
+  void discard_secondary();
+  bool is_secondary_pending() const { return this->secondary_state_ == SecondaryState::PENDING; }
+  /// The second encoding or nullptr if it is missing or not ready yet.
+  const uint8_t *get_secondary_data() const {
+    return this->secondary_state_ == SecondaryState::READY ? this->secondary_ : nullptr;
   }
-  /// The second encoding or nullptr.
-  const uint8_t *get_secondary_data() const { return this->secondary_; }
-  size_t get_secondary_length() const { return this->secondary_length_; }
+  size_t get_secondary_length() const {
+    return this->secondary_state_ == SecondaryState::READY ? this->secondary_length_ : 0;
+  }
 
   uint8_t *get_data_buffer() override { return this->jpeg_; }
   size_t get_data_length() override { return this->length_; }
@@ -50,14 +59,18 @@ class BurstCameraImage : public camera::CameraImage {
   timeval get_timestamp() const { return this->timestamp_; }
 
  protected:
+  enum class SecondaryState : uint8_t { NONE, PENDING, READY };
+
   uint8_t *jpeg_;
   size_t length_;
   uint8_t *secondary_{nullptr};
   size_t secondary_length_{0};
+  std::atomic<SecondaryState> secondary_state_{SecondaryState::NONE};
   uint16_t width_;
   uint16_t height_;
   timeval timestamp_;
   uint8_t requesters_;
+  bool tracked_;
   ImageTracker &tracker_;
 };
 

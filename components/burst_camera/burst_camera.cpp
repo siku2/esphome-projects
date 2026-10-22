@@ -3,10 +3,12 @@
 #include "burst_camera.h"
 
 #include <driver/gpio.h>
+#include <esp_heap_caps.h>
 #include <esp_timer.h>
 #include <img_converters.h>
 
 #include <algorithm>
+#include <cstring>
 
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
@@ -26,8 +28,26 @@ static constexpr UBaseType_t IMAGE_QUEUE_LENGTH = 8;
 static constexpr uint32_t IMAGE_QUEUE_TIMEOUT_MS = 1000;
 static constexpr uint32_t BURST_BASE_TIMEOUT_MS = 5000;
 static constexpr uint32_t BURST_FRAME_TIMEOUT_MS = 500;
+// Room for a q80 VGA grayscale frame with noise. Output that does not fit counts as a failed encode.
+static constexpr size_t JPEG_SCRATCH_SIZE = 256 * 1024;
 static constexpr int64_t SPACING_TOLERANCE_US = 5000;
 static constexpr uint8_t IDLE_MASK = 1U << camera::IDLE;
+
+struct JpegSink {
+  uint8_t *buffer;
+  size_t capacity;
+  size_t size;
+};
+
+static size_t write_jpeg_chunk(void *arg, size_t index, const void *data, size_t length) {
+  auto *sink = static_cast<JpegSink *>(arg);
+  if (data == nullptr)
+    return 0;
+  if (index + length <= sink->capacity)
+    memcpy(sink->buffer + index, data, length);
+  sink->size = index + length;
+  return length;
+}
 
 BurstCamera::BurstCamera() {
   this->config_.pin_pwdn = -1;
@@ -65,6 +85,12 @@ void BurstCamera::set_i2c_pins(uint8_t sda, uint8_t scl) {
 }
 
 void BurstCamera::setup() {
+  this->scratch_ = static_cast<uint8_t *>(heap_caps_malloc(JPEG_SCRATCH_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  if (this->scratch_ == nullptr) {
+    ESP_LOGE(TAG, "Failed to allocate the JPEG scratch buffer");
+    this->mark_failed();
+    return;
+  }
   this->power_.power_up();
 
   this->init_error_ = esp_camera_init(&this->config_);
@@ -196,6 +222,10 @@ void BurstCamera::dispatch_(const QueuedImage &queued) {
       if (queued.generation == this->event_generation_ && this->event_state_ != EventState::IDLE)
         this->finish_event_();
       break;
+    case ImageKind::SECONDARY_READY:
+      for (const auto &callback : this->secondary_ready_callbacks_)
+        callback();
+      break;
   }
 }
 
@@ -237,14 +267,19 @@ void BurstCamera::finish_burst_() {
 }
 
 bool BurstCamera::arm_event(uint8_t pre_frames, uint32_t frame_spacing_us) {
-  if (this->is_failed() || this->task_ == nullptr || this->burst_active_ || this->event_state_ != EventState::IDLE)
+  if (this->is_failed() || this->task_ == nullptr || this->event_state_ != EventState::IDLE)
     return false;
+  if (this->burst_active_) {
+    ESP_LOGW(TAG, "Finishing the burst early for an event");
+    this->finish_burst_();
+  }
   if (static_cast<unsigned>(pre_frames) + 1 > this->config_.fb_count) {
     ESP_LOGE(TAG, "Cannot hold %u frames with %u frame buffers", static_cast<unsigned>(pre_frames),
              static_cast<unsigned>(this->config_.fb_count));
     return false;
   }
   this->event_pre_frames_ = pre_frames;
+  this->event_hold_frames_ = std::min<unsigned>(pre_frames + 1U, this->config_.fb_count - 1U);
   this->event_spacing_us_ = frame_spacing_us;
   this->event_generation_++;
   this->event_frames_.clear();
@@ -334,6 +369,7 @@ void BurstCamera::process_frame_(camera_fb_t *fb) {
   }
 
   auto image = this->encode_(fb, requesters);
+  esp_camera_fb_return(fb);
   this->last_encode_us_ = esp_timer_get_time();
   if (!image) {
     this->single_requesters_ |= single;
@@ -346,32 +382,43 @@ int64_t BurstCamera::frame_time_us_(const camera_fb_t *fb) {
   return static_cast<int64_t>(fb->timestamp.tv_sec) * 1000000 + fb->timestamp.tv_usec;
 }
 
-std::shared_ptr<BurstCameraImage> BurstCamera::encode_(camera_fb_t *fb, uint8_t requesters, uint8_t secondary_quality) {
-  uint8_t *jpeg = nullptr;
-  size_t length = 0;
-  const bool ok = frame2jpg(fb, this->jpeg_quality_, &jpeg, &length);
-  uint8_t *secondary = nullptr;
-  size_t secondary_length = 0;
-  if (ok && secondary_quality != 0 && !frame2jpg(fb, secondary_quality, &secondary, &secondary_length)) {
-    ESP_LOGW(TAG, "Failed to convert frame to the secondary JPEG");
-    secondary = nullptr;
-    secondary_length = 0;
-  }
-  const uint16_t width = fb->width;
-  const uint16_t height = fb->height;
-  const timeval timestamp = fb->timestamp;
-  esp_camera_fb_return(fb);
-  if (!ok) {
+uint8_t *BurstCamera::encode_jpeg_(camera_fb_t *fb, uint8_t quality, size_t &length) {
+  JpegSink sink{this->scratch_, JPEG_SCRATCH_SIZE, 0};
+  if (!frame2jpg_cb(fb, quality, write_jpeg_chunk, &sink)) {
     ESP_LOGE(TAG, "Failed to convert frame to JPEG");
     return nullptr;
   }
-  auto image = std::make_shared<BurstCameraImage>(jpeg, length, width, height, timestamp, requesters, this->tracker_);
-  if (secondary != nullptr)
-    image->set_secondary(secondary, secondary_length);
-  return image;
+  if (sink.size == 0 || sink.size > sink.capacity) {
+    ESP_LOGE(TAG, "JPEG of %u bytes does not fit the scratch buffer", static_cast<unsigned>(sink.size));
+    return nullptr;
+  }
+  auto *jpeg = static_cast<uint8_t *>(heap_caps_malloc(sink.size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  if (jpeg == nullptr) {
+    ESP_LOGE(TAG, "Failed to allocate %u bytes for a JPEG", static_cast<unsigned>(sink.size));
+    return nullptr;
+  }
+  memcpy(jpeg, this->scratch_, sink.size);
+  length = sink.size;
+  return jpeg;
+}
+
+std::shared_ptr<BurstCameraImage> BurstCamera::encode_(camera_fb_t *fb, uint8_t requesters) {
+  size_t length = 0;
+  uint8_t *jpeg = this->encode_jpeg_(fb, this->jpeg_quality_, length);
+  if (jpeg == nullptr)
+    return nullptr;
+  return std::make_shared<BurstCameraImage>(jpeg, length, fb->width, fb->height, fb->timestamp, requesters,
+                                            this->tracker_);
 }
 
 void BurstCamera::push_image_(std::shared_ptr<BurstCameraImage> image, ImageKind kind, uint32_t generation) {
+  if (kind == ImageKind::BURST) {
+    uint8_t remaining = this->burst_remaining_;
+    do {
+      if (remaining == 0)
+        return;
+    } while (!this->burst_remaining_.compare_exchange_weak(remaining, remaining - 1));
+  }
   auto *queued = new QueuedImage{std::move(image), kind, generation};
   this->enable_loop_soon_any_context();
   App.wake_loop_threadsafe();
@@ -380,8 +427,6 @@ void BurstCamera::push_image_(std::shared_ptr<BurstCameraImage> image, ImageKind
     delete queued;
     return;
   }
-  if (kind == ImageKind::BURST)
-    this->burst_remaining_--;
   this->enable_loop_soon_any_context();
   App.wake_loop_threadsafe();
 }
@@ -462,20 +507,32 @@ void BurstCamera::prepare_capture_() {
   const uint8_t pre = this->event_pre_frames_;
   this->keep_ = std::min<size_t>(pre, total - 1);
   const int64_t min_time = this->min_frame_time_us_;
-  std::vector<camera_fb_t *> kept;
+  std::vector<camera_fb_t *> before;
+  std::vector<camera_fb_t *> after;
   for (auto *fb : this->held_) {
     const int64_t time = frame_time_us_(fb);
-    if (time < t0 && time >= min_time)
-      kept.push_back(fb);
-    else
+    if (time < min_time)
       esp_camera_fb_return(fb);
+    else if (time < t0)
+      before.push_back(fb);
+    else
+      after.push_back(fb);
   }
   this->held_.clear();
-  for (auto *fb : kept)
+  for (auto *fb : before)
     this->hold_frame_(fb, this->keep_);
   this->has_last_kept_ = !this->held_.empty();
   if (this->has_last_kept_)
     this->last_kept_us_ = frame_time_us_(this->held_.back());
+  for (auto *fb : after) {
+    const int64_t time = frame_time_us_(fb);
+    if (this->held_.size() + this->post_.size() < total && this->spacing_ok_(time)) {
+      this->note_kept_(time);
+      this->post_.push_back(fb);
+    } else {
+      esp_camera_fb_return(fb);
+    }
+  }
 }
 
 void BurstCamera::finish_capture_(uint32_t generation) {
@@ -500,14 +557,38 @@ void BurstCamera::finish_capture_(uint32_t generation) {
              static_cast<int>((last_us - t0) / 1000),
              frame_count > 1 ? static_cast<int>((last_us - first_us) / 1000 / static_cast<int64_t>(frame_count - 1)) : 0);
   }
-  for (auto *fb : frames) {
-    auto image = this->encode_(fb, 0, secondary_quality);
-    if (image)
-      this->push_image_(std::move(image), ImageKind::EVENT, generation);
+  std::vector<std::weak_ptr<BurstCameraImage>> images(frame_count);
+  for (size_t i = 0; i < frame_count; i++) {
+    auto image = this->encode_(frames[i], 0);
+    if (!image)
+      continue;
+    if (secondary_quality != 0)
+      image->expect_secondary();
+    images[i] = image;
+    this->push_image_(std::move(image), ImageKind::EVENT, generation);
   }
-  ESP_LOGD(TAG, "Encoded %u event frames in %d ms (secondary quality %u)", static_cast<unsigned>(frame_count),
-           static_cast<int>((esp_timer_get_time() - encode_start_us) / 1000), secondary_quality);
   this->push_image_(nullptr, ImageKind::EVENT_END, generation);
+  ESP_LOGD(TAG, "Encoded %u event frames in %d ms", static_cast<unsigned>(frame_count),
+           static_cast<int>((esp_timer_get_time() - encode_start_us) / 1000));
+
+  if (secondary_quality != 0) {
+    for (size_t i = 0; i < frame_count; i++) {
+      auto image = images[i].lock();
+      if (!image)
+        continue;
+      size_t length = 0;
+      uint8_t *jpeg = this->encode_jpeg_(frames[i], secondary_quality, length);
+      if (jpeg != nullptr)
+        image->set_secondary(jpeg, length);
+      else
+        image->discard_secondary();
+    }
+    this->push_image_(nullptr, ImageKind::SECONDARY_READY, generation);
+    ESP_LOGD(TAG, "Encoded the secondary frames in %d ms (quality %u)",
+             static_cast<int>((esp_timer_get_time() - encode_start_us) / 1000), secondary_quality);
+  }
+  for (auto *fb : frames)
+    esp_camera_fb_return(fb);
 }
 
 void BurstCamera::event_step_() {
@@ -537,13 +618,18 @@ void BurstCamera::event_step_() {
       esp_camera_fb_return(old);
     this->post_.clear();
     this->note_kept_(time);
-    this->hold_frame_(fb, this->event_pre_frames_);
+    this->hold_frame_(fb, this->event_hold_frames_);
     return;
   }
 
   if (this->prepared_generation_ != generation) {
     this->prepare_capture_();
     this->prepared_generation_ = generation;
+    if (this->held_.size() + this->post_.size() >= this->event_total_) {
+      esp_camera_fb_return(fb);
+      this->finish_capture_(generation);
+      return;
+    }
   }
   if (!this->spacing_ok_(time) || (time < this->event_t0_us_ && !this->post_.empty())) {
     esp_camera_fb_return(fb);
