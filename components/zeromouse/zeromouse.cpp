@@ -85,6 +85,7 @@ void ZeroMouse::setup() {
   }
 
   this->camera_tuning_.setup(this->camera_);
+  this->report_sensor_state_();
   if (this->block_enabled_ != nullptr) {
     this->block_enabled_->add_on_state_callback([this](bool state) {
       if (!state) {
@@ -100,6 +101,7 @@ void ZeroMouse::setup() {
         callback(class_name, class_index, block);
       }
     });
+    this->cloud_->set_idle_check([this]() { return this->is_idle(); });
   }
 #endif
 
@@ -326,6 +328,7 @@ bool ZeroMouse::try_start_event_() {
   this->scan_done_ = false;
   this->frames_done_ = false;
   this->frames_.clear();
+  this->reserved_event_id_ = 0;
   this->class_index_ = CLASS_NONE;
   this->set_state_(State::SCANNING);
   this->command_ = Command::SCAN;
@@ -405,6 +408,7 @@ void ZeroMouse::finish_calibration_(const Message &message) {
   if (this->ir_free_value_raw_sensor_ != nullptr) {
     this->ir_free_value_raw_sensor_->publish_state(this->calibration_.raw_value);
   }
+  this->report_sensor_state_();
   this->run_idle_work_();
 }
 

@@ -148,6 +148,8 @@ class ZeroMouse : public Component {
   uint16_t ir_free_value() const { return this->calibration_.free_value; }
   uint16_t ir_free_value_raw() const { return this->calibration_.raw_value; }
   uint32_t ir_sensor_status() const { return this->ir_sensor_status_; }
+  /// 0 unknown, 1 OV7670, 2 GC032A.
+  uint8_t sensor_id() const { return static_cast<uint8_t>(this->camera_->sensor_kind()); }
 
   /// The samples of the last scan, oldest first. Valid until the next event starts.
   const std::vector<zeromouse_air::AirSample> &scan_samples() const { return this->scan_.samples(); }
@@ -213,6 +215,8 @@ class ZeroMouse : public Component {
   void start_capture_(int64_t time_zero_us);
   void check_scan_complete_();
   void notify_captured_();
+  void reserve_event_();
+  void report_sensor_state_();
   void publish_event_(bool empty);
   void on_published_(bool empty, bool published, uint32_t event_id);
   void on_classification_(int class_index, bool block);
@@ -298,6 +302,8 @@ class ZeroMouse : public Component {
   uint32_t ir_sensor_status_{0};
   uint32_t startup_delay_ms_{13000};
   uint32_t event_frame_spacing_us_{80000};
+  uint32_t reserved_event_id_{0};
+  time_t reserved_event_time_{0};
   int64_t pir_us_{0};
   int64_t time_zero_us_{0};
   State state_{State::IDLE};

@@ -25,7 +25,7 @@ class CameraTuning {
   void setup(burst_camera::BurstCamera *camera);
 
  protected:
-  enum class Sensor : uint8_t { UNKNOWN, OV7670, GC032A };
+  using Sensor = burst_camera::SensorKind;
 
   static int32_t read_(const number::Number *number, int32_t fallback);
   Sensor sensor_() const;

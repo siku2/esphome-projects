@@ -69,7 +69,28 @@ bool ZeroMouse::prey_reference_() {
   return false;
 }
 
+void ZeroMouse::reserve_event_() {
+#ifdef USE_ZEROMOUSE_CONTROLLER_CLOUD
+  if (this->cloud_ == nullptr || this->reserved_event_id_ != 0) {
+    return;
+  }
+  const auto reservation = this->cloud_->reserve_event();
+  this->reserved_event_id_ = reservation.id;
+  this->reserved_event_time_ = reservation.time;
+#endif
+}
+
+void ZeroMouse::report_sensor_state_() {
+#ifdef USE_ZEROMOUSE_CONTROLLER_CLOUD
+  if (this->cloud_ != nullptr) {
+    this->cloud_->update_sensor_state(this->calibration_.free_value, this->calibration_.raw_value,
+                                      this->ir_sensor_status_, this->sensor_id());
+  }
+#endif
+}
+
 void ZeroMouse::start_capture_(int64_t time_zero_us) {
+  this->reserve_event_();
   if (this->state_ == State::SCANNING) {
     this->set_state_(State::CAPTURING);
   }
@@ -137,6 +158,9 @@ void ZeroMouse::notify_captured_() {
 
 void ZeroMouse::publish_event_(bool empty) {
   this->set_state_(State::PUBLISHING);
+  if (empty) {
+    this->reserve_event_();
+  }
 #ifdef USE_ZEROMOUSE_CONTROLLER_CLOUD
   if (this->cloud_ != nullptr) {
     if (this->cloud_->is_failed()) {
@@ -148,9 +172,12 @@ void ZeroMouse::publish_event_(bool empty) {
     data.frames = std::move(this->frames_);
     data.time_zero_us = this->time_zero_us_;
     data.pir_to_t0_ms = static_cast<int32_t>((this->pir_us_ - this->time_zero_us_) / 1000);
+    data.event_id = this->reserved_event_id_;
+    data.event_time = this->reserved_event_time_;
     data.air.reserve(this->scan_samples().size());
     for (const auto &sample : this->scan_samples()) {
-      data.air.push_back({sample.mean, this->sample_time_ms(sample), sample.slope, sample.environment});
+      data.air.push_back({sample.mean, this->sample_time_ms(sample), sample.slope, sample.environment,
+                          sample.has_presence, sample.motion, sample.presence});
     }
     this->frames_.clear();
     this->cloud_->publish_event_async(std::move(data), [this, empty](bool published, uint32_t event_id) {

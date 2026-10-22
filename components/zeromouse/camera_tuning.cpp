@@ -12,8 +12,6 @@ namespace esphome::zeromouse {
 
 static const char *const TAG = "zeromouse.camera";
 
-static constexpr uint16_t OV7670_PID = 0x76;
-static constexpr uint16_t GC032A_PID = 0x232A;
 static constexpr uint32_t GC032A_XCLK_HZ = 24000000;
 static constexpr int32_t GC032A_SHOTS_BEFORE_T0 = 2;
 static constexpr int32_t BRIGHTNESS_MIN = -3;
@@ -30,14 +28,7 @@ int32_t CameraTuning::read_(const number::Number *number, int32_t fallback) {
   return static_cast<int32_t>(std::lround(number->state));
 }
 
-CameraTuning::Sensor CameraTuning::sensor_() const {
-  const uint16_t pid = this->camera_->sensor_pid();
-  if (pid == OV7670_PID || (pid >> 8) == OV7670_PID)
-    return Sensor::OV7670;
-  if (pid == GC032A_PID)
-    return Sensor::GC032A;
-  return Sensor::UNKNOWN;
-}
+CameraTuning::Sensor CameraTuning::sensor_() const { return this->camera_->sensor_kind(); }
 
 void CameraTuning::setup(burst_camera::BurstCamera *camera) {
   this->camera_ = camera;
@@ -139,6 +130,7 @@ void CameraTuning::apply_() {
   }
   const int32_t exp_level = read_(this->auto_exp_level, 0);
   const int32_t gain_ceiling = read_(this->gain_ceiling, 0);
+  burst_camera::SensorLock lock(*this->camera_);
   const bool ov7670 = sensor == Sensor::OV7670;
   const bool ok = ov7670 ? this->apply_ov7670_(exp_level, gain_ceiling) : this->apply_gc032a_(exp_level, gain_ceiling);
   ESP_LOGI(TAG,
