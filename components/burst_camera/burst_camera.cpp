@@ -12,6 +12,12 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
+extern "C" {
+// Private to esp32-camera. Implemented in driver/sccb-ng.c.
+uint8_t SCCB_Read(uint8_t slv_addr, uint8_t reg);
+int SCCB_Write(uint8_t slv_addr, uint8_t reg, uint8_t data);
+}
+
 namespace esphome::burst_camera {
 
 static const char *const TAG = "burst_camera";
@@ -72,6 +78,12 @@ void BurstCamera::setup() {
     ESP_LOGW(TAG, "Failed to set the XCLK drive strength");
   }
 
+  sensor_t *sensor = esp_camera_sensor_get();
+  if (sensor != nullptr) {
+    this->sensor_address_ = sensor->slv_addr;
+    this->sensor_pid_ = sensor->id.PID;
+  }
+
   this->image_queue_ = xQueueCreate(IMAGE_QUEUE_LENGTH, sizeof(QueuedImage *));
   xTaskCreatePinnedToCore(&BurstCamera::framebuffer_task, "burst_camera", FRAMEBUFFER_TASK_STACK_SIZE, this, 1,
                           &this->task_, 1);
@@ -81,6 +93,34 @@ void BurstCamera::setup() {
     this->set_interval("idle", this->idle_update_interval_, [this]() { this->request_image(camera::IDLE); });
   }
   this->disable_loop();
+
+  if (sensor != nullptr) {
+    this->defer([this]() {
+      this->sensor_ready_ = true;
+      for (const auto &callback : this->sensor_ready_callbacks_)
+        callback();
+    });
+  }
+}
+
+bool BurstCamera::write_sensor_reg(uint8_t reg, uint8_t value) {
+  if (!this->sensor_ready_)
+    return false;
+  return SCCB_Write(this->sensor_address_, reg, value) == 0;
+}
+
+bool BurstCamera::read_sensor_reg(uint8_t reg, uint8_t &value) {
+  if (!this->sensor_ready_)
+    return false;
+  value = SCCB_Read(this->sensor_address_, reg);
+  return true;
+}
+
+void BurstCamera::add_on_sensor_ready(std::function<void()> callback) {
+  if (this->sensor_ready_)
+    callback();
+  else
+    this->sensor_ready_callbacks_.push_back(std::move(callback));
 }
 
 void BurstCamera::dump_config() {

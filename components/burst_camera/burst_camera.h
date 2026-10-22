@@ -45,6 +45,16 @@ class BurstCamera final : public camera::Camera {
 
   CameraPower &power() { return this->power_; }
 
+  /// Raw sensor register access over SCCB. Main loop only.
+  bool write_sensor_reg(uint8_t reg, uint8_t value);
+  /// The SCCB read cannot report errors, so this only fails if there is no sensor.
+  bool read_sensor_reg(uint8_t reg, uint8_t &value);
+  uint16_t sensor_pid() const { return this->sensor_pid_; }
+  uint32_t external_clock_frequency() const { return this->config_.xclk_freq_hz; }
+  bool is_sensor_ready() const { return this->sensor_ready_; }
+  /// Runs in the main loop once the sensor is initialized. Runs right away if it already is.
+  void add_on_sensor_ready(std::function<void()> callback);
+
   void setup() override;
   void loop() override;
   void dump_config() override;
@@ -108,6 +118,10 @@ class BurstCamera final : public camera::Camera {
   uint32_t max_update_interval_{100};
   uint32_t idle_update_interval_{0};
   esp_err_t init_error_{ESP_OK};
+  uint8_t sensor_address_{0};
+  uint16_t sensor_pid_{0};
+  bool sensor_ready_{false};
+  std::vector<std::function<void()>> sensor_ready_callbacks_;
 
   TaskHandle_t task_{nullptr};
   QueueHandle_t image_queue_{nullptr};
