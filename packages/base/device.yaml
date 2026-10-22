@@ -1,5 +1,5 @@
 packages:
-  common: !include base_common.yaml
+  common: !include common.yaml
 
 wifi:
   ssid: !secret wifi_ssid

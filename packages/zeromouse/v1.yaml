@@ -1,6 +1,6 @@
 # ZeroMOUSE V1
 #
-# See `zeromouse.yaml` for the shared hardware.
+# See `common.yaml` for the shared hardware.
 #
 # ## Variables
 #
@@ -24,7 +24,7 @@ substitutions:
         motion: "Motion"
 
 packages:
-  zeromouse: !include zeromouse.yaml
+  zeromouse: !include common.yaml
 
 binary_sensor:
 - id: "zm_pir"

@@ -19,8 +19,8 @@ substitutions:
       en: !include ../i18n/en.yaml
 
 packages:
-  base: !include ../../../packages/base.yaml
-  e32s3cam: !include ../../../packages/esp32_s3_cam.yaml
+  base: !include ../../../packages/base/device.yaml
+  e32s3cam: !include ../../../packages/keyestudio/esp32_s3_cam.yaml
   #
   aqss: !include ./aqss.yaml
 

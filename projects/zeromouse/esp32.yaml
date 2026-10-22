@@ -8,8 +8,8 @@ substitutions:
   board: "v1"
 
 packages:
-  base: !include ../../packages/base.yaml
-  board: !include ../../packages/zeromouse_${board}.yaml
+  base: !include ../../packages/base/device.yaml
+  board: !include ../../packages/zeromouse/${board}.yaml
 
 esphome:
   name: "${name}"
