@@ -1,6 +1,5 @@
 substitutions:
   api_encryption_key: "" # REQUIRED!
-  ota_password: "" # REQUIRED!
 
   name: "zeromouse"
   friendly_name: "ZeroMOUSE"
@@ -28,4 +27,4 @@ api:
 
 ota:
 - platform: "esphome"
-  password: "${ota_password}"
+  encryption: {}

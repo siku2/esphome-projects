@@ -7,7 +7,6 @@ packages:
       language: "de"
 
       api_encryption_key: "BPuGmuUNPrvxVodyymhlYRYbylb2QAPuw6i3PZFdZLc="
-      ota_password: "test-ota-password"
 
       components_source:
         type: "local"

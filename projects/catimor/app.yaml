@@ -4,7 +4,6 @@ substitutions:
   climate_id: "" # REQUIRED!
 
   api_encryption_key: "" # REQUIRED!
-  ota_password: "" # REQUIRED!
   git_ref: "" # REQUIRED!
   components_source:
     type: "git"
@@ -33,7 +32,7 @@ api:
 
 ota:
 - platform: "esphome"
-  password: "${ota_password}"
+  encryption: {}
 
 number:
 - id: "display_timeout"
