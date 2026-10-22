@@ -1,4 +1,3 @@
-send_test_event: "Testereignis senden"
 last_classification: "Letzte Klassifizierung"
 block: "Sperre"
 cloud_connected: "Cloud verbunden"

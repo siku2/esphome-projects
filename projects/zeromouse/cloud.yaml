@@ -32,6 +32,7 @@ zeromouse_cloud:
   owner_id: "${zeromouse_owner_id}"
   identity_id: "${zeromouse_identity_id}"
   event_count: "${zeromouse_event_count}"
+  boot_count: "${zeromouse_boot_count}"
   time_id: "zm_sntp"
   accept_settings: "zm_accept_cloud_settings"
   upload_events: "zm_upload_events"
@@ -65,15 +66,6 @@ zeromouse_cloud:
         previous: !lambda "return previous;"
         value: !lambda "return value;"
         applied: !lambda "return applied ? \"true\" : \"false\";"
-
-button:
-- id: "zm_send_test_event"
-  platform: "template"
-  name: "${i18n.zeromouse[language].send_test_event}"
-  on_press:
-  - zeromouse_cloud.publish_test_event:
-      id: "zm_cloud"
-      camera_id: "zm_camera"
 
 text_sensor:
 - id: "zm_last_classification"
