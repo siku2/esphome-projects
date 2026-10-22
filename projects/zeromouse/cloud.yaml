@@ -31,6 +31,7 @@ zeromouse_cloud:
   identity_id: "${zeromouse_identity_id}"
   event_count: "${zeromouse_event_count}"
   time_id: "zm_sntp"
+  accept_settings: "zm_accept_cloud_settings"
   on_classification:
   - text_sensor.template.publish:
       id: "zm_last_classification"
@@ -40,6 +41,14 @@ zeromouse_cloud:
       id: "zm_block"
       state: !lambda |-
         return block;
+  on_setting_change:
+  - homeassistant.event:
+      event: "esphome.zeromouse_cloud_setting"
+      data:
+        key: !lambda "return key;"
+        previous: !lambda "return previous;"
+        value: !lambda "return value;"
+        applied: !lambda "return applied ? \"true\" : \"false\";"
 
 button:
 - id: "zm_send_test_event"

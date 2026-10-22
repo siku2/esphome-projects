@@ -1,0 +1,157 @@
+number:
+- id: "zm_clean_event_time"
+  name: "${i18n.zeromouse[language].clean_event_time}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 30
+  min_value: 0
+  max_value: 3600
+  step: 1
+  mode: "box"
+  unit_of_measurement: "s"
+
+- id: "zm_finale_interval_max_count"
+  name: "${i18n.zeromouse[language].finale_interval_max_count}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 12
+  min_value: 1
+  max_value: 100
+  step: 1
+  mode: "box"
+
+- id: "zm_finale_interval_delta"
+  name: "${i18n.zeromouse[language].finale_interval_delta}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 5
+  min_value: 1
+  max_value: 60
+  step: 1
+  mode: "box"
+  unit_of_measurement: "s"
+
+- id: "zm_auto_exp_level"
+  name: "${i18n.zeromouse[language].auto_exp_level}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 64
+  min_value: 0
+  max_value: 255
+  step: 1
+  mode: "box"
+
+- id: "zm_gain_ceiling"
+  name: "${i18n.zeromouse[language].gain_ceiling}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 3
+  min_value: 0
+  max_value: 255
+  step: 1
+  mode: "box"
+
+- id: "zm_response_timeout"
+  name: "${i18n.zeromouse[language].response_timeout}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 25000
+  min_value: 1000
+  max_value: 120000
+  step: 1000
+  mode: "box"
+  unit_of_measurement: "ms"
+
+- id: "zm_last_ref_event_max_count"
+  name: "${i18n.zeromouse[language].last_ref_event_max_count}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 10
+  min_value: 0
+  max_value: 100
+  step: 1
+  mode: "box"
+
+- id: "zm_last_ref_event_max_time_sec"
+  name: "${i18n.zeromouse[language].last_ref_event_max_time_sec}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 1800
+  min_value: 0
+  max_value: 86400
+  step: 60
+  mode: "box"
+  unit_of_measurement: "s"
+
+select:
+- id: "zm_undecidable_mode"
+  name: "${i18n.zeromouse[language].undecidable_mode}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  options:
+  - "${i18n.zeromouse[language].undecidable_normal}"
+  - "${i18n.zeromouse[language].undecidable_treat_as_clean}"
+  - "${i18n.zeromouse[language].undecidable_block}"
+  initial_option: "${i18n.zeromouse[language].undecidable_normal}"
+
+switch:
+- id: "zm_upload_empty"
+  name: "${i18n.zeromouse[language].upload_empty}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_mode: "RESTORE_DEFAULT_OFF"
+
+- id: "zm_log_enabled"
+  name: "${i18n.zeromouse[language].log_enabled}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_mode: "RESTORE_DEFAULT_OFF"
+
+- id: "zm_block_enabled"
+  name: "${i18n.zeromouse[language].block_enabled}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_mode: "RESTORE_DEFAULT_ON"
+
+- id: "zm_accept_cloud_settings"
+  name: "${i18n.zeromouse[language].accept_cloud_settings}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_mode: "RESTORE_DEFAULT_ON"
+
+zeromouse_cloud:
+  settings:
+    clean_event_time: "zm_clean_event_time"
+    undecidable_mode: "zm_undecidable_mode"
+    finale_interval_max_count: "zm_finale_interval_max_count"
+    finale_interval_delta: "zm_finale_interval_delta"
+    upload_empty: "zm_upload_empty"
+    log_enabled: "zm_log_enabled"
+    auto_exp_level: "zm_auto_exp_level"
+    gain_ceiling: "zm_gain_ceiling"
+    block_enabled: "zm_block_enabled"
+    response_timeout: "zm_response_timeout"
+    last_ref_event_max_count: "zm_last_ref_event_max_count"
+    last_ref_event_max_time_sec: "zm_last_ref_event_max_time_sec"

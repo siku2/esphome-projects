@@ -37,7 +37,7 @@ substitutions:
   components_source:
     type: "git"
     url: "https://github.com/siku2/esphome-projects"
-    ref: "67a9a4502c132ab227f627f044778e74b5798df3"
+    ref: "633df4b17c09053aaac15715b94469a4f37d398b"
     path: "components"
   i18n:
     zm:
