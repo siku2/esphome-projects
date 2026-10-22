@@ -26,6 +26,7 @@ static constexpr UBaseType_t IMAGE_QUEUE_LENGTH = 8;
 static constexpr uint32_t IMAGE_QUEUE_TIMEOUT_MS = 1000;
 static constexpr uint32_t BURST_BASE_TIMEOUT_MS = 5000;
 static constexpr uint32_t BURST_FRAME_TIMEOUT_MS = 500;
+static constexpr int64_t SPACING_TOLERANCE_US = 5000;
 static constexpr uint8_t IDLE_MASK = 1U << camera::IDLE;
 
 BurstCamera::BurstCamera() {
@@ -235,7 +236,7 @@ void BurstCamera::finish_burst_() {
   callback(std::move(frames));
 }
 
-bool BurstCamera::arm_event(uint8_t pre_frames) {
+bool BurstCamera::arm_event(uint8_t pre_frames, uint32_t frame_spacing_us) {
   if (this->is_failed() || this->task_ == nullptr || this->burst_active_ || this->event_state_ != EventState::IDLE)
     return false;
   if (static_cast<unsigned>(pre_frames) + 1 > this->config_.fb_count) {
@@ -244,6 +245,7 @@ bool BurstCamera::arm_event(uint8_t pre_frames) {
     return false;
   }
   this->event_pre_frames_ = pre_frames;
+  this->event_spacing_us_ = frame_spacing_us;
   this->event_generation_++;
   this->event_frames_.clear();
   this->event_state_ = EventState::ARMED;
@@ -265,7 +267,8 @@ bool BurstCamera::capture_event(int64_t t0_us, uint8_t total, BurstCallback call
   this->event_frames_.clear();
   this->event_t0_us_ = t0_us;
   this->event_total_ = total;
-  this->set_timeout("event", BURST_BASE_TIMEOUT_MS + total * BURST_FRAME_TIMEOUT_MS, [this]() {
+  const uint32_t frame_timeout_ms = BURST_FRAME_TIMEOUT_MS + this->event_spacing_us_ / 1000;
+  this->set_timeout("event", BURST_BASE_TIMEOUT_MS + total * frame_timeout_ms, [this]() {
     ESP_LOGW(TAG, "Event capture timed out with %u frames", static_cast<unsigned>(this->event_frames_.size()));
     this->finish_event_();
   });
@@ -442,6 +445,17 @@ void BurstCamera::hold_frame_(camera_fb_t *fb, size_t keep) {
   }
 }
 
+bool BurstCamera::spacing_ok_(int64_t time_us) const {
+  const int64_t spacing_us = this->event_spacing_us_;
+  return spacing_us == 0 || !this->has_last_kept_ ||
+         time_us - this->last_kept_us_ >= std::max<int64_t>(spacing_us - SPACING_TOLERANCE_US, 0);
+}
+
+void BurstCamera::note_kept_(int64_t time_us) {
+  this->last_kept_us_ = time_us;
+  this->has_last_kept_ = true;
+}
+
 void BurstCamera::prepare_capture_() {
   const int64_t t0 = this->event_t0_us_;
   const uint8_t total = this->event_total_;
@@ -459,6 +473,9 @@ void BurstCamera::prepare_capture_() {
   this->held_.clear();
   for (auto *fb : kept)
     this->hold_frame_(fb, this->keep_);
+  this->has_last_kept_ = !this->held_.empty();
+  if (this->has_last_kept_)
+    this->last_kept_us_ = frame_time_us_(this->held_.back());
 }
 
 void BurstCamera::finish_capture_(uint32_t generation) {
@@ -474,6 +491,15 @@ void BurstCamera::finish_capture_(uint32_t generation) {
   const uint8_t secondary_quality = this->event_secondary_quality_;
   const int64_t encode_start_us = esp_timer_get_time();
   const size_t frame_count = frames.size();
+  if (frame_count != 0) {
+    const int64_t t0 = this->event_t0_us_;
+    const int64_t first_us = frame_time_us_(frames.front());
+    const int64_t last_us = frame_time_us_(frames.back());
+    ESP_LOGD(TAG, "Event frames: %u, first %d ms, last %d ms from T0, mean spacing %d ms",
+             static_cast<unsigned>(frame_count), static_cast<int>((first_us - t0) / 1000),
+             static_cast<int>((last_us - t0) / 1000),
+             frame_count > 1 ? static_cast<int>((last_us - first_us) / 1000 / static_cast<int64_t>(frame_count - 1)) : 0);
+  }
   for (auto *fb : frames) {
     auto image = this->encode_(fb, 0, secondary_quality);
     if (image)
@@ -497,25 +523,37 @@ void BurstCamera::event_step_() {
     esp_camera_fb_return(fb);
     return;
   }
+  const uint32_t generation = this->event_generation_;
+  if (this->kept_generation_ != generation) {
+    this->has_last_kept_ = false;
+    this->kept_generation_ = generation;
+  }
   if (state == EventState::ARMED) {
+    if (!this->spacing_ok_(time)) {
+      esp_camera_fb_return(fb);
+      return;
+    }
     for (auto *old : this->post_)
       esp_camera_fb_return(old);
     this->post_.clear();
+    this->note_kept_(time);
     this->hold_frame_(fb, this->event_pre_frames_);
     return;
   }
 
-  const uint32_t generation = this->event_generation_;
   if (this->prepared_generation_ != generation) {
     this->prepare_capture_();
     this->prepared_generation_ = generation;
   }
-  if (time >= this->event_t0_us_)
-    this->post_.push_back(fb);
-  else if (this->post_.empty())
-    this->hold_frame_(fb, this->keep_);
-  else
+  if (!this->spacing_ok_(time) || (time < this->event_t0_us_ && !this->post_.empty())) {
     esp_camera_fb_return(fb);
+  } else if (time >= this->event_t0_us_) {
+    this->note_kept_(time);
+    this->post_.push_back(fb);
+  } else {
+    this->note_kept_(time);
+    this->hold_frame_(fb, this->keep_);
+  }
   if (this->held_.size() + this->post_.size() >= this->event_total_)
     this->finish_capture_(generation);
 }
