@@ -30,13 +30,14 @@
 # ### Switch
 #
 # - `zm_sensor_power`: Sensor environment power, always on.
+# - `zm_rfid_blocker`: RFID tag emulation that blocks the cat flap.
 
 substitutions:
   language: "en"
   components_source:
     type: "git"
     url: "https://github.com/siku2/esphome-projects"
-    ref: "df72703671cdde922079b6a9c0b945dc401807a3"
+    ref: "67a9a4502c132ab227f627f044778e74b5798df3"
     path: "components"
   i18n:
     zm:
@@ -44,15 +45,17 @@ substitutions:
         camera: "Kamera"
         button: "Taste"
         led2: "LED 2"
+        rfid_blocker: "RFID-Sperre"
 
       en:
         camera: "Camera"
         button: "Button"
         led2: "LED 2"
+        rfid_blocker: "RFID Blocker"
 
 external_components:
 - source: "${components_source}"
-  components: ["burst_camera"]
+  components: ["burst_camera", "fdxb_emulator"]
 
 esp32:
   variant: "esp32s3"
@@ -95,6 +98,12 @@ switch:
   pin: "GPIO38"
   restore_mode: "ALWAYS_ON"
   internal: true
+
+- id: "zm_rfid_blocker"
+  name: "${i18n.zm[language].rfid_blocker}"
+  platform: "fdxb_emulator"
+  pin: "GPIO1"
+  restore_mode: "ALWAYS_OFF"
 
 binary_sensor:
 - id: "zm_button"
