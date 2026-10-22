@@ -656,7 +656,7 @@ void BurstCamera::event_step_() {
     this->kept_generation_ = generation;
   }
   if (state == EventState::ARMED) {
-    if (!this->spacing_ok_(time)) {
+    if (this->event_pre_frames_ > 0 && !this->spacing_ok_(time)) {
       esp_camera_fb_return(fb);
       return;
     }
