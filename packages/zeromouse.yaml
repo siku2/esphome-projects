@@ -1,0 +1,140 @@
+# ZeroMOUSE
+#
+# Hardware shared by all ZeroMOUSE cat flap board variants (ESP32-S3).
+#
+# ## Variables
+#
+# ## Namespace
+#
+# `zm`
+#
+# ## Components
+#
+# ### Burst Camera
+#
+# - `zm_camera`: The DVP camera (OV7670 or GC032A).
+#
+# ### Binary Sensor
+#
+# - `zm_button`: Button SW1.
+#
+# ### Light
+#
+# - `zm_led2`: LED2.
+#
+# ### Output
+#
+# - `zm_illumination`: Camera illumination LEDs.
+# - `zm_led2_output`: Output for LED2.
+#
+# ### Switch
+#
+# - `zm_sensor_power`: Sensor environment power, always on.
+
+substitutions:
+  language: "en"
+  components_source:
+    type: "git"
+    url: "https://github.com/siku2/esphome-projects"
+    ref: "9da907e2717ead7ee8831704c4010936f9aa2b80"
+    path: "components"
+  i18n:
+    zm:
+      de:
+        camera: "Kamera"
+        button: "Taste"
+        led2: "LED 2"
+
+      en:
+        camera: "Camera"
+        button: "Button"
+        led2: "LED 2"
+
+external_components:
+- source: "${components_source}"
+  components: ["burst_camera"]
+
+esp32:
+  variant: "esp32s3"
+  flash_size: "16MB"
+  framework:
+    type: "esp-idf"
+
+psram:
+  mode: "octal"
+  speed: "80MHz"
+  ignore_not_found: false
+
+# GPIO43 and GPIO44 are an I2C bus on the V2 board.
+logger:
+  hardware_uart: "USB_SERIAL_JTAG"
+
+status_led:
+  pin: "GPIO4"
+
+output:
+- id: "zm_led2_output"
+  platform: "gpio"
+  pin: "GPIO5"
+
+- id: "zm_illumination"
+  platform: "gpio"
+  pin: "GPIO46"
+
+light:
+- id: "zm_led2"
+  name: "${i18n.zm[language].led2}"
+  platform: "binary"
+  output: "zm_led2_output"
+  restore_mode: "ALWAYS_OFF"
+  entity_category: "DIAGNOSTIC"
+
+switch:
+- id: "zm_sensor_power"
+  platform: "gpio"
+  pin: "GPIO38"
+  restore_mode: "ALWAYS_ON"
+  internal: true
+
+binary_sensor:
+- id: "zm_button"
+  name: "${i18n.zm[language].button}"
+  platform: "gpio"
+  pin:
+    number: "GPIO48"
+    mode:
+      input: true
+      pullup: true
+    inverted: true
+
+burst_camera:
+  id: "zm_camera"
+  name: "${i18n.zm[language].camera}"
+  data_pins:
+  - "GPIO13"
+  - "GPIO21"
+  - "GPIO47"
+  - "GPIO14"
+  - "GPIO12"
+  - "GPIO10"
+  - "GPIO9"
+  - "GPIO18"
+  vsync_pin: "GPIO15"
+  href_pin: "GPIO17"
+  pixel_clock_pin: "GPIO11"
+  external_clock:
+    pin: "GPIO8"
+    frequency: "10MHz"
+  i2c_pins:
+    sda: "GPIO6"
+    scl: "GPIO7"
+  power_down_pin: "GPIO16"
+  enable_pin: "GPIO41"
+  supply_pin:
+    number: "GPIO42"
+    inverted: true
+  light: "zm_illumination"
+  resolution: "VGA"
+  pixel_format: "GRAYSCALE"
+  jpeg_quality: 30
+  frame_buffer_count: 2

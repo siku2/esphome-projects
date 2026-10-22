@@ -1,0 +1,34 @@
+# ZeroMOUSE V1
+#
+# See `zeromouse.yaml` for the shared hardware.
+#
+# ## Variables
+#
+# ## Namespace
+#
+# `zm`
+#
+# ## Components
+#
+# ### Binary Sensor
+#
+# - `zm_pir`: PIR motion sensor (AS312).
+
+substitutions:
+  i18n:
+    zm:
+      de:
+        motion: "Bewegung"
+
+      en:
+        motion: "Motion"
+
+packages:
+  zeromouse: !include zeromouse.yaml
+
+binary_sensor:
+- id: "zm_pir"
+  name: "${i18n.zm[language].motion}"
+  platform: "gpio"
+  pin: "GPIO40"
+  device_class: "motion"
