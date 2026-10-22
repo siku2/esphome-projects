@@ -48,7 +48,7 @@ struct ProximityShadow {
   uint32_t ir_prey_event_time{30};
   uint32_t ir_median_count{5};
   uint32_t ir_ambient{1000};
-  uint32_t ir_slope_thresh_value{20};
+  int32_t ir_slope_thresh_value{20};
   uint32_t ir_sensor_status{0};
   uint32_t ir_motion_thresh{0};
   uint32_t ir_presence_thresh{0};

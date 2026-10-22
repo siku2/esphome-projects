@@ -2,7 +2,8 @@
 
 #include "zeromouse_cloud.h"
 
-#include "esphome/components/json/json_util.h"
+#include <cmath>
+
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
 
@@ -14,6 +15,87 @@ namespace esphome::zeromouse_cloud {
 
 static const char *const TAG = "zeromouse_cloud";
 static const char *const DEVICE_PREFIX = "MBR-PTF-H1-";
+static const uint32_t REPORT_DEBOUNCE_MS = 1000;
+
+namespace {
+
+bool read_binding(const ZeroMouseCloud::Binding &binding, int64_t &value) {
+  if (binding.number != nullptr) {
+    if (std::isnan(binding.number->state))
+      return false;
+    value = std::llround(binding.number->state);
+    return true;
+  }
+  if (binding.sw != nullptr) {
+    value = binding.sw->state ? 1 : 0;
+    return true;
+  }
+  if (binding.select != nullptr) {
+    const auto index = binding.select->active_index();
+    if (!index.has_value())
+      return false;
+    value = static_cast<int64_t>(*index);
+    return true;
+  }
+  return false;
+}
+
+/// Converts the value to something the entity accepts. Returns false if it is not applicable.
+bool fit_binding(const ZeroMouseCloud::Binding &binding, const char *name, int64_t &value) {
+  if (binding.number != nullptr) {
+    const auto &traits = binding.number->traits;
+    const int64_t min = std::llround(traits.get_min_value());
+    const int64_t max = std::llround(traits.get_max_value());
+    const int64_t clamped = value < min ? min : (value > max ? max : value);
+    if (clamped != value)
+      ESP_LOGW(TAG, "Setting %s value %lld is out of range, using %lld", name, static_cast<long long>(value),
+               static_cast<long long>(clamped));
+    value = clamped;
+    return true;
+  }
+  if (binding.sw != nullptr) {
+    value = value != 0 ? 1 : 0;
+    return true;
+  }
+  return binding.select != nullptr && value >= 0 && static_cast<size_t>(value) < binding.select->size();
+}
+
+void write_binding(const ZeroMouseCloud::Binding &binding, int64_t value) {
+  if (binding.number != nullptr) {
+    binding.number->make_call().set_value(static_cast<float>(value)).perform();
+  } else if (binding.sw != nullptr) {
+    if (value != 0)
+      binding.sw->turn_on();
+    else
+      binding.sw->turn_off();
+  } else if (binding.select != nullptr) {
+    binding.select->make_call().set_index(static_cast<size_t>(value)).perform();
+  }
+}
+
+bool to_integer(JsonVariantConst raw, int64_t &value) {
+  if (raw.is<bool>()) {
+    value = raw.as<bool>() ? 1 : 0;
+    return true;
+  }
+  if (raw.is<double>()) {
+    value = std::llround(raw.as<double>());
+    return true;
+  }
+  return false;
+}
+
+std::string to_text(JsonVariantConst raw) {
+  if (raw.is<const char *>())
+    return raw.as<std::string>();
+  if (raw.is<bool>())
+    return raw.as<bool>() ? "true" : "false";
+  std::string out;
+  serializeJson(raw, out);
+  return out;
+}
+
+}  // namespace
 
 void ZeroMouseCloud::set_thing_name(const std::string &thing_name) {
   this->thing_name_ = thing_name;
@@ -42,10 +124,10 @@ void ZeroMouseCloud::setup() {
 
   this->aws_iot_->subscribe(this->device_topic_("command"),
                             [this](const std::string &, const std::string &payload) { this->on_command_(payload); });
-  this->aws_iot_->subscribe(this->shadow_topic_("get/accepted"), [this](const std::string &, const std::string &) {
-    ESP_LOGD(TAG, "Shadow received, ignoring desired and delta");
-    this->publish_shadow_();
-  });
+  this->aws_iot_->subscribe(this->shadow_topic_("get/accepted"),
+                            [this](const std::string &, const std::string &payload) { this->on_shadow_(payload); });
+  this->aws_iot_->subscribe(this->shadow_topic_("update/delta"),
+                            [this](const std::string &, const std::string &payload) { this->on_delta_(payload); });
   this->aws_iot_->subscribe(this->shadow_topic_("get/rejected"),
                             [this](const std::string &, const std::string &payload) {
                               ESP_LOGW(TAG, "Shadow get rejected, reporting a new shadow: %s", payload.c_str());
@@ -58,6 +140,19 @@ void ZeroMouseCloud::setup() {
                               ESP_LOGW(TAG, "Shadow update rejected: %s", payload.c_str());
                             });
   this->aws_iot_->add_on_connect_callback([this]() { this->on_connect_(); });
+
+  for (const Binding &binding : this->bindings_) {
+    const Setting setting = binding.setting;
+    if (binding.number != nullptr)
+      binding.number->add_on_state_callback([this, setting](float) { this->on_binding_state_(setting); });
+    else if (binding.sw != nullptr)
+      binding.sw->add_on_state_callback([this, setting](bool) { this->on_binding_state_(setting); });
+    else if (binding.select != nullptr)
+      binding.select->add_on_state_callback([this, setting](size_t) { this->on_binding_state_(setting); });
+    int64_t value;
+    if (read_binding(binding, value))
+      set_setting(this->shadow_, setting, value);
+  }
 }
 
 void ZeroMouseCloud::dump_config() {
@@ -75,6 +170,110 @@ void ZeroMouseCloud::dump_config() {
 void ZeroMouseCloud::on_connect_() {
   const std::string topic = this->shadow_topic_("get");
   this->aws_iot_->publish(topic, "{}", 2);
+}
+
+void ZeroMouseCloud::schedule_report_() {
+  this->set_timeout("report", REPORT_DEBOUNCE_MS, [this]() {
+    if (this->aws_iot_->is_connected())
+      this->publish_shadow_();
+  });
+}
+
+void ZeroMouseCloud::on_binding_state_(Setting setting) {
+  for (const Binding &binding : this->bindings_) {
+    int64_t value;
+    if (binding.setting == setting && read_binding(binding, value)) {
+      set_setting(this->shadow_, setting, value);
+      this->schedule_report_();
+      return;
+    }
+  }
+}
+
+void ZeroMouseCloud::on_shadow_(const std::string &payload) {
+  const bool valid = json::parse_json(payload, [&](JsonObject root) {
+    const int64_t version = root["version"] | static_cast<int64_t>(-1);
+    if (version < this->shadow_version_) {
+      ESP_LOGD(TAG, "Ignoring stale shadow version %lld", static_cast<long long>(version));
+      return true;
+    }
+    this->shadow_version_ = version;
+    JsonObject delta = root["state"]["delta"];
+    if (!delta.isNull())
+      this->apply_delta_(delta);
+    return true;
+  });
+  if (!valid)
+    ESP_LOGW(TAG, "Shadow has invalid JSON");
+  this->cancel_timeout("report");
+  this->publish_shadow_();
+}
+
+void ZeroMouseCloud::on_delta_(const std::string &payload) {
+  const bool valid = json::parse_json(payload, [&](JsonObject root) {
+    const int64_t version = root["version"] | static_cast<int64_t>(-1);
+    if (version <= this->shadow_version_) {
+      ESP_LOGD(TAG, "Ignoring old delta version %lld", static_cast<long long>(version));
+      return true;
+    }
+    this->shadow_version_ = version;
+    JsonObject state = root["state"];
+    if (!state.isNull())
+      this->apply_delta_(state);
+    return true;
+  });
+  if (!valid)
+    ESP_LOGW(TAG, "Ignoring delta with invalid JSON");
+}
+
+void ZeroMouseCloud::apply_delta_(JsonObject state) {
+  for (JsonPair section : state) {
+    if (!section.value().is<JsonObject>()) {
+      ESP_LOGD(TAG, "Ignoring delta entry %s", section.key().c_str());
+      continue;
+    }
+    for (JsonPair entry : section.value().as<JsonObject>())
+      this->apply_setting_(section.key().c_str(), entry.key().c_str(), entry.value());
+  }
+}
+
+void ZeroMouseCloud::apply_setting_(const char *section, const char *key, JsonVariantConst raw) {
+  const std::string name = std::string(section) + "." + key;
+  const std::string value = to_text(raw);
+  const SettingInfo *info = find_setting(section, key);
+  const Binding *binding = nullptr;
+  if (info != nullptr) {
+    for (const Binding &candidate : this->bindings_) {
+      if (candidate.setting == info->setting)
+        binding = &candidate;
+    }
+  }
+  if (binding == nullptr) {
+    ESP_LOGI(TAG, "Setting %s = %s is not supported, ignoring", name.c_str(), value.c_str());
+    const std::string previous = info != nullptr ? std::to_string(get_setting(this->shadow_, info->setting)) : "";
+    this->setting_change_trigger_.trigger(name, previous, value, false);
+    return;
+  }
+
+  int64_t current = 0;
+  const bool has_current = read_binding(*binding, current);
+  const std::string previous = has_current ? std::to_string(current) : "";
+  int64_t target;
+  if (!to_integer(raw, target) || !fit_binding(*binding, name.c_str(), target)) {
+    ESP_LOGW(TAG, "Setting %s = %s is not applicable", name.c_str(), value.c_str());
+    this->setting_change_trigger_.trigger(name, previous, value, false);
+    return;
+  }
+  if (has_current && target == current)
+    return;
+  if (this->accept_settings_ != nullptr && !this->accept_settings_->state) {
+    ESP_LOGI(TAG, "Cloud settings are not accepted, ignoring %s = %s", name.c_str(), value.c_str());
+    this->setting_change_trigger_.trigger(name, previous, value, false);
+    return;
+  }
+  ESP_LOGI(TAG, "Setting %s: %s -> %s", name.c_str(), previous.c_str(), value.c_str());
+  write_binding(*binding, target);
+  this->setting_change_trigger_.trigger(name, previous, value, true);
 }
 
 void ZeroMouseCloud::publish_shadow_() {

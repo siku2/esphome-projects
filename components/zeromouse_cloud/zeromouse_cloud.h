@@ -8,11 +8,16 @@
 
 #include "esphome/components/aws_iot/aws_iot.h"
 #include "esphome/components/burst_camera/burst_camera.h"
+#include "esphome/components/json/json_util.h"
+#include "esphome/components/number/number.h"
+#include "esphome/components/select/select.h"
+#include "esphome/components/switch/switch.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "esphome/core/preferences.h"
 
+#include "settings.h"
 #include "shadow_state.h"
 
 namespace esphome::zeromouse_cloud {
@@ -21,6 +26,13 @@ namespace esphome::zeromouse_cloud {
 class ZeroMouseCloud : public Component {
  public:
   static constexpr uint8_t TEST_EVENT_FRAMES = 8;
+
+  struct Binding {
+    Setting setting;
+    number::Number *number;
+    switch_::Switch *sw;
+    select::Select *select;
+  };
 
   void set_aws_iot(aws_iot::AwsIotClient *aws_iot) { this->aws_iot_ = aws_iot; }
   void set_time(time::RealTimeClock *time) { this->time_ = time; }
@@ -33,6 +45,13 @@ class ZeroMouseCloud : public Component {
   void setup() override;
   void dump_config() override;
 
+  void set_accept_settings(switch_::Switch *accept_settings) { this->accept_settings_ = accept_settings; }
+  void bind_number(Setting setting, number::Number *number) { this->bindings_.push_back({setting, number, nullptr, nullptr}); }
+  void bind_switch(Setting setting, switch_::Switch *sw) { this->bindings_.push_back({setting, nullptr, sw, nullptr}); }
+  void bind_select(Setting setting, select::Select *select) {
+    this->bindings_.push_back({setting, nullptr, nullptr, select});
+  }
+
   /// The state that is reported to the cloud.
   ShadowState &shadow_state() { return this->shadow_; }
 
@@ -42,9 +61,19 @@ class ZeroMouseCloud : public Component {
   void publish_test_event(burst_camera::BurstCamera *camera);
 
   Trigger<std::string, int, bool> *get_classification_trigger() { return &this->classification_trigger_; }
+  /// Arguments are the key as "section.jsonKey", the previous value, the requested value and whether it was applied.
+  Trigger<std::string, std::string, std::string, bool> *get_setting_change_trigger() {
+    return &this->setting_change_trigger_;
+  }
 
  protected:
   void on_connect_();
+  void on_shadow_(const std::string &payload);
+  void on_delta_(const std::string &payload);
+  void apply_delta_(JsonObject state);
+  void apply_setting_(const char *section, const char *key, JsonVariantConst raw);
+  void on_binding_state_(Setting setting);
+  void schedule_report_();
   void on_command_(const std::string &payload);
   void publish_shadow_();
   void publish_metrics_();
@@ -57,6 +86,9 @@ class ZeroMouseCloud : public Component {
   std::string device_id_;
   std::string sw_version_{"0.17.12"};
   ShadowState shadow_;
+  switch_::Switch *accept_settings_{nullptr};
+  std::vector<Binding> bindings_;
+  int64_t shadow_version_{-1};
 
   ESPPreferenceObject event_count_pref_;
   ESPPreferenceObject boot_count_pref_;
@@ -67,6 +99,7 @@ class ZeroMouseCloud : public Component {
   time_t previous_event_time_{0};
 
   Trigger<std::string, int, bool> classification_trigger_;
+  Trigger<std::string, std::string, std::string, bool> setting_change_trigger_;
 };
 
 template<typename... Ts> class PublishTestEventAction : public Action<Ts...> {
