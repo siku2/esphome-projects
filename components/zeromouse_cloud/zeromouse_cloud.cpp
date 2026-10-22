@@ -311,6 +311,10 @@ void ZeroMouseCloud::on_command_(const std::string &payload) {
 }
 
 bool ZeroMouseCloud::publish_event(const std::vector<std::shared_ptr<burst_camera::BurstCameraImage>> &frames) {
+  if (this->upload_events_ != nullptr && !this->upload_events_->state) {
+    ESP_LOGI(TAG, "Event upload is off, not publishing");
+    return false;
+  }
   if (!this->aws_iot_->is_connected()) {
     ESP_LOGW(TAG, "Not connected, dropping event");
     return false;

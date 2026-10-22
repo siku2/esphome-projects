@@ -46,6 +46,7 @@ class ZeroMouseCloud : public Component {
   void dump_config() override;
 
   void set_accept_settings(switch_::Switch *accept_settings) { this->accept_settings_ = accept_settings; }
+  void set_upload_events(switch_::Switch *upload_events) { this->upload_events_ = upload_events; }
   void bind_number(Setting setting, number::Number *number) { this->bindings_.push_back({setting, number, nullptr, nullptr}); }
   void bind_switch(Setting setting, switch_::Switch *sw) { this->bindings_.push_back({setting, nullptr, sw, nullptr}); }
   void bind_select(Setting setting, select::Select *select) {
@@ -87,6 +88,7 @@ class ZeroMouseCloud : public Component {
   std::string sw_version_{"0.17.12"};
   ShadowState shadow_;
   switch_::Switch *accept_settings_{nullptr};
+  switch_::Switch *upload_events_{nullptr};
   std::vector<Binding> bindings_;
   int64_t shadow_version_{-1};
 

@@ -21,6 +21,7 @@ CONF_SW_VERSION = "sw_version"
 CONF_ON_CLASSIFICATION = "on_classification"
 CONF_CAMERA_ID = "camera_id"
 CONF_ACCEPT_SETTINGS = "accept_settings"
+CONF_UPLOAD_EVENTS = "upload_events"
 CONF_SETTINGS = "settings"
 CONF_ON_SETTING_CHANGE = "on_setting_change"
 
@@ -85,6 +86,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_SW_VERSION, default="0.17.12"): sw_version,
         cv.Required(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
         cv.Optional(CONF_ACCEPT_SETTINGS): cv.use_id(switch.Switch),
+        cv.Optional(CONF_UPLOAD_EVENTS): cv.use_id(switch.Switch),
         cv.Optional(CONF_SETTINGS): cv.Schema(
             {cv.Optional(key): cv.use_id(kind[0]) for key, kind in SETTINGS.items()}
         ),
@@ -112,6 +114,9 @@ async def to_code(config: ConfigType) -> None:
 
     if accept_id := config.get(CONF_ACCEPT_SETTINGS):
         cg.add(var.set_accept_settings(await cg.get_variable(accept_id)))
+
+    if upload_id := config.get(CONF_UPLOAD_EVENTS):
+        cg.add(var.set_upload_events(await cg.get_variable(upload_id)))
 
     for key, entity_id in config.get(CONF_SETTINGS, {}).items():
         bind = getattr(var, SETTINGS[key][1])
