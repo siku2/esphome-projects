@@ -36,6 +36,9 @@ class BurstCamera final : public camera::Camera {
   void set_frame_size(framesize_t size) { this->config_.frame_size = size; }
   void set_pixel_format(pixformat_t format) { this->config_.pixel_format = format; }
   void set_jpeg_quality(uint8_t quality) { this->jpeg_quality_ = quality; }
+  uint8_t get_jpeg_quality() const { return this->jpeg_quality_; }
+  /// Also encodes event frames with this JPEG quality. 0 turns it off.
+  void set_event_secondary_quality(uint8_t quality) { this->event_secondary_quality_ = quality; }
   void set_frame_buffer_count(uint8_t count) { this->config_.fb_count = count; }
   void set_max_update_interval(uint32_t interval) { this->max_update_interval_ = interval; }
   void set_idle_update_interval(uint32_t interval) { this->idle_update_interval_ = interval; }
@@ -88,7 +91,7 @@ class BurstCamera final : public camera::Camera {
   void finish_burst_();
   void finish_event_();
   static int64_t frame_time_us_(const camera_fb_t *fb);
-  std::shared_ptr<BurstCameraImage> encode_(camera_fb_t *fb, uint8_t requesters);
+  std::shared_ptr<BurstCameraImage> encode_(camera_fb_t *fb, uint8_t requesters, uint8_t secondary_quality = 0);
   void event_step_();
   void hold_frame_(camera_fb_t *fb, size_t keep);
   void prepare_capture_();
@@ -101,6 +104,7 @@ class BurstCamera final : public camera::Camera {
   camera_config_t config_{};
   CameraPower power_;
   uint8_t jpeg_quality_{30};
+  std::atomic<uint8_t> event_secondary_quality_{0};
   uint32_t max_update_interval_{100};
   uint32_t idle_update_interval_{0};
   esp_err_t init_error_{ESP_OK};

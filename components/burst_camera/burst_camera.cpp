@@ -303,10 +303,17 @@ int64_t BurstCamera::frame_time_us_(const camera_fb_t *fb) {
   return static_cast<int64_t>(fb->timestamp.tv_sec) * 1000000 + fb->timestamp.tv_usec;
 }
 
-std::shared_ptr<BurstCameraImage> BurstCamera::encode_(camera_fb_t *fb, uint8_t requesters) {
+std::shared_ptr<BurstCameraImage> BurstCamera::encode_(camera_fb_t *fb, uint8_t requesters, uint8_t secondary_quality) {
   uint8_t *jpeg = nullptr;
   size_t length = 0;
   const bool ok = frame2jpg(fb, this->jpeg_quality_, &jpeg, &length);
+  uint8_t *secondary = nullptr;
+  size_t secondary_length = 0;
+  if (ok && secondary_quality != 0 && !frame2jpg(fb, secondary_quality, &secondary, &secondary_length)) {
+    ESP_LOGW(TAG, "Failed to convert frame to the secondary JPEG");
+    secondary = nullptr;
+    secondary_length = 0;
+  }
   const uint16_t width = fb->width;
   const uint16_t height = fb->height;
   const timeval timestamp = fb->timestamp;
@@ -315,7 +322,10 @@ std::shared_ptr<BurstCameraImage> BurstCamera::encode_(camera_fb_t *fb, uint8_t 
     ESP_LOGE(TAG, "Failed to convert frame to JPEG");
     return nullptr;
   }
-  return std::make_shared<BurstCameraImage>(jpeg, length, width, height, timestamp, requesters, this->tracker_);
+  auto image = std::make_shared<BurstCameraImage>(jpeg, length, width, height, timestamp, requesters, this->tracker_);
+  if (secondary != nullptr)
+    image->set_secondary(secondary, secondary_length);
+  return image;
 }
 
 void BurstCamera::push_image_(std::shared_ptr<BurstCameraImage> image, ImageKind kind, uint32_t generation) {
@@ -421,11 +431,16 @@ void BurstCamera::finish_capture_(uint32_t generation) {
   frames.insert(frames.end(), this->post_.begin(), this->post_.end());
   this->held_.clear();
   this->post_.clear();
+  const uint8_t secondary_quality = this->event_secondary_quality_;
+  const int64_t encode_start_us = esp_timer_get_time();
+  const size_t frame_count = frames.size();
   for (auto *fb : frames) {
-    auto image = this->encode_(fb, 0);
+    auto image = this->encode_(fb, 0, secondary_quality);
     if (image)
       this->push_image_(std::move(image), ImageKind::EVENT, generation);
   }
+  ESP_LOGD(TAG, "Encoded %u event frames in %d ms (secondary quality %u)", static_cast<unsigned>(frame_count),
+           static_cast<int>((esp_timer_get_time() - encode_start_us) / 1000), secondary_quality);
   this->push_image_(nullptr, ImageKind::EVENT_END, generation);
 }
 

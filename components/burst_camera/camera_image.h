@@ -29,6 +29,15 @@ class BurstCameraImage : public camera::CameraImage {
   }
   ~BurstCameraImage() override;
 
+  /// Takes ownership of a second encoding of the same frame.
+  void set_secondary(uint8_t *jpeg, size_t length) {
+    this->secondary_ = jpeg;
+    this->secondary_length_ = length;
+  }
+  /// The second encoding or nullptr.
+  const uint8_t *get_secondary_data() const { return this->secondary_; }
+  size_t get_secondary_length() const { return this->secondary_length_; }
+
   uint8_t *get_data_buffer() override { return this->jpeg_; }
   size_t get_data_length() override { return this->length_; }
   bool was_requested_by(camera::CameraRequester requester) const override {
@@ -43,6 +52,8 @@ class BurstCameraImage : public camera::CameraImage {
  protected:
   uint8_t *jpeg_;
   size_t length_;
+  uint8_t *secondary_{nullptr};
+  size_t secondary_length_{0};
   uint16_t width_;
   uint16_t height_;
   timeval timestamp_;
