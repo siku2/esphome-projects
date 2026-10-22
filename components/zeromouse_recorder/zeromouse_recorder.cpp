@@ -18,6 +18,8 @@ static const char *const TAG = "zeromouse_recorder";
 static constexpr uint32_t CLASSIFICATION_WAIT_MS = 10000;
 static constexpr uint32_t FIRST_RETRY_MS = 30000;
 static constexpr uint8_t MAX_RETRIES = 3;
+// A pending secondary copy counts as this many times the primary size.
+static constexpr size_t SECONDARY_SIZE_ESTIMATE = 3;
 static constexpr const char *INBOX = "inbox";
 
 void ZeroMouseRecorder::setup() {
@@ -30,6 +32,7 @@ void ZeroMouseRecorder::setup() {
   if (this->enabled_ != nullptr) {
     this->enabled_->add_on_state_callback([this](bool) { this->update_quality_(); });
   }
+  this->camera_->add_on_event_secondary_ready([this]() { this->on_secondary_ready_(); });
   this->controller_->add_on_event_captured([this](const zeromouse::CapturedEvent &event) { this->on_captured_(event); });
   this->controller_->add_on_event_published(
       [this](bool published, uint32_t event_id) { this->on_published_(published, event_id); });
@@ -44,8 +47,10 @@ void ZeroMouseRecorder::dump_config() {
                 "ZeroMOUSE Recorder:\n"
                 "  Board: %s\n"
                 "  Secondary JPEG quality: %u\n"
-                "  Max pending events: %u",
-                this->board_.c_str(), this->secondary_quality_, this->max_pending_);
+                "  Max pending events: %u\n"
+                "  Max pending bytes: %u",
+                this->board_.c_str(), this->secondary_quality_, this->max_pending_,
+                static_cast<unsigned>(this->max_pending_bytes_));
 }
 
 void ZeroMouseRecorder::update_quality_() {
@@ -62,12 +67,7 @@ void ZeroMouseRecorder::on_captured_(const zeromouse::CapturedEvent &event) {
   for (const auto &image : event.frames) {
     const timeval time = image->get_timestamp();
     const int64_t us = static_cast<int64_t>(time.tv_sec) * 1000000 + time.tv_usec - event.time_zero_us;
-    const size_t bytes_hq = image->get_secondary_length();
-    record->frames.push_back({static_cast<int32_t>(us / 1000), static_cast<uint32_t>(image->get_data_length()),
-                              static_cast<uint32_t>(image->get_secondary_data() != nullptr ? bytes_hq : 0)});
-    if (image->get_secondary_data() != nullptr) {
-      record->quality_hq = this->secondary_quality_;
-    }
+    record->frames.push_back({static_cast<int32_t>(us / 1000), static_cast<uint32_t>(image->get_data_length()), 0});
   }
   record->air.reserve(event.samples.size());
   for (const auto &sample : event.samples) {
@@ -83,14 +83,89 @@ void ZeroMouseRecorder::on_captured_(const zeromouse::CapturedEvent &event) {
   record->epoch = event.time_zero_epoch;
 
   while (this->records_.size() >= this->max_pending_) {
-    const RecordPtr oldest = this->records_.front();
     ESP_LOGW(TAG, "Too many pending events, dropping the oldest");
-    oldest->dropped = true;
-    this->cancel_timeout(oldest->seq);
-    this->records_.pop_front();
+    this->drop_record_(this->records_.front());
   }
+  this->enforce_budget_(this->record_bytes_(*record));
   this->records_.push_back(record);
   this->last_ = record;
+}
+
+void ZeroMouseRecorder::on_secondary_ready_() {
+  this->enforce_budget_(0);
+  this->pump_();
+}
+
+bool ZeroMouseRecorder::is_secondary_pending_(const Record &record) {
+  return std::any_of(record.images.begin(), record.images.end(),
+                     [](const auto &image) { return image->is_secondary_pending(); });
+}
+
+size_t ZeroMouseRecorder::record_bytes_(const Record &record) const {
+  size_t bytes = 0;
+  for (const auto &image : record.images) {
+    bytes += image->get_data_length();
+    bytes += image->is_secondary_pending() ? image->get_data_length() * SECONDARY_SIZE_ESTIMATE
+                                           : image->get_secondary_length();
+  }
+  return bytes;
+}
+
+size_t ZeroMouseRecorder::drop_hq_(Record &record) {
+  const size_t before = this->record_bytes_(record);
+  for (const auto &image : record.images) {
+    image->discard_secondary();
+  }
+  return before - this->record_bytes_(record);
+}
+
+void ZeroMouseRecorder::enforce_budget_(size_t reserve) {
+  size_t total = reserve;
+  for (const auto &record : this->records_) {
+    total += this->record_bytes_(*record);
+  }
+  if (total <= this->max_pending_bytes_) {
+    return;
+  }
+  ESP_LOGW(TAG, "Pending events hold %u bytes, over the limit of %u", static_cast<unsigned>(total),
+           static_cast<unsigned>(this->max_pending_bytes_));
+  for (const auto &record : this->records_) {
+    if (total <= this->max_pending_bytes_) {
+      return;
+    }
+    if (record != this->in_flight_) {
+      total -= this->drop_hq_(*record);
+    }
+  }
+  while (total > this->max_pending_bytes_ && (reserve != 0 ? !this->records_.empty() : this->records_.size() > 1)) {
+    const RecordPtr oldest = this->records_.front();
+    total -= this->record_bytes_(*oldest);
+    ESP_LOGW(TAG, "Dropping the oldest event to stay within the limit");
+    this->drop_record_(oldest);
+  }
+}
+
+void ZeroMouseRecorder::update_hq_(Record &record) const {
+  record.quality_hq = 0;
+  for (size_t i = 0; i < record.images.size(); i++) {
+    const size_t bytes_hq = record.images[i]->get_secondary_length();
+    record.frames[i].bytes_hq = static_cast<uint32_t>(bytes_hq);
+    if (bytes_hq != 0) {
+      record.quality_hq = this->secondary_quality_;
+    }
+  }
+}
+
+void ZeroMouseRecorder::drop_record_(const RecordPtr &record) {
+  record->dropped = true;
+  this->cancel_timeout(record->seq);
+  record->images.clear();
+  record->steps.clear();
+  record->body.reset();
+  this->remove_(record);
+  if (this->last_ == record) {
+    this->last_.reset();
+  }
 }
 
 void ZeroMouseRecorder::name_folder_(Record &record) {
@@ -164,7 +239,7 @@ void ZeroMouseRecorder::pump_() {
     return;
   }
   for (const auto &record : this->records_) {
-    if (record->phase == Phase::QUEUED) {
+    if (record->phase == Phase::QUEUED && !is_secondary_pending_(*record)) {
       this->start_attempt_(record);
       return;
     }
@@ -172,6 +247,7 @@ void ZeroMouseRecorder::pump_() {
 }
 
 void ZeroMouseRecorder::start_attempt_(const RecordPtr &record) {
+  this->update_hq_(*record);
   record->body = this->build_json_(*record);
   if (!record->body) {
     ESP_LOGE(TAG, "Out of memory building event.json");
@@ -248,6 +324,10 @@ void ZeroMouseRecorder::run_step_(const RecordPtr &record, size_t index) {
     }
     case Step::Kind::FRAME_HQ: {
       const auto &image = record->images[step.index];
+      if (image->get_secondary_data() == nullptr) {
+        this->run_step_(record, index + 1);
+        break;
+      }
       this->webdav_->put(path, image->get_secondary_data(), image->get_secondary_length(), image, "image/jpeg",
                          std::move(done));
       break;
@@ -285,8 +365,7 @@ void ZeroMouseRecorder::finish_attempt_(const RecordPtr &record, bool ok) {
     }
   } else if (++record->attempts > MAX_RETRIES) {
     ESP_LOGW(TAG, "Giving up on %s", record->folder.c_str());
-    record->dropped = true;
-    this->remove_(record);
+    this->drop_record_(record);
   } else {
     const uint32_t delay_ms = FIRST_RETRY_MS << (record->attempts - 1);
     ESP_LOGW(TAG, "Retrying %s in %u s", record->folder.c_str(), static_cast<unsigned>(delay_ms / 1000));

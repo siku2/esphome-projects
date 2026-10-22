@@ -27,6 +27,8 @@ class ZeroMouseRecorder : public Component {
   void set_enabled(switch_::Switch *enabled) { this->enabled_ = enabled; }
   void set_secondary_jpeg_quality(uint8_t quality) { this->secondary_quality_ = quality; }
   void set_max_pending(uint8_t max_pending) { this->max_pending_ = max_pending; }
+  /// Limit for the image bytes held by pending events.
+  void set_max_pending_bytes(uint32_t bytes) { this->max_pending_bytes_ = bytes; }
   void set_board(const std::string &board) { this->board_ = board; }
 
   /// Arguments are the event folder, the cloud event id (0 if not published) and the class name (empty if unknown).
@@ -96,6 +98,7 @@ class ZeroMouseRecorder : public Component {
   bool is_enabled_() const { return this->enabled_ == nullptr || this->enabled_->state; }
   void update_quality_();
   void on_captured_(const zeromouse::CapturedEvent &event);
+  void on_secondary_ready_();
   void on_published_(bool published, uint32_t event_id);
   void on_classification_(const std::string &class_name, int class_index, bool block);
   void name_folder_(Record &record);
@@ -106,6 +109,12 @@ class ZeroMouseRecorder : public Component {
   void finish_attempt_(const RecordPtr &record, bool ok);
   void resend_json_(const RecordPtr &record);
   void remove_(const RecordPtr &record);
+  void drop_record_(const RecordPtr &record);
+  size_t record_bytes_(const Record &record) const;
+  size_t drop_hq_(Record &record);
+  void enforce_budget_(size_t reserve);
+  void update_hq_(Record &record) const;
+  static bool is_secondary_pending_(const Record &record);
   std::shared_ptr<Body> build_json_(const Record &record) const;
   std::string step_path_(const Record &record, const Step &step) const;
 
@@ -116,6 +125,7 @@ class ZeroMouseRecorder : public Component {
   std::string board_;
   uint8_t secondary_quality_{80};
   uint8_t max_pending_{3};
+  uint32_t max_pending_bytes_{3000000};
 
   ESPPreferenceObject counter_pref_;
   uint32_t counter_{0};
