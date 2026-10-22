@@ -46,3 +46,9 @@ api:
 ota:
 - platform: "esphome"
   encryption: {}
+  on_begin:
+  - lambda: !lambda |-
+      id(zm_controller).abort_event("ota");
+  on_error:
+  - lambda: !lambda |-
+      id(zm_controller).resume();

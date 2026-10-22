@@ -59,3 +59,14 @@ zeromouse:
       format: "Event end: %s"
       args:
       - !lambda "reason.c_str()"
+  on_watchdog:
+  - logger.log:
+      level: "WARN"
+      format: "Watchdog released the blocker: %s"
+      args:
+      - !lambda "reason.c_str()"
+
+wifi:
+  on_disconnect:
+  - lambda: !lambda |-
+      id(zm_controller).on_network_lost();

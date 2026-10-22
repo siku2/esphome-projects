@@ -43,6 +43,7 @@ i2c:
   sda: "GPIO44"
   scl: "GPIO43"
   frequency: "100kHz"
+  scan: false
 
 zeromouse_air:
   id: "zm_air"

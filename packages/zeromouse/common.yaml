@@ -37,7 +37,7 @@ substitutions:
   components_source:
     type: "git"
     url: "https://github.com/siku2/esphome-projects"
-    ref: "5b38fe580bfc476f93a8d3f8d9d7cb1b3cb0cd00"
+    ref: "000082e8a87263e8bd476937f75fdc16406de7f0"
     path: "components"
   i18n:
     zm:
@@ -97,6 +97,7 @@ switch:
   platform: "gpio"
   pin: "GPIO38"
   restore_mode: "ALWAYS_ON"
+  setup_priority: 1100
   internal: true
 
 - id: "zm_rfid_blocker"
