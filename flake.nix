@@ -53,8 +53,8 @@
                 --replace-fail "in /SDL2 " 'in ''${includedir}/SDL2 '
             '';
           });
-          # nixpkgs quotes the values of ESPHOME_USE_SUBPROCESS and
-          # PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION twice. Drop this once fixed.
+          # nixpkgs writes makeWrapperArgs as if they were shell expanded, so the
+          # wrapper gets literal quotes and a literal $out. Drop this once fixed.
           esphomeUnwrapped = pkgs.esphome.overridePythonAttrs (old: {
             makeWrapperArgs = map (
               arg:
@@ -63,7 +63,7 @@
               else if arg == "'python'" then
                 "python"
               else
-                arg
+                builtins.replaceStrings [ "$out" ] [ (placeholder "out") ] arg
             ) old.makeWrapperArgs;
           });
           # ESPHome downloads generic Linux binaries for the ESP-IDF toolchain.
