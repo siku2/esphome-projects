@@ -1,0 +1,56 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <ctime>
+#include <string>
+#include <vector>
+
+#include "esphome/core/helpers.h"
+
+namespace esphome::zeromouse_cloud {
+
+struct EventInfo {
+  std::string device_id;
+  std::string owner_id;
+  std::string identity_id;
+  std::string sw_version;
+  uint32_t event_id;
+  time_t event_time;
+  uint32_t pir_time_to_time0_ms;
+  int32_t sensor_ref_brightness;
+  int32_t sensor_ref_exposure_ctrl;
+  /// The previous event is only reported if there was one.
+  bool has_previous;
+  uint32_t previous_event_id;
+  time_t previous_event_time;
+};
+
+struct EventImage {
+  const uint8_t *jpeg;
+  size_t length;
+  /// Time of the frame relative to the first frame.
+  uint32_t milliseconds;
+};
+
+/// The JSON message of an event, with the JPEG images as base64. Lives in PSRAM.
+class EventPayload {
+ public:
+  /// Largest message that the cloud accepts.
+  static constexpr size_t MAX_SIZE = 131072;
+
+  /// Drops the largest images until the message fits. Returns false if out of memory.
+  bool build(const EventInfo &info, const std::vector<EventImage> &images);
+
+  const char *data() const { return reinterpret_cast<const char *>(this->buffer_.get()); }
+  size_t size() const { return this->size_; }
+  /// How many images made it into the message.
+  size_t image_count() const { return this->image_count_; }
+
+ protected:
+  RAMUniquePtr<uint8_t[]> buffer_;
+  size_t size_{0};
+  size_t image_count_{0};
+};
+
+}  // namespace esphome::zeromouse_cloud
