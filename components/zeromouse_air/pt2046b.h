@@ -1,5 +1,9 @@
 #pragma once
 
+#include "esphome/core/defines.h"
+
+#ifdef USE_ZEROMOUSE_AIR_PT2046B
+
 #include "esp_adc/adc_oneshot.h"
 #include "freertos/FreeRTOS.h"
 
@@ -32,3 +36,5 @@ class Pt2046b final : public AirSensor {
 };
 
 }  // namespace esphome::zeromouse_air
+
+#endif

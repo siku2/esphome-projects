@@ -1,3 +1,7 @@
+#include "esphome/core/defines.h"
+
+#ifdef USE_ZEROMOUSE_AIR_PT2046B
+
 #include "pt2046b.h"
 
 #include <algorithm>
@@ -101,3 +105,5 @@ bool Pt2046b::read(AirSample &sample) {
 }
 
 }  // namespace esphome::zeromouse_air
+
+#endif

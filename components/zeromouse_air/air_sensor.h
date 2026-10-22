@@ -12,6 +12,16 @@ struct AirSample {
   int64_t time_us{0};
   int32_t mean{0};
   int32_t slope{0};
+  bool has_presence{false};
+  int16_t motion{0};
+  int16_t presence{0};
+};
+
+/// A presence sensor that delivers one sample per call.
+class PresenceSampler {
+ public:
+  /// Called from a FreeRTOS task, not from the main loop. Returns false if there is no new sample.
+  virtual bool read_sample(int16_t &motion, int16_t &presence) = 0;
 };
 
 /// A proximity sensor that is sampled by a dedicated task.
