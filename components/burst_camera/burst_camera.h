@@ -5,10 +5,12 @@
 #include <esp_camera.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
+#include <freertos/semphr.h>
 
 #include <array>
 #include <atomic>
 #include <functional>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -20,6 +22,8 @@
 #include "image_tracker.h"
 
 namespace esphome::burst_camera {
+
+enum class SensorKind : uint8_t { UNKNOWN, OV7670, GC032A };
 
 using BurstCallback = std::function<void(std::vector<std::shared_ptr<BurstCameraImage>> frames)>;
 
@@ -45,11 +49,15 @@ class BurstCamera final : public camera::Camera {
 
   CameraPower &power() { return this->power_; }
 
-  /// Raw sensor register access over SCCB. Main loop only.
+  /// Raw sensor register access over SCCB. Safe from any task. Use a SensorLock to keep several accesses together.
   bool write_sensor_reg(uint8_t reg, uint8_t value);
   /// The SCCB read cannot report errors, so this only fails if there is no sensor.
   bool read_sensor_reg(uint8_t reg, uint8_t &value);
+  /// Recursive. The framebuffer task reads the exposure registers between the unlocked accesses.
+  void lock_sensor() { xSemaphoreTakeRecursive(this->sccb_mutex_, portMAX_DELAY); }
+  void unlock_sensor() { xSemaphoreGiveRecursive(this->sccb_mutex_); }
   uint16_t sensor_pid() const { return this->sensor_pid_; }
+  SensorKind sensor_kind() const;
   uint32_t external_clock_frequency() const { return this->config_.xclk_freq_hz; }
   bool is_sensor_ready() const { return this->sensor_ready_; }
   /// Runs in the main loop once the sensor is initialized. Runs right away if it already is.
@@ -98,6 +106,12 @@ class BurstCamera final : public camera::Camera {
     uint32_t generation;
   };
 
+  /// Exposure state of the sensor when a frame was grabbed.
+  struct FrameMeta {
+    uint32_t gain{0};
+    uint32_t exposure{0};
+  };
+
   static void framebuffer_task(void *pv);
 
   bool has_requested_image_() const { return this->single_requesters_ != 0 || this->stream_requesters_ != 0; }
@@ -109,7 +123,9 @@ class BurstCamera final : public camera::Camera {
   void finish_event_();
   static int64_t frame_time_us_(const camera_fb_t *fb);
   uint8_t *encode_jpeg_(camera_fb_t *fb, uint8_t quality, size_t &length);
-  std::shared_ptr<BurstCameraImage> encode_(camera_fb_t *fb, uint8_t requesters);
+  std::shared_ptr<BurstCameraImage> encode_(camera_fb_t *fb, uint8_t requesters, const FrameMeta &meta);
+  FrameMeta read_frame_meta_();
+  void note_frame_(camera_fb_t *fb);
   void event_step_();
   void hold_frame_(camera_fb_t *fb, size_t keep);
   void prepare_capture_();
@@ -130,7 +146,8 @@ class BurstCamera final : public camera::Camera {
   esp_err_t init_error_{ESP_OK};
   uint8_t sensor_address_{0};
   uint16_t sensor_pid_{0};
-  bool sensor_ready_{false};
+  std::atomic<bool> sensor_ready_{false};
+  SemaphoreHandle_t sccb_mutex_{nullptr};
   std::vector<std::function<void()>> sensor_ready_callbacks_;
   std::vector<std::function<void()>> secondary_ready_callbacks_;
 
@@ -163,11 +180,24 @@ class BurstCamera final : public camera::Camera {
   uint8_t *scratch_{nullptr};
   std::vector<camera_fb_t *> held_;
   std::vector<camera_fb_t *> post_;
+  std::map<const camera_fb_t *, FrameMeta> frame_meta_;
   uint32_t prepared_generation_{0};
   size_t keep_{0};
   int64_t last_kept_us_{0};
   bool has_last_kept_{false};
   uint32_t kept_generation_{0};
+};
+
+/// Holds the SCCB bus for the lifetime of the object.
+class SensorLock {
+ public:
+  explicit SensorLock(BurstCamera &camera) : camera_(camera) { this->camera_.lock_sensor(); }
+  ~SensorLock() { this->camera_.unlock_sensor(); }
+  SensorLock(const SensorLock &) = delete;
+  SensorLock &operator=(const SensorLock &) = delete;
+
+ protected:
+  BurstCamera &camera_;
 };
 
 }  // namespace esphome::burst_camera

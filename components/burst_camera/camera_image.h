@@ -53,6 +53,14 @@ class BurstCameraImage : public camera::CameraImage {
     return (this->requesters_ & (1U << requester)) != 0;
   }
 
+  void set_sensor_meta(uint32_t gain, uint32_t exposure) {
+    this->gain_ = gain;
+    this->exposure_ = exposure;
+  }
+  /// Sensor gain (16 is 1x) and exposure rows when the frame was grabbed. 0 if unknown.
+  uint32_t get_gain() const { return this->gain_; }
+  uint32_t get_exposure() const { return this->exposure_; }
+
   uint16_t get_width() const { return this->width_; }
   uint16_t get_height() const { return this->height_; }
   /// Time since boot at which the sensor started this frame.
@@ -66,6 +74,8 @@ class BurstCameraImage : public camera::CameraImage {
   uint8_t *secondary_{nullptr};
   size_t secondary_length_{0};
   std::atomic<SecondaryState> secondary_state_{SecondaryState::NONE};
+  uint32_t gain_{0};
+  uint32_t exposure_{0};
   uint16_t width_;
   uint16_t height_;
   timeval timestamp_;

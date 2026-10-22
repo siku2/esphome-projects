@@ -30,6 +30,8 @@ static constexpr uint32_t BURST_BASE_TIMEOUT_MS = 5000;
 static constexpr uint32_t BURST_FRAME_TIMEOUT_MS = 500;
 // Room for a q80 VGA grayscale frame with noise. Output that does not fit counts as a failed encode.
 static constexpr size_t JPEG_SCRATCH_SIZE = 256 * 1024;
+static constexpr uint16_t OV7670_PID = 0x76;
+static constexpr uint16_t GC032A_PID = 0x232A;
 static constexpr int64_t SPACING_TOLERANCE_US = 5000;
 static constexpr uint8_t IDLE_MASK = 1U << camera::IDLE;
 
@@ -50,6 +52,7 @@ static size_t write_jpeg_chunk(void *arg, size_t index, const void *data, size_t
 }
 
 BurstCamera::BurstCamera() {
+  this->sccb_mutex_ = xSemaphoreCreateRecursiveMutex();
   this->config_.pin_pwdn = -1;
   this->config_.pin_reset = -1;
   this->config_.pin_xclk = -1;
@@ -130,18 +133,56 @@ void BurstCamera::setup() {
   }
 }
 
+SensorKind BurstCamera::sensor_kind() const {
+  const uint16_t pid = this->sensor_pid_;
+  if (pid == OV7670_PID || (pid >> 8) == OV7670_PID)
+    return SensorKind::OV7670;
+  if (pid == GC032A_PID)
+    return SensorKind::GC032A;
+  return SensorKind::UNKNOWN;
+}
+
 bool BurstCamera::write_sensor_reg(uint8_t reg, uint8_t value) {
   if (!this->sensor_ready_)
     return false;
+  SensorLock lock(*this);
   return SCCB_Write(this->sensor_address_, reg, value) == 0;
 }
 
 bool BurstCamera::read_sensor_reg(uint8_t reg, uint8_t &value) {
   if (!this->sensor_ready_)
     return false;
+  SensorLock lock(*this);
   value = SCCB_Read(this->sensor_address_, reg);
   return true;
 }
+
+BurstCamera::FrameMeta BurstCamera::read_frame_meta_() {
+  FrameMeta meta;
+  const SensorKind kind = this->sensor_kind();
+  if (!this->sensor_ready_ || kind == SensorKind::UNKNOWN)
+    return meta;
+  const uint8_t address = this->sensor_address_;
+  SensorLock lock(*this);
+  if (kind == SensorKind::OV7670) {
+    const uint8_t gain = SCCB_Read(address, 0x00);
+    const uint8_t vref = SCCB_Read(address, 0x03);
+    const uint8_t com1 = SCCB_Read(address, 0x04);
+    const uint8_t aech = SCCB_Read(address, 0x07);
+    const uint8_t aec = SCCB_Read(address, 0x10);
+    const uint16_t raw_gain = ((vref & 0xC0) << 2) | gain;
+    meta.gain = ((raw_gain & 0xF) + 16) << __builtin_popcount(raw_gain & 0x3F0);
+    meta.exposure = ((aech & 0x3F) << 10) | (aec << 2) | (com1 & 0x03);
+  } else {
+    SCCB_Write(address, 0xFE, 0x00);
+    const bool auto_exposure = (SCCB_Read(address, 0x4F) & 0x01) != 0;
+    meta.gain = SCCB_Read(address, auto_exposure ? 0x71 : 0x70);
+    meta.exposure = ((SCCB_Read(address, 0x03) & 0x0F) << 8) | SCCB_Read(address, 0x04);
+  }
+  return meta;
+}
+
+void BurstCamera::note_frame_(camera_fb_t *fb) { this->frame_meta_[fb] = this->read_frame_meta_(); }
 
 void BurstCamera::add_on_sensor_ready(std::function<void()> callback) {
   if (this->sensor_ready_)
@@ -368,7 +409,7 @@ void BurstCamera::process_frame_(camera_fb_t *fb) {
     requesters = single | this->stream_requesters_;
   }
 
-  auto image = this->encode_(fb, requesters);
+  auto image = this->encode_(fb, requesters, burst ? this->read_frame_meta_() : FrameMeta{});
   esp_camera_fb_return(fb);
   this->last_encode_us_ = esp_timer_get_time();
   if (!image) {
@@ -402,13 +443,15 @@ uint8_t *BurstCamera::encode_jpeg_(camera_fb_t *fb, uint8_t quality, size_t &len
   return jpeg;
 }
 
-std::shared_ptr<BurstCameraImage> BurstCamera::encode_(camera_fb_t *fb, uint8_t requesters) {
+std::shared_ptr<BurstCameraImage> BurstCamera::encode_(camera_fb_t *fb, uint8_t requesters, const FrameMeta &meta) {
   size_t length = 0;
   uint8_t *jpeg = this->encode_jpeg_(fb, this->jpeg_quality_, length);
   if (jpeg == nullptr)
     return nullptr;
-  return std::make_shared<BurstCameraImage>(jpeg, length, fb->width, fb->height, fb->timestamp, requesters,
-                                            this->tracker_);
+  auto image = std::make_shared<BurstCameraImage>(jpeg, length, fb->width, fb->height, fb->timestamp, requesters,
+                                                  this->tracker_);
+  image->set_sensor_meta(meta.gain, meta.exposure);
+  return image;
 }
 
 void BurstCamera::push_image_(std::shared_ptr<BurstCameraImage> image, ImageKind kind, uint32_t generation) {
@@ -480,6 +523,7 @@ void BurstCamera::release_held_() {
     esp_camera_fb_return(fb);
   this->held_.clear();
   this->post_.clear();
+  this->frame_meta_.clear();
 }
 
 void BurstCamera::hold_frame_(camera_fb_t *fb, size_t keep) {
@@ -559,7 +603,8 @@ void BurstCamera::finish_capture_(uint32_t generation) {
   }
   std::vector<std::weak_ptr<BurstCameraImage>> images(frame_count);
   for (size_t i = 0; i < frame_count; i++) {
-    auto image = this->encode_(frames[i], 0);
+    const auto meta = this->frame_meta_.find(frames[i]);
+    auto image = this->encode_(frames[i], 0, meta != this->frame_meta_.end() ? meta->second : FrameMeta{});
     if (!image)
       continue;
     if (secondary_quality != 0)
@@ -589,6 +634,7 @@ void BurstCamera::finish_capture_(uint32_t generation) {
   }
   for (auto *fb : frames)
     esp_camera_fb_return(fb);
+  this->frame_meta_.clear();
 }
 
 void BurstCamera::event_step_() {
@@ -618,6 +664,7 @@ void BurstCamera::event_step_() {
       esp_camera_fb_return(old);
     this->post_.clear();
     this->note_kept_(time);
+    this->note_frame_(fb);
     this->hold_frame_(fb, this->event_hold_frames_);
     return;
   }
@@ -635,9 +682,11 @@ void BurstCamera::event_step_() {
     esp_camera_fb_return(fb);
   } else if (time >= this->event_t0_us_) {
     this->note_kept_(time);
+    this->note_frame_(fb);
     this->post_.push_back(fb);
   } else {
     this->note_kept_(time);
+    this->note_frame_(fb);
     this->hold_frame_(fb, this->keep_);
   }
   if (this->held_.size() + this->post_.size() >= this->event_total_)
