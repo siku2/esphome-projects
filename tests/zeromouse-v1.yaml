@@ -19,6 +19,8 @@ packages:
         -----END RSA PRIVATE KEY-----
       zeromouse_owner_id: "test-owner"
       zeromouse_identity_id: "test-identity"
+      nextcloud_username: "test-user"
+      nextcloud_password: "test-password"
 
       components_source:
         type: "local"

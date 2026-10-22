@@ -1,0 +1,31 @@
+external_components:
+- source: "${components_source}"
+  components: ["webdav", "zeromouse_recorder"]
+
+webdav:
+  id: "zm_webdav"
+  url: "${nextcloud_url}"
+  username: "${nextcloud_username}"
+  password: "${nextcloud_password}"
+
+zeromouse_recorder:
+  webdav_id: "zm_webdav"
+  controller_id: "zm_controller"
+  camera_id: "zm_camera"
+  enabled: "zm_record_events"
+  board: "${board}"
+  on_recorded:
+  - homeassistant.event:
+      event: "esphome.zeromouse_event"
+      data:
+        path: !lambda "return path;"
+        event_id: !lambda "return to_string(event_id);"
+        class_name: !lambda "return class_name;"
+
+switch:
+- id: "zm_record_events"
+  name: "${i18n.zeromouse[language].record_events}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_mode: "RESTORE_DEFAULT_ON"
