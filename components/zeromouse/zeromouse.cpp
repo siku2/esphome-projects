@@ -262,7 +262,8 @@ bool ZeroMouse::try_start_event_() {
   if (this->block_enabled_value_()) {
     this->set_blocker_(true);
   }
-  if (!this->camera_->arm_event(static_cast<uint8_t>(std::clamp<int32_t>(this->scan_params_.shots_before_t0, 0, 8)))) {
+  if (!this->camera_->arm_event(static_cast<uint8_t>(std::clamp<int32_t>(this->scan_params_.shots_before_t0, 0, 8)),
+                                 this->event_frame_spacing_us_)) {
     ESP_LOGW(TAG, "Arming the camera failed");
   }
   ESP_LOGD(TAG, "Event started");

@@ -63,6 +63,7 @@ class ZeroMouse : public Component {
   void set_presence_sampler(zeromouse_air::PresenceSampler *sampler) { this->presence_sampler_ = sampler; }
   void set_time(time::RealTimeClock *time) { this->time_ = time; }
   void set_startup_delay(uint32_t delay_ms) { this->startup_delay_ms_ = delay_ms; }
+  void set_event_frame_spacing(uint32_t spacing_us) { this->event_frame_spacing_us_ = spacing_us; }
   void set_ir_slope_thresh_value(number::Number *number) { this->ir_slope_thresh_value_ = number; }
   void set_ir_median_count(number::Number *number) { this->ir_median_count_ = number; }
   void set_ir_range_ignore_event(number::Number *number) { this->ir_range_ignore_event_ = number; }
@@ -268,6 +269,7 @@ class ZeroMouse : public Component {
   CalibrationData calibration_{50, 50};
   uint32_t ir_sensor_status_{0};
   uint32_t startup_delay_ms_{13000};
+  uint32_t event_frame_spacing_us_{80000};
   int64_t pir_us_{0};
   int64_t time_zero_us_{0};
   State state_{State::IDLE};

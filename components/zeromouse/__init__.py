@@ -27,6 +27,7 @@ CONF_AIR_SENSOR = "air_sensor"
 CONF_PRESENCE = "presence"
 CONF_PRESENCE_SAMPLER = "presence_sampler"
 CONF_STARTUP_DELAY = "startup_delay"
+CONF_EVENT_FRAME_SPACING = "event_frame_spacing"
 CONF_SETTINGS = "settings"
 CONF_IR_FREE_VALUE = "ir_free_value"
 CONF_IR_FREE_VALUE_RAW = "ir_free_value_raw"
@@ -91,6 +92,9 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(
             CONF_STARTUP_DELAY, default="13s"
         ): cv.positive_time_period_milliseconds,
+        cv.Optional(
+            CONF_EVENT_FRAME_SPACING, default="80ms"
+        ): cv.positive_time_period_microseconds,
         cv.Optional(CONF_SETTINGS): cv.Schema(
             {cv.Optional(key): cv.use_id(kind) for key, kind in SETTINGS.items()}
         ),
@@ -119,6 +123,7 @@ async def to_code(config: ConfigType) -> None:
         cg.add(var.set_presence_sampler(await cg.get_variable(sampler)))
     cg.add(var.set_time(await cg.get_variable(config[CONF_TIME_ID])))
     cg.add(var.set_startup_delay(config[CONF_STARTUP_DELAY]))
+    cg.add(var.set_event_frame_spacing(config[CONF_EVENT_FRAME_SPACING]))
     cg.add(var.set_camera(await cg.get_variable(config[CONF_CAMERA])))
     if blocker := config.get(CONF_BLOCKER):
         cg.add(var.set_blocker(await cg.get_variable(blocker)))
