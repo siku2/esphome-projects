@@ -59,6 +59,30 @@ number:
   step: 1
   mode: "box"
 
+- id: "zm_auto_exp_level"
+  name: "${i18n.zeromouse[language].auto_exp_level}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 64
+  min_value: 0
+  max_value: 255
+  step: 1
+  mode: "box"
+
+- id: "zm_gain_ceiling"
+  name: "${i18n.zeromouse[language].gain_ceiling}"
+  platform: "template"
+  entity_category: "CONFIG"
+  optimistic: true
+  restore_value: true
+  initial_value: 3
+  min_value: 0
+  max_value: 255
+  step: 1
+  mode: "box"
+
 - id: "zm_cam_shots_before_t0"
   name: "${i18n.zeromouse[language].cam_shots_before_t0}"
   platform: "template"
@@ -136,6 +160,13 @@ zeromouse:
   air_sensor: "zm_air"
   presence: "zm_pir"
   settings:
+    brightness: "zm_brightness"
+    auto_exp_level: "zm_auto_exp_level"
+    auto_gain_ctrl_min: "zm_auto_gain_ctrl_min"
+    auto_gain_ctrl_max: "zm_auto_gain_ctrl_max"
+    auto_gain_stbl_min: "zm_auto_gain_stbl_min"
+    auto_gain_stbl_max: "zm_auto_gain_stbl_max"
+    gain_ceiling: "zm_gain_ceiling"
     ir_slope_thresh_value: "zm_ir_slope_thresh_value"
     ir_median_count: "zm_ir_median_count"
     ir_range_ignore_event: "zm_ir_range_ignore_event"

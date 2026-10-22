@@ -37,30 +37,6 @@ number:
   mode: "box"
   unit_of_measurement: "s"
 
-- id: "zm_auto_exp_level"
-  name: "${i18n.zeromouse[language].auto_exp_level}"
-  platform: "template"
-  entity_category: "CONFIG"
-  optimistic: true
-  restore_value: true
-  initial_value: 64
-  min_value: 0
-  max_value: 255
-  step: 1
-  mode: "box"
-
-- id: "zm_gain_ceiling"
-  name: "${i18n.zeromouse[language].gain_ceiling}"
-  platform: "template"
-  entity_category: "CONFIG"
-  optimistic: true
-  restore_value: true
-  initial_value: 3
-  min_value: 0
-  max_value: 255
-  step: 1
-  mode: "box"
-
 - id: "zm_response_timeout"
   name: "${i18n.zeromouse[language].response_timeout}"
   platform: "template"
