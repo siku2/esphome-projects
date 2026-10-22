@@ -1,14 +1,25 @@
 substitutions:
   api_encryption_key: "" # REQUIRED!
+  aws_thing_name: "" # REQUIRED!
+  aws_certificate: "" # REQUIRED!
+  aws_private_key: "" # REQUIRED!
+  zeromouse_owner_id: "" # REQUIRED!
+  zeromouse_identity_id: "" # REQUIRED!
+  zeromouse_event_count: 0
 
   name: "zeromouse"
   friendly_name: "ZeroMOUSE"
   language: "en"
   board: "v1"
+  i18n:
+    zeromouse:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
 
 packages:
   base: !include ../../packages/base/device.yaml
   board: !include ../../packages/zeromouse/${board}.yaml
+  cloud: !include cloud.yaml
 
 esphome:
   name: "${name}"

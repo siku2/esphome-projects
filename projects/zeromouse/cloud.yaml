@@ -1,0 +1,67 @@
+external_components:
+- source: "${components_source}"
+  components: ["aws_iot", "zeromouse_cloud"]
+
+time:
+- id: "zm_sntp"
+  platform: "sntp"
+
+aws_iot:
+  id: "zm_aws_iot"
+  endpoint: "a1lrk6d93bvma9-ats.iot.eu-central-1.amazonaws.com"
+  client_id: "${aws_thing_name}"
+  certificate: "${aws_certificate}"
+  private_key: "${aws_private_key}"
+  username: "?SDK=FreeRTOS&Version=V10.5.1&Platform=ESP32-S3&MQTTLib=core-mqtt@v2.3.1"
+  time_id: "zm_sntp"
+  on_connect:
+  - binary_sensor.template.publish:
+      id: "zm_cloud_connected"
+      state: true
+  on_disconnect:
+  - binary_sensor.template.publish:
+      id: "zm_cloud_connected"
+      state: false
+
+zeromouse_cloud:
+  id: "zm_cloud"
+  aws_iot_id: "zm_aws_iot"
+  thing_name: "${aws_thing_name}"
+  owner_id: "${zeromouse_owner_id}"
+  identity_id: "${zeromouse_identity_id}"
+  event_count: "${zeromouse_event_count}"
+  time_id: "zm_sntp"
+  on_classification:
+  - text_sensor.template.publish:
+      id: "zm_last_classification"
+      state: !lambda |-
+        return class_name;
+  - binary_sensor.template.publish:
+      id: "zm_block"
+      state: !lambda |-
+        return block;
+
+button:
+- id: "zm_send_test_event"
+  platform: "template"
+  name: "${i18n.zeromouse[language].send_test_event}"
+  on_press:
+  - zeromouse_cloud.publish_test_event:
+      id: "zm_cloud"
+      camera_id: "zm_camera"
+
+text_sensor:
+- id: "zm_last_classification"
+  platform: "template"
+  name: "${i18n.zeromouse[language].last_classification}"
+
+binary_sensor:
+- id: "zm_block"
+  platform: "template"
+  name: "${i18n.zeromouse[language].block}"
+
+- id: "zm_cloud_connected"
+  platform: "template"
+  name: "${i18n.zeromouse[language].cloud_connected}"
+  device_class: "connectivity"
+  entity_category: "DIAGNOSTIC"

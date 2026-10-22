@@ -8,6 +8,17 @@ packages:
       board: "v1"
 
       api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
+      aws_thing_name: "MBR-PTF-H1-test"
+      aws_certificate: |
+        -----BEGIN CERTIFICATE-----
+        ZmFrZS10ZXN0LWNlcnRpZmljYXRl
+        -----END CERTIFICATE-----
+      aws_private_key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        ZmFrZS10ZXN0LXByaXZhdGUta2V5
+        -----END RSA PRIVATE KEY-----
+      zeromouse_owner_id: "test-owner"
+      zeromouse_identity_id: "test-identity"
 
       components_source:
         type: "local"
