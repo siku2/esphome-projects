@@ -16,6 +16,9 @@ namespace esphome::zeromouse_cloud {
 static const char *const TAG = "zeromouse_cloud";
 static const char *const DEVICE_PREFIX = "MBR-PTF-H1-";
 static const uint32_t REPORT_DEBOUNCE_MS = 1000;
+static constexpr uint32_t WORKER_STACK_SIZE = 8192;
+static constexpr UBaseType_t WORKER_PRIORITY = 1;
+static constexpr BaseType_t WORKER_CORE = 0;
 
 namespace {
 
@@ -121,6 +124,17 @@ void ZeroMouseCloud::setup() {
     this->boot_count_ = stored;
   this->boot_count_++;
   this->boot_count_pref_.save(&this->boot_count_);
+
+  this->job_queue_ = xQueueCreate(1, sizeof(Job *));
+  this->result_queue_ = xQueueCreate(1, sizeof(bool));
+  if (this->job_queue_ == nullptr || this->result_queue_ == nullptr ||
+      xTaskCreatePinnedToCore(&ZeroMouseCloud::worker_task_, "zm_event", WORKER_STACK_SIZE, this, WORKER_PRIORITY,
+                              &this->worker_, WORKER_CORE) != pdPASS) {
+    ESP_LOGE(TAG, "Failed to start the event worker");
+    this->mark_failed();
+    return;
+  }
+  this->disable_loop();
 
   this->aws_iot_->subscribe(this->device_topic_("command"),
                             [this](const std::string &, const std::string &payload) { this->on_command_(payload); });
@@ -307,21 +321,33 @@ void ZeroMouseCloud::on_command_(const std::string &payload) {
   }
   const int index = class_index(class_name);
   ESP_LOGI(TAG, "Classification: class=%s index=%d block=%d", class_name.c_str(), index, block);
+  for (const auto &callback : this->classification_callbacks_)
+    callback(class_name, index, block);
   this->classification_trigger_.trigger(class_name, index, block);
 }
 
-bool ZeroMouseCloud::publish_event(const std::vector<std::shared_ptr<burst_camera::BurstCameraImage>> &frames) {
+void ZeroMouseCloud::fail_async_(PublishCallback callback) {
+  this->defer([callback = std::move(callback)]() {
+    if (callback)
+      callback(false, 0);
+  });
+}
+
+void ZeroMouseCloud::publish_event_async(EventData data, PublishCallback callback) {
+  if (this->is_failed() || this->building_) {
+    ESP_LOGW(TAG, "Event worker is not available, dropping event");
+    this->fail_async_(std::move(callback));
+    return;
+  }
   if (this->upload_events_ != nullptr && !this->upload_events_->state) {
     ESP_LOGI(TAG, "Event upload is off, not publishing");
-    return false;
+    this->fail_async_(std::move(callback));
+    return;
   }
   if (!this->aws_iot_->is_connected()) {
     ESP_LOGW(TAG, "Not connected, dropping event");
-    return false;
-  }
-  if (frames.empty()) {
-    ESP_LOGW(TAG, "No frames, dropping event");
-    return false;
+    this->fail_async_(std::move(callback));
+    return;
   }
 
   this->event_count_++;
@@ -329,47 +355,99 @@ bool ZeroMouseCloud::publish_event(const std::vector<std::shared_ptr<burst_camer
 
   const time_t now = this->time_->timestamp_now();
   const CameraShadow &camera = this->shadow_.camera;
-  EventInfo info{this->device_id_,
-                 this->shadow_.system.owner_id,
-                 this->shadow_.system.identity_id,
-                 this->sw_version_,
-                 this->event_count_,
-                 now,
-                 0,
-                 camera.brightness,
-                 camera.exposure_ctrl,
-                 this->has_previous_event_,
-                 this->previous_event_id_,
-                 this->previous_event_time_};
+  auto *job = new Job{std::move(data),
+                      {this->device_id_,
+                       this->shadow_.system.owner_id,
+                       this->shadow_.system.identity_id,
+                       this->sw_version_,
+                       this->event_count_,
+                       now,
+                       0,
+                       camera.brightness,
+                       camera.exposure_ctrl,
+                       this->has_previous_event_,
+                       this->previous_event_id_,
+                       this->previous_event_time_,
+                       {}},
+                      this->device_topic_("events_full_dev")};
+  job->info.pir_time_to_time0_ms = job->data.pir_to_t0_ms;
+  job->info.air = job->data.air;
 
+  this->pending_event_id_ = this->event_count_;
+  this->pending_event_time_ = now;
+  this->pending_callback_ = std::move(callback);
+  this->building_ = true;
+  if (xQueueSend(this->job_queue_, &job, 0) != pdTRUE) {
+    delete job;
+    this->building_ = false;
+    this->fail_async_(std::move(this->pending_callback_));
+  }
+}
+
+void ZeroMouseCloud::worker_task_(void *arg) {
+  auto *that = static_cast<ZeroMouseCloud *>(arg);
+  while (true) {
+    Job *job;
+    xQueueReceive(that->job_queue_, &job, portMAX_DELAY);
+    std::unique_ptr<Job> owner(job);
+    bool ok = false;
+    that->build_and_publish_(*owner, ok);
+    owner.reset();
+    xQueueSend(that->result_queue_, &ok, portMAX_DELAY);
+    that->enable_loop_soon_any_context();
+    App.wake_loop_threadsafe();
+  }
+}
+
+void ZeroMouseCloud::build_and_publish_(Job &job, bool &ok) {
   std::vector<EventImage> images;
-  const timeval first = frames.front()->get_timestamp();
-  for (const auto &frame : frames) {
+  images.reserve(job.data.frames.size());
+  for (const auto &frame : job.data.frames) {
     const timeval time = frame->get_timestamp();
-    const int64_t ms =
-        (static_cast<int64_t>(time.tv_sec) - first.tv_sec) * 1000 + (time.tv_usec - first.tv_usec) / 1000;
-    images.push_back({frame->get_data_buffer(), frame->get_data_length(), static_cast<uint32_t>(ms < 0 ? 0 : ms)});
+    const int64_t us = static_cast<int64_t>(time.tv_sec) * 1000000 + time.tv_usec - job.data.time_zero_us;
+    images.push_back({frame->get_data_buffer(), frame->get_data_length(), static_cast<int32_t>(us / 1000)});
   }
 
   EventPayload payload;
-  if (!payload.build(info, images))
-    return false;
-  ESP_LOGI(TAG, "Event %u: %u bytes, %u of %u images", static_cast<unsigned>(this->event_count_),
+  if (!payload.build(job.info, images))
+    return;
+  ESP_LOGI(TAG, "Event %u: %u bytes, %u of %u images", static_cast<unsigned>(job.info.event_id),
            static_cast<unsigned>(payload.size()), static_cast<unsigned>(payload.image_count()),
            static_cast<unsigned>(images.size()));
+  ok = this->aws_iot_->publish(job.topic, payload.data(), payload.size());
+}
 
-  if (!this->aws_iot_->publish(this->device_topic_("events_full_dev"), payload.data(), payload.size()))
-    return false;
-  this->has_previous_event_ = true;
-  this->previous_event_id_ = this->event_count_;
-  this->previous_event_time_ = now;
-  return true;
+void ZeroMouseCloud::loop() {
+  bool ok;
+  while (xQueueReceive(this->result_queue_, &ok, 0) == pdTRUE) {
+    this->building_ = false;
+    if (ok) {
+      this->has_previous_event_ = true;
+      this->previous_event_id_ = this->pending_event_id_;
+      this->previous_event_time_ = this->pending_event_time_;
+    }
+    auto callback = std::move(this->pending_callback_);
+    this->pending_callback_ = nullptr;
+    if (callback)
+      callback(ok, this->pending_event_id_);
+  }
+  this->disable_loop();
 }
 
 void ZeroMouseCloud::publish_test_event(burst_camera::BurstCamera *camera) {
   const bool started = camera->capture_burst(
-      TEST_EVENT_FRAMES,
-      [this](std::vector<std::shared_ptr<burst_camera::BurstCameraImage>> frames) { this->publish_event(frames); });
+      TEST_EVENT_FRAMES, [this](std::vector<std::shared_ptr<burst_camera::BurstCameraImage>> frames) {
+        if (frames.empty()) {
+          ESP_LOGW(TAG, "No frames, dropping test event");
+          return;
+        }
+        const timeval first = frames.front()->get_timestamp();
+        const int64_t time_zero_us = static_cast<int64_t>(first.tv_sec) * 1000000 + first.tv_usec;
+        this->publish_event_async({std::move(frames), time_zero_us, 0, {}}, [](bool published, uint32_t) {
+          if (!published)
+            ESP_LOGW(TAG, "Test event was not published");
+        });
+      });
   if (!started)
     ESP_LOGW(TAG, "Camera is busy or failed, no test event");
 }

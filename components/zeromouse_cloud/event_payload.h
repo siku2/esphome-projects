@@ -10,6 +10,18 @@
 
 namespace esphome::zeromouse_cloud {
 
+/// A sample of the IR scan.
+struct AirPoint {
+  /// Mean of the sample window.
+  int32_t v;
+  /// Milliseconds relative to time zero.
+  int32_t t;
+  /// Slope of the mean.
+  int32_t s;
+  /// Environment value.
+  int32_t e;
+};
+
 struct EventInfo {
   std::string device_id;
   std::string owner_id;
@@ -17,20 +29,21 @@ struct EventInfo {
   std::string sw_version;
   uint32_t event_id;
   time_t event_time;
-  uint32_t pir_time_to_time0_ms;
+  int32_t pir_time_to_time0_ms;
   int32_t sensor_ref_brightness;
   int32_t sensor_ref_exposure_ctrl;
   /// The previous event is only reported if there was one.
   bool has_previous;
   uint32_t previous_event_id;
   time_t previous_event_time;
+  std::vector<AirPoint> air;
 };
 
 struct EventImage {
   const uint8_t *jpeg;
   size_t length;
-  /// Time of the frame relative to the first frame.
-  uint32_t milliseconds;
+  /// Time of the frame relative to time zero. Negative for frames before time zero.
+  int32_t milliseconds;
 };
 
 /// The JSON message of an event, with the JPEG images as base64. Lives in PSRAM.

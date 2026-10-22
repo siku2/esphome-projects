@@ -2,9 +2,14 @@
 
 #ifdef USE_ESP32
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/task.h>
 
 #include "esphome/components/aws_iot/aws_iot.h"
 #include "esphome/components/burst_camera/burst_camera.h"
@@ -17,6 +22,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/preferences.h"
 
+#include "event_payload.h"
 #include "settings.h"
 #include "shadow_state.h"
 
@@ -43,6 +49,7 @@ class ZeroMouseCloud : public Component {
   void set_sw_version(uint8_t major, uint8_t minor, uint8_t revision);
 
   void setup() override;
+  void loop() override;
   void dump_config() override;
 
   void set_accept_settings(switch_::Switch *accept_settings) { this->accept_settings_ = accept_settings; }
@@ -56,11 +63,26 @@ class ZeroMouseCloud : public Component {
   /// The state that is reported to the cloud.
   ShadowState &shadow_state() { return this->shadow_; }
 
-  /// Publishes an event with the given frames. Returns false if not connected or on failure.
-  bool publish_event(const std::vector<std::shared_ptr<burst_camera::BurstCameraImage>> &frames);
+  struct EventData {
+    /// May be empty for an event without images.
+    std::vector<std::shared_ptr<burst_camera::BurstCameraImage>> frames;
+    int64_t time_zero_us;
+    int32_t pir_to_t0_ms;
+    std::vector<AirPoint> air;
+  };
+  using PublishCallback = std::function<void(bool published, uint32_t event_id)>;
+  using ClassificationCallback = std::function<void(const std::string &class_name, int class_index, bool block)>;
+
+  /// Builds the payload in a worker task and enqueues it on the AWS IoT client. The callback runs in the main loop.
+  /// If upload is off or not connected, the callback runs on the next loop iteration with published=false and the
+  /// event count is not incremented.
+  void publish_event_async(EventData data, PublishCallback callback);
   /// Captures a burst and publishes it as an event.
   void publish_test_event(burst_camera::BurstCamera *camera);
 
+  void add_on_classification_callback(ClassificationCallback callback) {
+    this->classification_callbacks_.push_back(std::move(callback));
+  }
   Trigger<std::string, int, bool> *get_classification_trigger() { return &this->classification_trigger_; }
   /// Arguments are the key as "section.jsonKey", the previous value, the requested value and whether it was applied.
   Trigger<std::string, std::string, std::string, bool> *get_setting_change_trigger() {
@@ -68,6 +90,15 @@ class ZeroMouseCloud : public Component {
   }
 
  protected:
+  struct Job {
+    EventData data;
+    EventInfo info;
+    std::string topic;
+  };
+
+  static void worker_task_(void *arg);
+  void build_and_publish_(Job &job, bool &ok);
+  void fail_async_(PublishCallback callback);
   void on_connect_();
   void on_shadow_(const std::string &payload);
   void on_delta_(const std::string &payload);
@@ -99,6 +130,15 @@ class ZeroMouseCloud : public Component {
   bool has_previous_event_{false};
   uint32_t previous_event_id_{0};
   time_t previous_event_time_{0};
+
+  QueueHandle_t job_queue_{nullptr};
+  QueueHandle_t result_queue_{nullptr};
+  TaskHandle_t worker_{nullptr};
+  bool building_{false};
+  uint32_t pending_event_id_{0};
+  time_t pending_event_time_{0};
+  PublishCallback pending_callback_;
+  std::vector<ClassificationCallback> classification_callbacks_;
 
   Trigger<std::string, int, bool> classification_trigger_;
   Trigger<std::string, std::string, std::string, bool> setting_change_trigger_;

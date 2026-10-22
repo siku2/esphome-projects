@@ -36,7 +36,15 @@ std::string build_head(const EventInfo &info) {
   out += ",\"updatedAt\":\"" + time + '"';
   out += ",\"pir_time_to_time0\":" + std::to_string(info.pir_time_to_time0_ms);
   out += ", \"swVersion\":\"" + info.sw_version + '"';
-  out += ",\"air\": []";
+  out += ",\"air\":[";
+  for (size_t i = 0; i < info.air.size(); i++) {
+    const AirPoint &point = info.air[i];
+    if (i != 0)
+      out += ',';
+    out += "{\"v\":" + std::to_string(point.v) + ",\"t\":" + std::to_string(point.t) +
+           ",\"s\":" + std::to_string(point.s) + ",\"e\":" + std::to_string(point.e) + '}';
+  }
+  out += ']';
   out += ",\"sensor_ref_brightness\":" + std::to_string(info.sensor_ref_brightness);
   out += ",\"sensor_ref_exposureCtrl\":" + std::to_string(info.sensor_ref_exposure_ctrl);
   if (info.has_previous) {
