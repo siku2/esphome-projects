@@ -8,6 +8,7 @@ namespace esphome::burst_camera {
 
 BurstCameraImage::~BurstCameraImage() {
   free(this->jpeg_);  // NOLINT(cppcoreguidelines-no-malloc)
+  this->tracker_.release();
 }
 
 void BurstCameraImageReader::set_image(std::shared_ptr<camera::CameraImage> image) {

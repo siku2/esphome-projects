@@ -9,13 +9,24 @@
 
 #include "esphome/components/camera/camera.h"
 
+#include "image_tracker.h"
+
 namespace esphome::burst_camera {
 
 /// A JPEG encoded frame. Owns its buffer, so the sensor frame buffer is free as soon as it is encoded.
 class BurstCameraImage : public camera::CameraImage {
  public:
-  BurstCameraImage(uint8_t *jpeg, size_t length, uint16_t width, uint16_t height, timeval timestamp, uint8_t requesters)
-      : jpeg_(jpeg), length_(length), width_(width), height_(height), timestamp_(timestamp), requesters_(requesters) {}
+  BurstCameraImage(uint8_t *jpeg, size_t length, uint16_t width, uint16_t height, timeval timestamp, uint8_t requesters,
+                   ImageTracker &tracker)
+      : jpeg_(jpeg),
+        length_(length),
+        width_(width),
+        height_(height),
+        timestamp_(timestamp),
+        requesters_(requesters),
+        tracker_(tracker) {
+    this->tracker_.acquire();
+  }
   ~BurstCameraImage() override;
 
   uint8_t *get_data_buffer() override { return this->jpeg_; }
@@ -36,6 +47,7 @@ class BurstCameraImage : public camera::CameraImage {
   uint16_t height_;
   timeval timestamp_;
   uint8_t requesters_;
+  ImageTracker &tracker_;
 };
 
 class BurstCameraImageReader : public camera::CameraImageReader {

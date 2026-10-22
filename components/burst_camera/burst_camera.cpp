@@ -13,7 +13,11 @@
 namespace esphome::burst_camera {
 
 static const char *const TAG = "burst_camera";
-static constexpr uint32_t FRAMEBUFFER_TASK_STACK_SIZE = 2048;
+static constexpr uint32_t FRAMEBUFFER_TASK_STACK_SIZE = 8192;
+static constexpr UBaseType_t IMAGE_QUEUE_LENGTH = 8;
+static constexpr uint32_t IMAGE_QUEUE_TIMEOUT_MS = 1000;
+static constexpr uint32_t BURST_BASE_TIMEOUT_MS = 5000;
+static constexpr uint32_t BURST_FRAME_TIMEOUT_MS = 500;
 static constexpr uint8_t IDLE_MASK = 1U << camera::IDLE;
 
 BurstCamera::BurstCamera() {
@@ -66,10 +70,10 @@ void BurstCamera::setup() {
     ESP_LOGW(TAG, "Failed to set the XCLK drive strength");
   }
 
-  this->framebuffer_get_queue_ = xQueueCreate(1, sizeof(camera_fb_t *));
-  this->framebuffer_return_queue_ = xQueueCreate(1, sizeof(camera_fb_t *));
-  xTaskCreatePinnedToCore(&BurstCamera::framebuffer_task, "burst_camera", FRAMEBUFFER_TASK_STACK_SIZE, this, 1, nullptr,
-                          1);
+  this->image_queue_ = xQueueCreate(IMAGE_QUEUE_LENGTH, sizeof(QueuedImage *));
+  xTaskCreatePinnedToCore(&BurstCamera::framebuffer_task, "burst_camera", FRAMEBUFFER_TASK_STACK_SIZE, this, 1,
+                          &this->task_, 1);
+  this->tracker_.set_task(this->task_);
 
   if (this->idle_update_interval_ != 0) {
     this->set_interval("idle", this->idle_update_interval_, [this]() { this->request_image(camera::IDLE); });
@@ -116,64 +120,123 @@ void BurstCamera::dump_config() {
 
 void BurstCamera::loop() {
   this->update_light_();
-  if (!this->has_requested_image_()) {
-    this->disable_loop();
-    return;
-  }
-
-  if (!this->last_image_.expired())
-    return;
-  const uint32_t now = App.get_loop_component_start_time();
-  if (now - this->last_update_ <= this->max_update_interval_)
-    return;
-
-  camera_fb_t *fb;
-  if (xQueueReceive(this->framebuffer_get_queue_, &fb, 0) != pdTRUE)
-    return;
-  if (fb == nullptr) {
-    ESP_LOGW(TAG, "Got invalid frame from camera");
-    xQueueSend(this->framebuffer_return_queue_, &fb, portMAX_DELAY);
-    return;
-  }
-
-  const int64_t frame_time_us = static_cast<int64_t>(fb->timestamp.tv_sec) * 1000000 + fb->timestamp.tv_usec;
-  if (frame_time_us < this->min_frame_time_us_) {
-    xQueueSend(this->framebuffer_return_queue_, &fb, portMAX_DELAY);
-    return;
-  }
-
-  const uint8_t single = this->single_requesters_.exchange(0);
-  auto image = this->encode_(fb, single | this->stream_requesters_);
-  if (!image) {
-    this->single_requesters_ |= single;
-    return;
-  }
-
-  this->last_image_ = image;
-  this->last_update_ = now;
-  for (auto *listener : this->listeners_) {
-    listener->on_camera_image(image);
+  QueuedImage *queued;
+  while (xQueueReceive(this->image_queue_, &queued, 0) == pdTRUE) {
+    std::unique_ptr<QueuedImage> owner(queued);
+    this->dispatch_(*owner);
   }
   this->update_light_();
+  if (!this->has_requested_image_() && !this->burst_active_ && uxQueueMessagesWaiting(this->image_queue_) == 0) {
+    this->disable_loop();
+  }
 }
 
-std::shared_ptr<BurstCameraImage> BurstCamera::encode_(camera_fb_t *fb, uint8_t requesters) {
+void BurstCamera::dispatch_(const QueuedImage &queued) {
+  if (!queued.burst) {
+    for (auto *listener : this->listeners_) {
+      listener->on_camera_image(queued.image);
+    }
+    return;
+  }
+  if (!this->burst_active_)
+    return;
+  this->burst_frames_.push_back(queued.image);
+  if (this->burst_frames_.size() >= this->burst_count_)
+    this->finish_burst_();
+}
+
+bool BurstCamera::capture_burst(uint8_t count, BurstCallback callback) {
+  if (this->is_failed() || this->task_ == nullptr || count == 0 || !callback || this->burst_active_)
+    return false;
+
+  this->burst_active_ = true;
+  this->burst_count_ = count;
+  this->burst_frames_.clear();
+  this->burst_frames_.reserve(count);
+  this->burst_callback_ = std::move(callback);
+
+  this->update_light_();
+  // The frame being exposed right now may predate the light.
+  this->min_frame_time_us_ = esp_timer_get_time();
+  this->burst_remaining_ = count;
+  this->set_timeout("burst", BURST_BASE_TIMEOUT_MS + count * BURST_FRAME_TIMEOUT_MS, [this]() {
+    ESP_LOGW(TAG, "Burst timed out with %u of %u frames", static_cast<unsigned>(this->burst_frames_.size()),
+             static_cast<unsigned>(this->burst_count_));
+    this->finish_burst_();
+  });
+  this->enable_loop_soon_any_context();
+  this->wake_task_();
+  return true;
+}
+
+void BurstCamera::finish_burst_() {
+  this->cancel_timeout("burst");
+  this->burst_remaining_ = 0;
+  this->burst_active_ = false;
+  auto frames = std::move(this->burst_frames_);
+  auto callback = std::move(this->burst_callback_);
+  this->burst_frames_.clear();
+  this->burst_callback_ = nullptr;
+  this->update_light_();
+  callback(std::move(frames));
+}
+
+bool BurstCamera::wants_frame_() const {
+  if (this->burst_remaining_ != 0)
+    return true;
+  // Hold back while a listener still uses the previous image.
+  return this->has_requested_image_() && this->tracker_.idle();
+}
+
+void BurstCamera::process_frame_(camera_fb_t *fb) {
+  const int64_t frame_time_us = static_cast<int64_t>(fb->timestamp.tv_sec) * 1000000 + fb->timestamp.tv_usec;
+  const bool burst = this->burst_remaining_ != 0;
+  if (frame_time_us < this->min_frame_time_us_ || !this->wants_frame_()) {
+    esp_camera_fb_return(fb);
+    return;
+  }
+
+  uint8_t single = 0;
+  uint8_t requesters = 0;
+  if (!burst) {
+    single = this->single_requesters_.exchange(0);
+    requesters = single | this->stream_requesters_;
+  }
+
   uint8_t *jpeg = nullptr;
   size_t length = 0;
   const bool ok = frame2jpg(fb, this->jpeg_quality_, &jpeg, &length);
   const uint16_t width = fb->width;
   const uint16_t height = fb->height;
   const timeval timestamp = fb->timestamp;
-  xQueueSend(this->framebuffer_return_queue_, &fb, portMAX_DELAY);
+  esp_camera_fb_return(fb);
+  this->last_encode_us_ = esp_timer_get_time();
   if (!ok) {
     ESP_LOGE(TAG, "Failed to convert frame to JPEG");
-    return nullptr;
+    this->single_requesters_ |= single;
+    return;
   }
-  return std::make_shared<BurstCameraImage>(jpeg, length, width, height, timestamp, requesters);
+  this->push_image_(
+      std::make_shared<BurstCameraImage>(jpeg, length, width, height, timestamp, requesters, this->tracker_), burst);
+}
+
+void BurstCamera::push_image_(std::shared_ptr<BurstCameraImage> image, bool burst) {
+  auto *queued = new QueuedImage{std::move(image), burst};
+  this->enable_loop_soon_any_context();
+  App.wake_loop_threadsafe();
+  if (xQueueSend(this->image_queue_, &queued, pdMS_TO_TICKS(IMAGE_QUEUE_TIMEOUT_MS)) != pdTRUE) {
+    ESP_LOGW(TAG, "Dropped a frame because the main loop is busy");
+    delete queued;
+    return;
+  }
+  if (burst)
+    this->burst_remaining_--;
+  this->enable_loop_soon_any_context();
+  App.wake_loop_threadsafe();
 }
 
 void BurstCamera::update_light_() {
-  const bool wanted = ((this->single_requesters_ | this->stream_requesters_) & ~IDLE_MASK) != 0;
+  const bool wanted = this->burst_active_ || ((this->single_requesters_ | this->stream_requesters_) & ~IDLE_MASK) != 0;
   if (this->power_.set_light_on(wanted) && wanted)
     this->min_frame_time_us_ = esp_timer_get_time();
 }
@@ -188,6 +251,7 @@ void BurstCamera::request_image(camera::CameraRequester requester) {
   this->note_request_();
   this->single_requesters_ |= (1U << requester);
   this->enable_loop_soon_any_context();
+  this->wake_task_();
 }
 
 void BurstCamera::start_stream(camera::CameraRequester requester) {
@@ -197,6 +261,7 @@ void BurstCamera::start_stream(camera::CameraRequester requester) {
   this->note_request_();
   this->stream_requesters_ |= (1U << requester);
   this->enable_loop_soon_any_context();
+  this->wake_task_();
 }
 
 void BurstCamera::stop_stream(camera::CameraRequester requester) {
@@ -207,16 +272,33 @@ void BurstCamera::stop_stream(camera::CameraRequester requester) {
   this->enable_loop_soon_any_context();
 }
 
+void BurstCamera::wake_task_() {
+  if (this->task_ != nullptr)
+    xTaskNotifyGive(this->task_);
+}
+
 void BurstCamera::framebuffer_task(void *pv) {
   auto *that = static_cast<BurstCamera *>(pv);
   while (true) {
-    camera_fb_t *framebuffer = esp_camera_fb_get();
-    xQueueSend(that->framebuffer_get_queue_, &framebuffer, portMAX_DELAY);
-    if (that->has_requested_image_()) {
-      App.wake_loop_threadsafe();
+    if (!that->wants_frame_()) {
+      ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+      continue;
     }
-    xQueueReceive(that->framebuffer_return_queue_, &framebuffer, portMAX_DELAY);
-    esp_camera_fb_return(framebuffer);
+    if (that->burst_remaining_ == 0) {
+      const int64_t wait_us =
+          that->last_encode_us_ + static_cast<int64_t>(that->max_update_interval_) * 1000 - esp_timer_get_time();
+      if (wait_us > 0) {
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_us / 1000) + 1);
+        continue;
+      }
+    }
+    camera_fb_t *fb = esp_camera_fb_get();
+    if (fb == nullptr) {
+      ESP_LOGW(TAG, "Got invalid frame from camera");
+      vTaskDelay(pdMS_TO_TICKS(100));
+      continue;
+    }
+    that->process_frame_(fb);
   }
 }
 

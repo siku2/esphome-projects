@@ -8,6 +8,7 @@
 
 #include <array>
 #include <atomic>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -16,8 +17,11 @@
 
 #include "camera_image.h"
 #include "camera_power.h"
+#include "image_tracker.h"
 
 namespace esphome::burst_camera {
+
+using BurstCallback = std::function<void(std::vector<std::shared_ptr<BurstCameraImage>> frames)>;
 
 class BurstCamera final : public camera::Camera {
  public:
@@ -49,13 +53,28 @@ class BurstCamera final : public camera::Camera {
   void start_stream(camera::CameraRequester requester) override;
   void stop_stream(camera::CameraRequester requester) override;
 
+  /// Captures `count` consecutive frames, JPEG encoded. Calls back in the main loop.
+  /// Returns false if busy or failed. Call from the main loop only.
+  bool capture_burst(uint8_t count, BurstCallback callback);
+
  protected:
+  /// An encoded frame on its way from the framebuffer task to the main loop.
+  struct QueuedImage {
+    std::shared_ptr<BurstCameraImage> image;
+    bool burst;
+  };
+
   static void framebuffer_task(void *pv);
 
   bool has_requested_image_() const { return this->single_requesters_ != 0 || this->stream_requesters_ != 0; }
+  bool wants_frame_() const;
+  void process_frame_(camera_fb_t *fb);
+  void push_image_(std::shared_ptr<BurstCameraImage> image, bool burst);
+  void dispatch_(const QueuedImage &queued);
+  void finish_burst_();
+  void wake_task_();
   void update_light_();
   void note_request_();
-  std::shared_ptr<BurstCameraImage> encode_(camera_fb_t *fb, uint8_t requesters);
 
   camera_config_t config_{};
   CameraPower power_;
@@ -64,14 +83,20 @@ class BurstCamera final : public camera::Camera {
   uint32_t idle_update_interval_{0};
   esp_err_t init_error_{ESP_OK};
 
-  QueueHandle_t framebuffer_get_queue_{nullptr};
-  QueueHandle_t framebuffer_return_queue_{nullptr};
+  TaskHandle_t task_{nullptr};
+  QueueHandle_t image_queue_{nullptr};
+  ImageTracker tracker_;
   std::vector<camera::CameraListener *> listeners_;
-  std::weak_ptr<BurstCameraImage> last_image_;
   std::atomic<uint8_t> single_requesters_{0};
   std::atomic<uint8_t> stream_requesters_{0};
   std::atomic<int64_t> min_frame_time_us_{0};
-  uint32_t last_update_{0};
+  int64_t last_encode_us_{0};
+
+  std::atomic<uint8_t> burst_remaining_{0};
+  bool burst_active_{false};
+  uint8_t burst_count_{0};
+  std::vector<std::shared_ptr<BurstCameraImage>> burst_frames_;
+  BurstCallback burst_callback_;
 };
 
 }  // namespace esphome::burst_camera
