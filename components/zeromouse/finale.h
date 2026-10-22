@@ -19,7 +19,8 @@ struct FinaleParams {
 
 enum class FinaleResult : uint8_t { STABLE, TIMEOUT };
 
-/// Samples the sensor until the flap area is free and quiet or the time is up. Blocks. Runs in the scan task.
-FinaleResult run_finale(zeromouse_air::AirSensor &air, const FinaleParams &params, const std::atomic<bool> &presence);
+/// Samples the sensor until the flap area is free and quiet or the time is up. Blocks. Runs in the scan task. Ends early with a timeout if aborted.
+FinaleResult run_finale(zeromouse_air::AirSensor &air, const FinaleParams &params, const std::atomic<bool> &presence,
+                        const std::atomic<bool> &abort);
 
 }  // namespace esphome::zeromouse

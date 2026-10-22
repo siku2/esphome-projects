@@ -15,7 +15,7 @@ static constexpr int MIN_ROUNDS = 5;
 static constexpr int MAX_ROUNDS = 50;
 static constexpr uint32_t ROUND_DELAY_MS = 200;
 
-CalibrationResult calibrate(zeromouse_air::AirSensor &air, int32_t ambient) {
+CalibrationResult calibrate(zeromouse_air::AirSensor &air, int32_t ambient, const std::atomic<bool> &abort) {
   std::array<AirSample, RING_SIZE> ring{};
   size_t index = 0;
   size_t filled = 0;
@@ -25,6 +25,12 @@ CalibrationResult calibrate(zeromouse_air::AirSensor &air, int32_t ambient) {
 
   air.power_on();
   for (;; rounds++) {
+    if (abort.load()) {
+      air.power_off();
+      CalibrationResult aborted;
+      aborted.aborted = true;
+      return aborted;
+    }
     AirSample &sample = ring[index];
     if (air.read(sample)) {
       last_environment = sample.environment;

@@ -24,6 +24,16 @@ static constexpr BaseType_t TASK_CORE = 1;
 static constexpr UBaseType_t TASK_PRIORITY_OFFSET = 2;
 static constexpr UBaseType_t QUEUE_LENGTH = 8;
 
+static constexpr int32_t MAX_PREY_LOCK_S = 300;
+static constexpr int32_t MAX_FINALE_S = 180;
+static constexpr int32_t MAX_REF_WINDOW_S = 3600;
+static constexpr int32_t MAX_CLASSIFICATION_WAIT_S = 60;
+static constexpr uint32_t HOLD_CAP_S = 1800;
+static constexpr uint32_t SCAN_BUDGET_S = 125;
+static constexpr uint32_t CAPTURE_BUDGET_S = 10;
+static constexpr uint32_t PUBLISH_BUDGET_S = 60;
+static constexpr uint32_t MARGIN_S = 10;
+
 const char *ZeroMouse::outcome_name_(Outcome outcome) {
   switch (outcome) {
     case Outcome::TIME_ZERO:
@@ -74,7 +84,6 @@ void ZeroMouse::setup() {
     this->calibration_ = {50, 50};
   }
 
-  this->load_ref_event_();
   this->camera_tuning_.setup(this->camera_);
   if (this->block_enabled_ != nullptr) {
     this->block_enabled_->add_on_state_callback([this](bool state) {
@@ -96,6 +105,9 @@ void ZeroMouse::setup() {
 
   if (this->presence_->has_state()) {
     this->presence_active_ = this->presence_->state;
+  }
+  if (this->presence_sampler_ != nullptr) {
+    this->motion_hook_ = this->presence_sampler_->add_on_motion_callback([this]() { this->on_motion_edge_(); });
   }
   this->presence_->add_on_state_callback([this](bool state) { this->on_presence_(state); });
   this->time_->add_on_time_sync_callback([this]() { this->on_time_synced_(); });
@@ -134,6 +146,7 @@ void ZeroMouse::task_entry_(void *arg) { static_cast<ZeroMouse *>(arg)->task_mai
 void ZeroMouse::task_main_() {
   for (;;) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    this->task_abort_ = false;
     switch (this->command_.exchange(Command::NONE)) {
       case Command::SCAN:
         this->run_scan_();
@@ -165,12 +178,13 @@ void ZeroMouse::run_scan_() {
 }
 
 void ZeroMouse::run_calibration_() {
-  const CalibrationResult result = calibrate(*this->air_, this->calibration_ambient_);
-  this->post_({MessageType::CALIBRATION_FINISHED, Outcome::DISCARDED, result.valid, result.value, 0});
+  const CalibrationResult result = calibrate(*this->air_, this->calibration_ambient_, this->task_abort_);
+  this->post_({result.aborted ? MessageType::CALIBRATION_ABORTED : MessageType::CALIBRATION_FINISHED, Outcome::DISCARDED,
+               result.valid, result.value, 0});
 }
 
 void ZeroMouse::run_finale_() {
-  const FinaleResult result = run_finale(*this->air_, this->finale_params_, this->presence_active_);
+  const FinaleResult result = run_finale(*this->air_, this->finale_params_, this->presence_active_, this->task_abort_);
   this->post_({MessageType::FINALE_FINISHED, Outcome::DISCARDED, true, static_cast<uint16_t>(result), 0});
 }
 
@@ -184,16 +198,24 @@ void ZeroMouse::post_(const Message &message) {
 void ZeroMouse::handle_(const Message &message) {
   switch (message.type) {
     case MessageType::TIME_ZERO:
+      if (this->state_ != State::SCANNING && this->state_ != State::CAPTURING) {
+        break;
+      }
       this->time_zero_us_ = message.time_zero_us;
       this->time_zero_fired_ = true;
       this->start_capture_(message.time_zero_us);
       this->time_zero_trigger_.trigger(static_cast<int>((this->pir_us_ - message.time_zero_us) / 1000));
       break;
     case MessageType::SCAN_FINISHED:
-      this->finish_scan_(message);
+      if (this->state_ == State::SCANNING || this->state_ == State::CAPTURING) {
+        this->finish_scan_(message);
+      }
       break;
     case MessageType::CALIBRATION_FINISHED:
-      this->finish_calibration_(message);
+    case MessageType::CALIBRATION_ABORTED:
+      if (this->state_ == State::CALIBRATING) {
+        this->finish_calibration_(message);
+      }
       break;
     case MessageType::FINALE_FINISHED:
       this->finish_finale_(message);
@@ -210,14 +232,59 @@ void ZeroMouse::on_time_synced_() {
     this->ready_ = true;
     ESP_LOGD(TAG, "Startup delay passed");
     this->ready_trigger_.trigger();
+    this->run_idle_work_();
   });
 }
 
 void ZeroMouse::on_presence_(bool state) {
   this->presence_active_ = state;
   if (state) {
-    this->try_start_event_();
+    if (!this->motion_hook_) {
+      this->on_motion_edge_();
+    }
+    return;
   }
+  this->pending_start_ = false;
+  this->blocker_latched_ = false;
+  this->run_idle_work_();
+}
+
+void ZeroMouse::on_motion_edge_() {
+  switch (this->state_) {
+    case State::IDLE:
+      if (!this->try_start_event_() && !this->ready_) {
+        this->pending_start_ = true;
+      }
+      break;
+    case State::CALIBRATING:
+      this->pending_start_ = true;
+      this->task_abort_ = this->ready_;
+      break;
+    default:
+      if (!this->edge_logged_) {
+        this->edge_logged_ = true;
+        ESP_LOGD(TAG, "Motion ignored because an event is running");
+      }
+      break;
+  }
+}
+
+void ZeroMouse::run_idle_work_() {
+  this->defer([this]() {
+    if (this->state_ != State::IDLE) {
+      return;
+    }
+    if (this->pending_start_) {
+      this->pending_start_ = false;
+      if (this->presence_active_) {
+        this->try_start_event_();
+        return;
+      }
+    }
+    if (this->calibration_pending_ && !this->presence_active_) {
+      this->request_calibration_();
+    }
+  });
 }
 
 const char *ZeroMouse::start_blocked_reason_() const {
@@ -227,6 +294,8 @@ const char *ZeroMouse::start_blocked_reason_() const {
     return "the time is not valid";
   } else if (!network::is_connected()) {
     return "the network is not connected";
+  } else if (this->suspended_) {
+    return "the controller is suspended";
   } else if (!this->ready_) {
     return "the startup delay is active";
   } else if (this->state_ != State::IDLE) {
@@ -251,6 +320,8 @@ bool ZeroMouse::try_start_event_() {
   this->upload_empty_value_ = this->upload_empty_ != nullptr && this->upload_empty_->state;
 
   this->pir_us_ = esp_timer_get_time();
+  this->pending_start_ = false;
+  this->edge_logged_ = false;
   this->time_zero_fired_ = false;
   this->scan_done_ = false;
   this->frames_done_ = false;
@@ -272,10 +343,15 @@ bool ZeroMouse::try_start_event_() {
 }
 
 void ZeroMouse::request_calibration_() {
-  if (this->is_failed() || this->state_ != State::IDLE) {
-    ESP_LOGD(TAG, "Calibration skipped because the controller is busy");
+  if (this->is_failed()) {
     return;
   }
+  if (this->state_ != State::IDLE || this->suspended_) {
+    ESP_LOGD(TAG, "Calibration postponed because the controller is busy");
+    this->calibration_pending_ = true;
+    return;
+  }
+  this->calibration_pending_ = false;
   this->calibration_ambient_ = this->read_number_(this->ir_ambient_, 1000);
   this->set_state_(State::CALIBRATING);
   this->command_ = Command::CALIBRATE;
@@ -307,6 +383,12 @@ void ZeroMouse::finish_scan_(const Message &message) {
 
 void ZeroMouse::finish_calibration_(const Message &message) {
   this->set_state_(State::IDLE);
+  if (message.type == MessageType::CALIBRATION_ABORTED) {
+    ESP_LOGD(TAG, "Calibration aborted");
+    this->calibration_pending_ = true;
+    this->run_idle_work_();
+    return;
+  }
   this->calibration_.raw_value = message.value;
   if (message.valid) {
     this->calibration_.free_value = message.value;
@@ -323,6 +405,75 @@ void ZeroMouse::finish_calibration_(const Message &message) {
   if (this->ir_free_value_raw_sensor_ != nullptr) {
     this->ir_free_value_raw_sensor_->publish_state(this->calibration_.raw_value);
   }
+  this->run_idle_work_();
+}
+
+void ZeroMouse::abort_event(const char *reason) {
+  ESP_LOGW(TAG, "Aborting the event: %s", reason);
+  this->suspended_ = true;
+  this->pending_start_ = false;
+  this->task_abort_ = true;
+  this->set_blocker_(false);
+  if (this->is_event_running()) {
+    this->end_event_(reason);
+  } else {
+    this->camera_->disarm_event();
+  }
+}
+
+void ZeroMouse::resume() {
+  this->suspended_ = false;
+  this->run_idle_work_();
+}
+
+void ZeroMouse::on_network_lost() {
+  if (!this->is_event_running()) {
+    return;
+  }
+  ESP_LOGW(TAG, "Network lost, ending the event");
+  this->pending_start_ = false;
+  this->task_abort_ = true;
+  this->set_blocker_(false);
+  this->end_event_("network");
+}
+
+void ZeroMouse::on_watchdog_release(bool event_stuck) {
+  if (this->presence_active_) {
+    this->blocker_latched_ = true;
+  }
+  if (event_stuck && this->is_event_running()) {
+    this->pending_start_ = false;
+    this->task_abort_ = true;
+    this->end_event_("watchdog");
+  }
+}
+
+uint32_t ZeroMouse::event_deadline_ms() const {
+  return (SCAN_BUDGET_S + CAPTURE_BUDGET_S + PUBLISH_BUDGET_S + this->classification_wait_s_() + this->prey_lock_s_() +
+          this->finale_total_s_() + MARGIN_S) *
+         1000;
+}
+
+bool ZeroMouse::prey_hold_allowed() const {
+  return this->ref_event_.cls == CLASS_PREY && this->ref_active_(std::min(this->ref_window_s_(), HOLD_CAP_S));
+}
+
+uint32_t ZeroMouse::ref_window_s_() const {
+  return std::clamp<int32_t>(this->read_number_(this->last_ref_event_max_time_sec_, 1800), 0, MAX_REF_WINDOW_S);
+}
+
+uint32_t ZeroMouse::classification_wait_s_() const {
+  return std::clamp<int32_t>(this->read_number_(this->finale_interval_delta_, 5), 1, MAX_CLASSIFICATION_WAIT_S);
+}
+
+uint32_t ZeroMouse::prey_lock_s_() const {
+  return std::clamp<int32_t>(this->read_number_(this->ir_prey_event_time_, 30), 1, MAX_PREY_LOCK_S);
+}
+
+uint32_t ZeroMouse::finale_total_s_() const {
+  const int64_t delta = std::max<int32_t>(1, this->read_number_(this->finale_interval_delta_, 5));
+  const int64_t count = std::max<int32_t>(1, this->read_number_(this->finale_interval_max_count_, 12));
+  return static_cast<uint32_t>(std::min<int64_t>(delta * count, MAX_FINALE_S));
 }
 
 int32_t ZeroMouse::read_number_(number::Number *number, int32_t fallback) const {

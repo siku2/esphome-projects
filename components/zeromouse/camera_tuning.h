@@ -19,6 +19,7 @@ class CameraTuning {
   number::Number *auto_gain_stbl_min{nullptr};
   number::Number *auto_gain_stbl_max{nullptr};
   number::Number *gain_ceiling{nullptr};
+  number::Number *cam_shots_before_t0{nullptr};
 
   /// Applies the settings once the sensor is ready and again on every change.
   void setup(burst_camera::BurstCamera *camera);

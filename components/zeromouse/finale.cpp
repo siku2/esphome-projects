@@ -19,7 +19,8 @@ static constexpr int32_t DRIFT_MIN_FREE_VALUE = 25;
 static constexpr int32_t DRIFT_PERCENT = 15;
 static constexpr int32_t INVALID_VALUE = 0xFFFF;
 
-FinaleResult run_finale(zeromouse_air::AirSensor &air, const FinaleParams &params, const std::atomic<bool> &presence) {
+FinaleResult run_finale(zeromouse_air::AirSensor &air, const FinaleParams &params, const std::atomic<bool> &presence,
+                        const std::atomic<bool> &abort) {
   std::array<AirSample, RING_SIZE> ring{};
   size_t index = 0;
   size_t filled = 0;
@@ -74,7 +75,7 @@ FinaleResult run_finale(zeromouse_air::AirSensor &air, const FinaleParams &param
       }
     }
 
-    if (elapsed_ms >= params.max_duration_ms) {
+    if (elapsed_ms >= params.max_duration_ms || abort.load()) {
       air.power_off();
       return FinaleResult::TIMEOUT;
     }

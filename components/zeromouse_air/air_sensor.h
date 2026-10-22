@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 
 #include "esphome/core/component.h"
 
@@ -22,6 +23,10 @@ class PresenceSampler {
  public:
   /// Called from a FreeRTOS task, not from the main loop. Returns false if there is no new sample.
   virtual bool read_sample(int16_t &motion, int16_t &presence) = 0;
+  /// Registers a callback for every motion edge. Returns false if the sampler has no such edge.
+  virtual bool add_on_motion_callback(std::function<void()>) { return false; }
+  /// Tells the sampler that an event is running. It should not touch the sensor configuration then.
+  virtual void set_busy(bool) {}
 };
 
 /// A proximity sensor that is sampled by a dedicated task.

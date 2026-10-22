@@ -15,6 +15,7 @@ static const char *const TAG = "zeromouse.camera";
 static constexpr uint16_t OV7670_PID = 0x76;
 static constexpr uint16_t GC032A_PID = 0x232A;
 static constexpr uint32_t GC032A_XCLK_HZ = 24000000;
+static constexpr int32_t GC032A_SHOTS_BEFORE_T0 = 2;
 static constexpr int32_t BRIGHTNESS_MIN = -3;
 static constexpr int32_t BRIGHTNESS_MAX = 3;
 
@@ -48,8 +49,12 @@ void CameraTuning::setup(burst_camera::BurstCamera *camera) {
       number->add_on_state_callback([this](float) { this->apply_(); });
   }
   this->camera_->add_on_sensor_ready([this]() {
-    if (this->sensor_() == Sensor::GC032A && this->camera_->external_clock_frequency() != GC032A_XCLK_HZ)
-      ESP_LOGW(TAG, "The GC032A needs a 24 MHz external clock");
+    if (this->sensor_() == Sensor::GC032A) {
+      if (this->camera_->external_clock_frequency() != GC032A_XCLK_HZ)
+        ESP_LOGW(TAG, "The GC032A needs a 24 MHz external clock");
+      if (this->cam_shots_before_t0 != nullptr && read_(this->cam_shots_before_t0, 0) != GC032A_SHOTS_BEFORE_T0)
+        this->cam_shots_before_t0->make_call().set_value(GC032A_SHOTS_BEFORE_T0).perform();
+    }
     this->apply_();
   });
 }

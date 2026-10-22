@@ -30,6 +30,7 @@
 #include "camera_tuning.h"
 #include "finale.h"
 #include "scan.h"
+#include "watchdog.h"
 
 #ifdef USE_ZEROMOUSE_CONTROLLER_CLOUD
 #include "esphome/components/zeromouse_cloud/zeromouse_cloud.h"
@@ -68,7 +69,10 @@ class ZeroMouse : public Component {
   void set_ir_median_count(number::Number *number) { this->ir_median_count_ = number; }
   void set_ir_range_ignore_event(number::Number *number) { this->ir_range_ignore_event_ = number; }
   void set_ir_ambient(number::Number *number) { this->ir_ambient_ = number; }
-  void set_cam_shots_before_t0(number::Number *number) { this->cam_shots_before_t0_ = number; }
+  void set_cam_shots_before_t0(number::Number *number) {
+    this->cam_shots_before_t0_ = number;
+    this->camera_tuning_.cam_shots_before_t0 = number;
+  }
   void set_upload_empty(switch_::Switch *upload_empty) { this->upload_empty_ = upload_empty; }
   void set_block_enabled(switch_::Switch *block_enabled) { this->block_enabled_ = block_enabled; }
   void set_undecidable_mode(select::Select *select) { this->undecidable_mode_ = select; }
@@ -125,6 +129,22 @@ class ZeroMouse : public Component {
   void set_forced_scan(bool forced) { this->forced_scan_ = forced; }
 
   bool is_idle() const { return this->state_ == State::IDLE; }
+  bool is_event_running() const { return this->state_ != State::IDLE && this->state_ != State::CALIBRATING; }
+  bool is_suspended() const { return this->suspended_; }
+  int64_t event_start_us() const { return this->pir_us_; }
+
+  /// Releases the blocker, ends the event and blocks new events and the blocker until resume() is called.
+  void abort_event(const char *reason);
+  void resume();
+  /// Releases the blocker and ends the event because the network connection dropped.
+  void on_network_lost();
+
+  /// The longest time one event can take with the current settings.
+  uint32_t event_deadline_ms() const;
+  /// True while a prey reference from a classification keeps the blocker allowed beyond one event.
+  bool prey_hold_allowed() const;
+  /// Called by the watchdog after it released the blocker.
+  void on_watchdog_release(bool event_stuck);
   uint16_t ir_free_value() const { return this->calibration_.free_value; }
   uint16_t ir_free_value_raw() const { return this->calibration_.raw_value; }
   uint32_t ir_sensor_status() const { return this->ir_sensor_status_; }
@@ -152,7 +172,7 @@ class ZeroMouse : public Component {
   };
   enum class Command : uint8_t { NONE, SCAN, CALIBRATE, FINALE };
   enum class Outcome : uint8_t { TIME_ZERO, EMPTY, DISCARDED };
-  enum class MessageType : uint8_t { TIME_ZERO, SCAN_FINISHED, CALIBRATION_FINISHED, FINALE_FINISHED };
+  enum class MessageType : uint8_t { TIME_ZERO, SCAN_FINISHED, CALIBRATION_FINISHED, CALIBRATION_ABORTED, FINALE_FINISHED };
 
   struct Message {
     MessageType type;
@@ -179,6 +199,8 @@ class ZeroMouse : public Component {
 
   void on_time_synced_();
   void on_presence_(bool state);
+  void on_motion_edge_();
+  void run_idle_work_();
   const char *start_blocked_reason_() const;
   bool try_start_event_();
   void request_calibration_();
@@ -207,7 +229,13 @@ class ZeroMouse : public Component {
 #endif
   }
   uint32_t now_sec_() const;
-  void load_ref_event_();
+  bool wall_time_valid_() const;
+  bool ref_active_(uint32_t max_sec) const;
+  bool prey_reference_();
+  uint32_t ref_window_s_() const;
+  uint32_t classification_wait_s_() const;
+  uint32_t prey_lock_s_() const;
+  uint32_t finale_total_s_() const;
 
   zeromouse_air::AirSensor *air_{nullptr};
   binary_sensor::BinarySensor *presence_{nullptr};
@@ -250,7 +278,7 @@ class ZeroMouse : public Component {
 
   TaskHandle_t task_{nullptr};
   QueueHandle_t queue_{nullptr};
-  Scan scan_{&this->presence_active_};
+  Scan scan_{&this->presence_active_, &this->task_abort_};
   ScanParams scan_params_;
   ScanResult scan_result_;
   FinaleParams finale_params_;
@@ -259,9 +287,9 @@ class ZeroMouse : public Component {
   std::atomic<Command> command_{Command::NONE};
   std::atomic<bool> presence_active_{false};
   std::atomic<bool> forced_scan_{false};
+  std::atomic<bool> task_abort_{false};
 
   ESPPreferenceObject calibration_pref_;
-  ESPPreferenceObject ref_event_pref_;
   RefEvent ref_event_;
   std::vector<std::shared_ptr<burst_camera::BurstCameraImage>> frames_;
   Message scan_message_{};
@@ -278,6 +306,12 @@ class ZeroMouse : public Component {
   bool time_zero_fired_{false};
   bool scan_done_{false};
   bool frames_done_{false};
+  bool suspended_{false};
+  bool blocker_latched_{false};
+  bool pending_start_{false};
+  bool calibration_pending_{false};
+  bool edge_logged_{false};
+  bool motion_hook_{false};
 };
 
 }  // namespace esphome::zeromouse

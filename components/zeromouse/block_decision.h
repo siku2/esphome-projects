@@ -8,7 +8,7 @@ static constexpr int CLASS_NONE = -1;
 static constexpr int CLASS_PREY = 0;
 static constexpr int CLASS_CLEAN = 1;
 
-/// The last classification that is remembered across events. It is stored in flash.
+/// The last classification that is remembered across events. It is kept in RAM only.
 struct RefEvent {
   int32_t cls{CLASS_NONE};
   uint32_t time_sec{0};

@@ -29,14 +29,14 @@ struct ScanResult {
   int32_t max_mean{0};
 };
 
-/// One IR scan of an event. Runs in the scan task.
+/// One IR scan of an event. Runs in the scan task and fails early if aborted.
 class Scan {
  public:
   static constexpr size_t SAMPLES = 114;
 
   using TimeZeroCallback = std::function<void(int64_t time_zero_us)>;
 
-  explicit Scan(const std::atomic<bool> *presence) : presence_(presence) {}
+  Scan(const std::atomic<bool> *presence, const std::atomic<bool> *abort) : presence_(presence), abort_(abort) {}
 
   ScanResult run(zeromouse_air::AirSensor &air, zeromouse_air::PresenceSampler *sampler, const ScanParams &params,
                  const TimeZeroCallback &on_time_zero);
@@ -48,6 +48,7 @@ class Scan {
   bool is_sunlight_(const ScanResult &result, const ScanParams &params, bool has_sampler) const;
 
   const std::atomic<bool> *presence_;
+  const std::atomic<bool> *abort_;
   std::array<zeromouse_air::AirSample, SAMPLES> ring_{};
   std::vector<zeromouse_air::AirSample> chronological_;
 };

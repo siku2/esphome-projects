@@ -45,6 +45,10 @@ ScanResult Scan::run(zeromouse_air::AirSensor &air, zeromouse_air::PresenceSampl
 
   TickType_t last_wake = xTaskGetTickCount();
   for (;;) {
+    if (this->abort_->load()) {
+      result.failed = true;
+      break;
+    }
     AirSample &sample = this->ring_[index];
     if (sampler != nullptr) {
       sample.has_presence = sampler->read_sample(sample.motion, sample.presence);

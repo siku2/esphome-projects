@@ -37,6 +37,8 @@ CONF_ON_SCAN_END = "on_scan_end"
 CONF_ON_READY = "on_ready"
 CONF_ON_EVENT_END = "on_event_end"
 CONF_ON_PUBLISHED = "on_published"
+CONF_ON_WATCHDOG = "on_watchdog"
+CONF_WATCHDOG_ID = "watchdog_id"
 CONF_CAMERA = "camera"
 CONF_BLOCKER = "blocker"
 CONF_CLOUD = "cloud"
@@ -44,6 +46,7 @@ CONF_STATE = "state"
 
 zeromouse_ns = cg.esphome_ns.namespace("zeromouse")
 ZeroMouse = zeromouse_ns.class_("ZeroMouse", cg.Component)
+ZeroMouseWatchdog = zeromouse_ns.class_("ZeroMouseWatchdog", cg.Component)
 # Declared here so that the controller works when the cloud component is not loaded.
 ZeroMouseCloud = cg.esphome_ns.namespace("zeromouse_cloud").class_(
     "ZeroMouseCloud", cg.Component
@@ -82,6 +85,7 @@ _DIAGNOSTIC_SENSOR = sensor.sensor_schema(
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(ZeroMouse),
+        cv.GenerateID(CONF_WATCHDOG_ID): cv.declare_id(ZeroMouseWatchdog),
         cv.Required(CONF_AIR_SENSOR): cv.use_id(AirSensor),
         cv.Required(CONF_PRESENCE): cv.use_id(binary_sensor.BinarySensor),
         cv.Optional(CONF_PRESENCE_SAMPLER): cv.use_id(PresenceSampler),
@@ -109,6 +113,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_ON_READY): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_EVENT_END): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_PUBLISHED): automation.validate_automation(single=True),
+        cv.Optional(CONF_ON_WATCHDOG): automation.validate_automation(single=True),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -125,8 +130,13 @@ async def to_code(config: ConfigType) -> None:
     cg.add(var.set_startup_delay(config[CONF_STARTUP_DELAY]))
     cg.add(var.set_event_frame_spacing(config[CONF_EVENT_FRAME_SPACING]))
     cg.add(var.set_camera(await cg.get_variable(config[CONF_CAMERA])))
+    watchdog = cg.new_Pvariable(config[CONF_WATCHDOG_ID])
+    await cg.register_component(watchdog, config)
+    cg.add(watchdog.set_controller(var))
     if blocker := config.get(CONF_BLOCKER):
-        cg.add(var.set_blocker(await cg.get_variable(blocker)))
+        blocker_var = await cg.get_variable(blocker)
+        cg.add(var.set_blocker(blocker_var))
+        cg.add(watchdog.set_blocker(blocker_var))
     if cloud := config.get(CONF_CLOUD):
         cg.add_define("USE_ZEROMOUSE_CONTROLLER_CLOUD")
         cg.add(var.set_cloud(await cg.get_variable(cloud)))
@@ -161,4 +171,8 @@ async def to_code(config: ConfigType) -> None:
     if action := config.get(CONF_ON_PUBLISHED):
         await automation.build_automation(
             var.get_published_trigger(), [(cg.uint32, "event_id")], action
+        )
+    if action := config.get(CONF_ON_WATCHDOG):
+        await automation.build_automation(
+            watchdog.get_trigger(), [(cg.std_string, "reason")], action
         )
