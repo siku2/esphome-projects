@@ -1,7 +1,16 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
-from esphome.components import binary_sensor, number, sensor, switch, time
+from esphome.components import (
+    binary_sensor,
+    number,
+    select,
+    sensor,
+    switch,
+    text_sensor,
+    time,
+)
+from esphome.components.burst_camera import BurstCamera
 from esphome.components.zeromouse_air import AirSensor
 from esphome.const import (
     CONF_ID,
@@ -11,8 +20,8 @@ from esphome.const import (
 )
 from esphome.types import ConfigType
 
-AUTO_LOAD = ["binary_sensor", "number", "sensor", "switch"]
-DEPENDENCIES = ["esp32", "network", "time", "zeromouse_air"]
+AUTO_LOAD = ["binary_sensor", "number", "select", "sensor", "switch", "text_sensor"]
+DEPENDENCIES = ["burst_camera", "esp32", "network", "time", "zeromouse_air"]
 
 CONF_AIR_SENSOR = "air_sensor"
 CONF_PRESENCE = "presence"
@@ -24,9 +33,19 @@ CONF_ON_EVENT_START = "on_event_start"
 CONF_ON_TIME_ZERO = "on_time_zero"
 CONF_ON_SCAN_END = "on_scan_end"
 CONF_ON_READY = "on_ready"
+CONF_ON_EVENT_END = "on_event_end"
+CONF_ON_PUBLISHED = "on_published"
+CONF_CAMERA = "camera"
+CONF_BLOCKER = "blocker"
+CONF_CLOUD = "cloud"
+CONF_STATE = "state"
 
 zeromouse_ns = cg.esphome_ns.namespace("zeromouse")
 ZeroMouse = zeromouse_ns.class_("ZeroMouse", cg.Component)
+# Declared here so that the controller works when the cloud component is not loaded.
+ZeroMouseCloud = cg.esphome_ns.namespace("zeromouse_cloud").class_(
+    "ZeroMouseCloud", cg.Component
+)
 
 SETTINGS = {
     "ir_slope_thresh_value": number.Number,
@@ -35,6 +54,14 @@ SETTINGS = {
     "ir_ambient": number.Number,
     "cam_shots_before_t0": number.Number,
     "upload_empty": switch.Switch,
+    "block_enabled": switch.Switch,
+    "undecidable_mode": select.Select,
+    "clean_event_time": number.Number,
+    "finale_interval_max_count": number.Number,
+    "finale_interval_delta": number.Number,
+    "ir_prey_event_time": number.Number,
+    "last_ref_event_max_count": number.Number,
+    "last_ref_event_max_time_sec": number.Number,
 }
 
 _DIAGNOSTIC_SENSOR = sensor.sensor_schema(
@@ -49,6 +76,9 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_AIR_SENSOR): cv.use_id(AirSensor),
         cv.Required(CONF_PRESENCE): cv.use_id(binary_sensor.BinarySensor),
         cv.Required(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
+        cv.Required(CONF_CAMERA): cv.use_id(BurstCamera),
+        cv.Optional(CONF_BLOCKER): cv.use_id(switch.Switch),
+        cv.Optional(CONF_CLOUD): cv.use_id(ZeroMouseCloud),
         cv.Optional(
             CONF_STARTUP_DELAY, default="13s"
         ): cv.positive_time_period_milliseconds,
@@ -57,10 +87,15 @@ CONFIG_SCHEMA = cv.Schema(
         ),
         cv.Optional(CONF_IR_FREE_VALUE): _DIAGNOSTIC_SENSOR,
         cv.Optional(CONF_IR_FREE_VALUE_RAW): _DIAGNOSTIC_SENSOR,
+        cv.Optional(CONF_STATE): text_sensor.text_sensor_schema(
+            entity_category=ENTITY_CATEGORY_DIAGNOSTIC
+        ),
         cv.Optional(CONF_ON_EVENT_START): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_TIME_ZERO): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_SCAN_END): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_READY): automation.validate_automation(single=True),
+        cv.Optional(CONF_ON_EVENT_END): automation.validate_automation(single=True),
+        cv.Optional(CONF_ON_PUBLISHED): automation.validate_automation(single=True),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -73,6 +108,12 @@ async def to_code(config: ConfigType) -> None:
     cg.add(var.set_presence(await cg.get_variable(config[CONF_PRESENCE])))
     cg.add(var.set_time(await cg.get_variable(config[CONF_TIME_ID])))
     cg.add(var.set_startup_delay(config[CONF_STARTUP_DELAY]))
+    cg.add(var.set_camera(await cg.get_variable(config[CONF_CAMERA])))
+    if blocker := config.get(CONF_BLOCKER):
+        cg.add(var.set_blocker(await cg.get_variable(blocker)))
+    if cloud := config.get(CONF_CLOUD):
+        cg.add_define("USE_ZEROMOUSE_CONTROLLER_CLOUD")
+        cg.add(var.set_cloud(await cg.get_variable(cloud)))
 
     for key, entity_id in config.get(CONF_SETTINGS, {}).items():
         cg.add(getattr(var, f"set_{key}")(await cg.get_variable(entity_id)))
@@ -81,6 +122,9 @@ async def to_code(config: ConfigType) -> None:
         cg.add(var.set_ir_free_value_sensor(await sensor.new_sensor(conf)))
     if conf := config.get(CONF_IR_FREE_VALUE_RAW):
         cg.add(var.set_ir_free_value_raw_sensor(await sensor.new_sensor(conf)))
+
+    if conf := config.get(CONF_STATE):
+        cg.add(var.set_state_sensor(await text_sensor.new_text_sensor(conf)))
 
     if action := config.get(CONF_ON_EVENT_START):
         await automation.build_automation(var.get_event_start_trigger(), [], action)
@@ -94,3 +138,11 @@ async def to_code(config: ConfigType) -> None:
         )
     if action := config.get(CONF_ON_READY):
         await automation.build_automation(var.get_ready_trigger(), [], action)
+    if action := config.get(CONF_ON_EVENT_END):
+        await automation.build_automation(
+            var.get_event_end_trigger(), [(cg.std_string, "reason")], action
+        )
+    if action := config.get(CONF_ON_PUBLISHED):
+        await automation.build_automation(
+            var.get_published_trigger(), [(cg.uint32, "event_id")], action
+        )

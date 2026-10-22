@@ -2,6 +2,7 @@
 
 #ifdef USE_ESP32
 
+#include <algorithm>
 #include <cinttypes>
 #include <cmath>
 
@@ -35,6 +36,28 @@ const char *ZeroMouse::outcome_name_(Outcome outcome) {
   return "discarded";
 }
 
+const char *ZeroMouse::state_name_(State state) {
+  switch (state) {
+    case State::IDLE:
+      return "idle";
+    case State::SCANNING:
+      return "scanning";
+    case State::CAPTURING:
+      return "capturing";
+    case State::PUBLISHING:
+      return "publishing";
+    case State::AWAITING_CLASSIFICATION:
+      return "awaiting_classification";
+    case State::PREY_LOCK:
+      return "prey_lock";
+    case State::FINALE:
+      return "finale";
+    case State::CALIBRATING:
+      return "calibrating";
+  }
+  return "idle";
+}
+
 void ZeroMouse::setup() {
   this->queue_ = xQueueCreate(QUEUE_LENGTH, sizeof(Message));
   const UBaseType_t priority = uxTaskPriorityGet(nullptr) + TASK_PRIORITY_OFFSET;
@@ -50,6 +73,21 @@ void ZeroMouse::setup() {
   if (!this->calibration_pref_.load(&this->calibration_)) {
     this->calibration_ = {50, 50};
   }
+
+  this->load_ref_event_();
+  if (this->block_enabled_ != nullptr) {
+    this->block_enabled_->add_on_state_callback([this](bool state) {
+      if (!state) {
+        this->set_blocker_(false);
+      }
+    });
+  }
+#ifdef USE_ZEROMOUSE_CONTROLLER_CLOUD
+  if (this->cloud_ != nullptr) {
+    this->cloud_->add_on_classification_callback(
+        [this](const std::string &, int class_index, bool block) { this->on_classification_(class_index, block); });
+  }
+#endif
 
   if (this->presence_->has_state()) {
     this->presence_active_ = this->presence_->state;
@@ -69,8 +107,11 @@ void ZeroMouse::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "ZeroMOUSE:\n"
                 "  Startup delay: %" PRIu32 " ms\n"
-                "  IR free value: %u (raw %u)",
-                this->startup_delay_ms_, this->calibration_.free_value, this->calibration_.raw_value);
+                "  IR free value: %u (raw %u)\n"
+                "  Cloud: %s",
+                this->startup_delay_ms_, this->calibration_.free_value, this->calibration_.raw_value,
+                YESNO(this->has_cloud_()));
+  LOG_TEXT_SENSOR("  ", "Event State", this->state_sensor_);
   LOG_SENSOR("  ", "IR Free Value", this->ir_free_value_sensor_);
   LOG_SENSOR("  ", "IR Free Value Raw", this->ir_free_value_raw_sensor_);
 }
@@ -94,6 +135,9 @@ void ZeroMouse::task_main_() {
         break;
       case Command::CALIBRATE:
         this->run_calibration_();
+        break;
+      case Command::FINALE:
+        this->run_finale_();
         break;
       case Command::NONE:
         break;
@@ -120,6 +164,11 @@ void ZeroMouse::run_calibration_() {
   this->post_({MessageType::CALIBRATION_FINISHED, Outcome::DISCARDED, result.valid, result.value, 0});
 }
 
+void ZeroMouse::run_finale_() {
+  const FinaleResult result = run_finale(*this->air_, this->finale_params_, this->presence_active_);
+  this->post_({MessageType::FINALE_FINISHED, Outcome::DISCARDED, true, static_cast<uint16_t>(result), 0});
+}
+
 void ZeroMouse::post_(const Message &message) {
   if (xQueueSend(this->queue_, &message, 0) != pdTRUE) {
     ESP_LOGE(TAG, "Message queue is full");
@@ -132,6 +181,7 @@ void ZeroMouse::handle_(const Message &message) {
     case MessageType::TIME_ZERO:
       this->time_zero_us_ = message.time_zero_us;
       this->time_zero_fired_ = true;
+      this->start_capture_(message.time_zero_us);
       this->time_zero_trigger_.trigger(static_cast<int>((this->pir_us_ - message.time_zero_us) / 1000));
       break;
     case MessageType::SCAN_FINISHED:
@@ -139,6 +189,9 @@ void ZeroMouse::handle_(const Message &message) {
       break;
     case MessageType::CALIBRATION_FINISHED:
       this->finish_calibration_(message);
+      break;
+    case MessageType::FINALE_FINISHED:
+      this->finish_finale_(message);
       break;
   }
 }
@@ -162,22 +215,25 @@ void ZeroMouse::on_presence_(bool state) {
   }
 }
 
-void ZeroMouse::try_start_event_() {
-  const char *reason = nullptr;
+const char *ZeroMouse::start_blocked_reason_() const {
   if (this->is_failed()) {
-    reason = "the controller failed";
+    return "the controller failed";
   } else if (!this->time_->now().is_valid()) {
-    reason = "the time is not valid";
+    return "the time is not valid";
   } else if (!network::is_connected()) {
-    reason = "the network is not connected";
+    return "the network is not connected";
   } else if (!this->ready_) {
-    reason = "the startup delay is active";
+    return "the startup delay is active";
   } else if (this->state_ != State::IDLE) {
-    reason = this->state_ == State::SCANNING ? "an event is running" : "the sensor is calibrating";
+    return this->state_ == State::CALIBRATING ? "the sensor is calibrating" : "an event is running";
   }
-  if (reason != nullptr) {
+  return nullptr;
+}
+
+bool ZeroMouse::try_start_event_() {
+  if (const char *reason = this->start_blocked_reason_()) {
     ESP_LOGD(TAG, "Event rejected because %s", reason);
-    return;
+    return false;
   }
 
   this->scan_params_.slope_thresh = this->read_number_(this->ir_slope_thresh_value_, 20);
@@ -190,11 +246,22 @@ void ZeroMouse::try_start_event_() {
 
   this->pir_us_ = esp_timer_get_time();
   this->time_zero_fired_ = false;
-  this->state_ = State::SCANNING;
+  this->scan_done_ = false;
+  this->frames_done_ = false;
+  this->frames_.clear();
+  this->class_index_ = CLASS_NONE;
+  this->set_state_(State::SCANNING);
   this->command_ = Command::SCAN;
   xTaskNotifyGive(this->task_);
+  if (this->block_enabled_value_()) {
+    this->set_blocker_(true);
+  }
+  if (!this->camera_->arm_event(static_cast<uint8_t>(std::clamp<int32_t>(this->scan_params_.shots_before_t0, 0, 8)))) {
+    ESP_LOGW(TAG, "Arming the camera failed");
+  }
   ESP_LOGD(TAG, "Event started");
   this->event_start_trigger_.trigger();
+  return true;
 }
 
 void ZeroMouse::request_calibration_() {
@@ -203,37 +270,36 @@ void ZeroMouse::request_calibration_() {
     return;
   }
   this->calibration_ambient_ = this->read_number_(this->ir_ambient_, 1000);
-  this->state_ = State::CALIBRATING;
+  this->set_state_(State::CALIBRATING);
   this->command_ = Command::CALIBRATE;
   xTaskNotifyGive(this->task_);
 }
 
 void ZeroMouse::finish_scan_(const Message &message) {
-  this->state_ = State::IDLE;
   const char *name = outcome_name_(message.outcome);
   if (!message.valid) {
     ESP_LOGE(TAG, "Reading the air sensor failed");
   }
-  if (message.outcome == Outcome::TIME_ZERO) {
+  this->scan_done_ = true;
+  this->scan_message_ = message;
+  if (message.outcome != Outcome::DISCARDED) {
     this->time_zero_us_ = message.time_zero_us;
-    if (!this->time_zero_fired_) {
-      this->time_zero_trigger_.trigger(static_cast<int>((this->pir_us_ - message.time_zero_us) / 1000));
-    }
+  }
+  const int pir_to_t0_ms = static_cast<int>((this->pir_us_ - message.time_zero_us) / 1000);
+  if (message.outcome == Outcome::TIME_ZERO && !this->time_zero_fired_) {
+    this->time_zero_fired_ = true;
+    this->start_capture_(message.time_zero_us);
+    this->time_zero_trigger_.trigger(pir_to_t0_ms);
   }
   ESP_LOGI(TAG, "Scan ended: %u samples, mean %d to %d, PIR %d ms from T0, result %s",
            static_cast<unsigned>(this->scan_result_.sample_count), static_cast<int>(this->scan_result_.min_mean),
-           static_cast<int>(this->scan_result_.max_mean), static_cast<int>((this->pir_us_ - message.time_zero_us) / 1000),
-           name);
+           static_cast<int>(this->scan_result_.max_mean), pir_to_t0_ms, name);
   this->scan_end_trigger_.trigger(name);
-  ESP_LOGI(TAG, "Event ended after the scan");
-
-  if (message.outcome != Outcome::TIME_ZERO && this->presence_active_) {
-    this->try_start_event_();
-  }
+  this->check_scan_complete_();
 }
 
 void ZeroMouse::finish_calibration_(const Message &message) {
-  this->state_ = State::IDLE;
+  this->set_state_(State::IDLE);
   this->calibration_.raw_value = message.value;
   if (message.valid) {
     this->calibration_.free_value = message.value;

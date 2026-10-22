@@ -3,6 +3,7 @@
 #ifdef USE_ESP32
 
 #include <atomic>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -11,16 +12,25 @@
 #include "freertos/task.h"
 
 #include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/components/burst_camera/burst_camera.h"
 #include "esphome/components/number/number.h"
+#include "esphome/components/select/select.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/switch/switch.h"
+#include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/components/zeromouse_air/air_sensor.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "esphome/core/preferences.h"
 
+#include "block_decision.h"
+#include "finale.h"
 #include "scan.h"
+
+#ifdef USE_ZEROMOUSE_CONTROLLER_CLOUD
+#include "esphome/components/zeromouse_cloud/zeromouse_cloud.h"
+#endif
 
 namespace esphome::zeromouse {
 
@@ -37,6 +47,20 @@ class ZeroMouse : public Component {
   void set_ir_ambient(number::Number *number) { this->ir_ambient_ = number; }
   void set_cam_shots_before_t0(number::Number *number) { this->cam_shots_before_t0_ = number; }
   void set_upload_empty(switch_::Switch *upload_empty) { this->upload_empty_ = upload_empty; }
+  void set_block_enabled(switch_::Switch *block_enabled) { this->block_enabled_ = block_enabled; }
+  void set_undecidable_mode(select::Select *select) { this->undecidable_mode_ = select; }
+  void set_clean_event_time(number::Number *number) { this->clean_event_time_ = number; }
+  void set_finale_interval_max_count(number::Number *number) { this->finale_interval_max_count_ = number; }
+  void set_finale_interval_delta(number::Number *number) { this->finale_interval_delta_ = number; }
+  void set_ir_prey_event_time(number::Number *number) { this->ir_prey_event_time_ = number; }
+  void set_last_ref_event_max_count(number::Number *number) { this->last_ref_event_max_count_ = number; }
+  void set_last_ref_event_max_time_sec(number::Number *number) { this->last_ref_event_max_time_sec_ = number; }
+  void set_camera(burst_camera::BurstCamera *camera) { this->camera_ = camera; }
+  void set_blocker(switch_::Switch *blocker) { this->blocker_ = blocker; }
+  void set_state_sensor(text_sensor::TextSensor *sensor) { this->state_sensor_ = sensor; }
+#ifdef USE_ZEROMOUSE_CONTROLLER_CLOUD
+  void set_cloud(zeromouse_cloud::ZeroMouseCloud *cloud) { this->cloud_ = cloud; }
+#endif
   void set_ir_free_value_sensor(sensor::Sensor *sensor) { this->ir_free_value_sensor_ = sensor; }
   void set_ir_free_value_raw_sensor(sensor::Sensor *sensor) { this->ir_free_value_raw_sensor_ = sensor; }
 
@@ -44,6 +68,8 @@ class ZeroMouse : public Component {
   Trigger<int> *get_time_zero_trigger() { return &this->time_zero_trigger_; }
   Trigger<std::string> *get_scan_end_trigger() { return &this->scan_end_trigger_; }
   Trigger<> *get_ready_trigger() { return &this->ready_trigger_; }
+  Trigger<std::string> *get_event_end_trigger() { return &this->event_end_trigger_; }
+  Trigger<uint32_t> *get_published_trigger() { return &this->published_trigger_; }
 
   void setup() override;
   void loop() override;
@@ -58,7 +84,7 @@ class ZeroMouse : public Component {
   uint16_t ir_free_value_raw() const { return this->calibration_.raw_value; }
   uint32_t ir_sensor_status() const { return this->ir_sensor_status_; }
 
-  /// The samples of the last scan, oldest first. Valid while the controller is idle.
+  /// The samples of the last scan, oldest first. Valid until the next event starts.
   const std::vector<zeromouse_air::AirSample> &scan_samples() const { return this->scan_.samples(); }
   int64_t time_zero_us() const { return this->time_zero_us_; }
   int32_t sample_time_ms(const zeromouse_air::AirSample &sample) const {
@@ -69,10 +95,19 @@ class ZeroMouse : public Component {
   static constexpr uint32_t CALIBRATION_INTERVAL_MS = 3600 * 1000;
   static constexpr uint32_t STATUS_RECALIBRATION_COUNT = 0x3F;
 
-  enum class State : uint8_t { IDLE, SCANNING, CALIBRATING };
-  enum class Command : uint8_t { NONE, SCAN, CALIBRATE };
+  enum class State : uint8_t {
+    IDLE,
+    SCANNING,
+    CAPTURING,
+    PUBLISHING,
+    AWAITING_CLASSIFICATION,
+    PREY_LOCK,
+    FINALE,
+    CALIBRATING,
+  };
+  enum class Command : uint8_t { NONE, SCAN, CALIBRATE, FINALE };
   enum class Outcome : uint8_t { TIME_ZERO, EMPTY, DISCARDED };
-  enum class MessageType : uint8_t { TIME_ZERO, SCAN_FINISHED, CALIBRATION_FINISHED };
+  enum class MessageType : uint8_t { TIME_ZERO, SCAN_FINISHED, CALIBRATION_FINISHED, FINALE_FINISHED };
 
   struct Message {
     MessageType type;
@@ -89,19 +124,44 @@ class ZeroMouse : public Component {
 
   static void task_entry_(void *arg);
   static const char *outcome_name_(Outcome outcome);
+  static const char *state_name_(State state);
   void task_main_();
   void run_scan_();
   void run_calibration_();
+  void run_finale_();
   void post_(const Message &message);
   void handle_(const Message &message);
 
   void on_time_synced_();
   void on_presence_(bool state);
-  void try_start_event_();
+  const char *start_blocked_reason_() const;
+  bool try_start_event_();
   void request_calibration_();
   void finish_scan_(const Message &message);
   void finish_calibration_(const Message &message);
   int32_t read_number_(number::Number *number, int32_t fallback) const;
+
+  void set_state_(State state);
+  void set_blocker_(bool on);
+  void start_capture_(int64_t time_zero_us);
+  void check_scan_complete_();
+  void publish_event_(bool empty);
+  void on_published_(bool empty, bool published, uint32_t event_id);
+  void on_classification_(int class_index, bool block);
+  void dispatch_();
+  void start_finale_();
+  void finish_finale_(const Message &message);
+  void end_event_(const char *reason);
+  bool block_enabled_value_() const { return this->block_enabled_ == nullptr || this->block_enabled_->state; }
+  bool has_cloud_() const {
+#ifdef USE_ZEROMOUSE_CONTROLLER_CLOUD
+    return this->cloud_ != nullptr;
+#else
+    return false;
+#endif
+  }
+  uint32_t now_sec_() const;
+  void load_ref_event_();
 
   zeromouse_air::AirSensor *air_{nullptr};
   binary_sensor::BinarySensor *presence_{nullptr};
@@ -112,6 +172,20 @@ class ZeroMouse : public Component {
   number::Number *ir_ambient_{nullptr};
   number::Number *cam_shots_before_t0_{nullptr};
   switch_::Switch *upload_empty_{nullptr};
+  switch_::Switch *block_enabled_{nullptr};
+  select::Select *undecidable_mode_{nullptr};
+  number::Number *clean_event_time_{nullptr};
+  number::Number *finale_interval_max_count_{nullptr};
+  number::Number *finale_interval_delta_{nullptr};
+  number::Number *ir_prey_event_time_{nullptr};
+  number::Number *last_ref_event_max_count_{nullptr};
+  number::Number *last_ref_event_max_time_sec_{nullptr};
+  burst_camera::BurstCamera *camera_{nullptr};
+  switch_::Switch *blocker_{nullptr};
+  text_sensor::TextSensor *state_sensor_{nullptr};
+#ifdef USE_ZEROMOUSE_CONTROLLER_CLOUD
+  zeromouse_cloud::ZeroMouseCloud *cloud_{nullptr};
+#endif
   sensor::Sensor *ir_free_value_sensor_{nullptr};
   sensor::Sensor *ir_free_value_raw_sensor_{nullptr};
 
@@ -119,12 +193,15 @@ class ZeroMouse : public Component {
   Trigger<int> time_zero_trigger_;
   Trigger<std::string> scan_end_trigger_;
   Trigger<> ready_trigger_;
+  Trigger<std::string> event_end_trigger_;
+  Trigger<uint32_t> published_trigger_;
 
   TaskHandle_t task_{nullptr};
   QueueHandle_t queue_{nullptr};
   Scan scan_{&this->presence_active_};
   ScanParams scan_params_;
   ScanResult scan_result_;
+  FinaleParams finale_params_;
   int32_t calibration_ambient_{0};
   bool upload_empty_value_{false};
   std::atomic<Command> command_{Command::NONE};
@@ -132,6 +209,11 @@ class ZeroMouse : public Component {
   std::atomic<bool> forced_scan_{false};
 
   ESPPreferenceObject calibration_pref_;
+  ESPPreferenceObject ref_event_pref_;
+  RefEvent ref_event_;
+  std::vector<std::shared_ptr<burst_camera::BurstCameraImage>> frames_;
+  Message scan_message_{};
+  int class_index_{CLASS_NONE};
   CalibrationData calibration_{50, 50};
   uint32_t ir_sensor_status_{0};
   uint32_t startup_delay_ms_{13000};
@@ -141,6 +223,8 @@ class ZeroMouse : public Component {
   bool time_synced_{false};
   bool ready_{false};
   bool time_zero_fired_{false};
+  bool scan_done_{false};
+  bool frames_done_{false};
 };
 
 }  // namespace esphome::zeromouse
