@@ -75,6 +75,7 @@ void ZeroMouse::setup() {
   }
 
   this->load_ref_event_();
+  this->camera_tuning_.setup(this->camera_);
   if (this->block_enabled_ != nullptr) {
     this->block_enabled_->add_on_state_callback([this](bool state) {
       if (!state) {

@@ -63,6 +63,13 @@ SETTINGS = {
     "ir_prey_event_time": number.Number,
     "last_ref_event_max_count": number.Number,
     "last_ref_event_max_time_sec": number.Number,
+    "brightness": number.Number,
+    "auto_exp_level": number.Number,
+    "auto_gain_ctrl_min": number.Number,
+    "auto_gain_ctrl_max": number.Number,
+    "auto_gain_stbl_min": number.Number,
+    "auto_gain_stbl_max": number.Number,
+    "gain_ceiling": number.Number,
 }
 
 _DIAGNOSTIC_SENSOR = sensor.sensor_schema(

@@ -27,6 +27,7 @@
 #include "esphome/core/preferences.h"
 
 #include "block_decision.h"
+#include "camera_tuning.h"
 #include "finale.h"
 #include "scan.h"
 
@@ -76,6 +77,13 @@ class ZeroMouse : public Component {
   void set_ir_prey_event_time(number::Number *number) { this->ir_prey_event_time_ = number; }
   void set_last_ref_event_max_count(number::Number *number) { this->last_ref_event_max_count_ = number; }
   void set_last_ref_event_max_time_sec(number::Number *number) { this->last_ref_event_max_time_sec_ = number; }
+  void set_brightness(number::Number *number) { this->camera_tuning_.brightness = number; }
+  void set_auto_exp_level(number::Number *number) { this->camera_tuning_.auto_exp_level = number; }
+  void set_auto_gain_ctrl_min(number::Number *number) { this->camera_tuning_.auto_gain_ctrl_min = number; }
+  void set_auto_gain_ctrl_max(number::Number *number) { this->camera_tuning_.auto_gain_ctrl_max = number; }
+  void set_auto_gain_stbl_min(number::Number *number) { this->camera_tuning_.auto_gain_stbl_min = number; }
+  void set_auto_gain_stbl_max(number::Number *number) { this->camera_tuning_.auto_gain_stbl_max = number; }
+  void set_gain_ceiling(number::Number *number) { this->camera_tuning_.gain_ceiling = number; }
   void set_camera(burst_camera::BurstCamera *camera) { this->camera_ = camera; }
   void set_blocker(switch_::Switch *blocker) { this->blocker_ = blocker; }
   void set_state_sensor(text_sensor::TextSensor *sensor) { this->state_sensor_ = sensor; }
@@ -219,6 +227,7 @@ class ZeroMouse : public Component {
   number::Number *last_ref_event_max_count_{nullptr};
   number::Number *last_ref_event_max_time_sec_{nullptr};
   burst_camera::BurstCamera *camera_{nullptr};
+  CameraTuning camera_tuning_;
   switch_::Switch *blocker_{nullptr};
   text_sensor::TextSensor *state_sensor_{nullptr};
 #ifdef USE_ZEROMOUSE_CONTROLLER_CLOUD
