@@ -13,6 +13,10 @@
 # ### Binary Sensor
 #
 # - `zm_pir`: PIR motion sensor (AS312).
+#
+# ### ZeroMOUSE Air
+#
+# - `zm_air`: IR proximity sensor (PT2046B).
 
 substitutions:
   i18n:
@@ -25,6 +29,18 @@ substitutions:
 
 packages:
   zeromouse: !include common.yaml
+
+external_components:
+- source: "${components_source}"
+  components: ["zeromouse_air"]
+
+zeromouse_air:
+  id: "zm_air"
+  type: "pt2046b"
+  adc_pin: "GPIO2"
+  led_pin:
+    number: "GPIO45"
+    ignore_strapping_warning: true
 
 binary_sensor:
 - id: "zm_pir"

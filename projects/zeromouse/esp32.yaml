@@ -22,6 +22,7 @@ packages:
   settings: !include settings/common.yaml
   settings_board: !include settings/${board}.yaml
   cloud: !include cloud.yaml
+  events: !include events.yaml
 
 esphome:
   name: "${name}"
