@@ -32,8 +32,8 @@ bool MessageReassembler::add(const char *topic, size_t topic_len, const char *da
 }
 
 void MessageReassembler::reset() {
-  this->topic_.clear();
-  this->payload_.clear();
+  std::string().swap(this->topic_);
+  std::string().swap(this->payload_);
   this->active_ = false;
 }
 

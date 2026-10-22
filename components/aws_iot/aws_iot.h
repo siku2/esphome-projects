@@ -2,6 +2,9 @@
 
 #ifdef USE_ESP32
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/task.h>
 #include <mqtt_client.h>
 
 #include <atomic>
@@ -39,9 +42,14 @@ class AwsIotClient : public Component {
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::AFTER_CONNECTION; }
 
-  /// Publishes with QoS 1. The data is copied, so the caller can free it right away. Safe to call from any task.
-  /// Large payloads are sent by the MQTT task. Returns false if not connected or out of memory.
-  bool publish(const std::string &topic, const char *data, size_t len);
+  /// Runs in the main loop once the sender task is done with a publish. The argument tells if it was written.
+  using PublishCallback = std::function<void(bool sent)>;
+
+  /// Publishes with QoS 1 and returns once the message is written to the socket. Never call this from the main loop.
+  bool publish_blocking(const std::string &topic, const char *data, size_t len);
+  /// Hands a QoS 1 publish to the sender task. The data is copied. Safe to call from any task.
+  /// Returns false if the sender queue is full. Otherwise the callback gets the result in the main loop.
+  bool publish_async(const std::string &topic, const char *data, size_t len, PublishCallback done = nullptr);
   /// Subscribes with QoS 1 on every connect. The callback runs in the main loop.
   void subscribe(const std::string &topic, MessageCallback callback);
 
@@ -66,15 +74,34 @@ class AwsIotClient : public Component {
   };
 
   struct Event {
-    enum class Type : uint8_t { CONNECTED, DISCONNECTED, MESSAGE } type;
+    enum class Type : uint8_t { SUBSCRIBING, CONNECTED, DISCONNECTED, MESSAGE, PUBLISHED, STOPPED, START_FAILED } type;
     std::string topic;
     std::string payload;
+    PublishCallback done;
+    bool sent{false};
+  };
+
+  struct Outgoing {
+    enum class Kind : uint8_t { PUBLISH, SUBSCRIBE } kind;
+    std::string topic;
+    std::string payload;
+    PublishCallback done;
   };
 
   static void event_handler_(void *arg, esp_event_base_t base, int32_t event_id, void *event_data);
+  static void sender_task_(void *arg);
+  static void start_task_(void *arg);
+  static void stop_task_(void *arg);
   void handle_mqtt_event_(esp_mqtt_event_handle_t event);
   void push_event_(Event &&event);
+  esp_mqtt_client_config_t make_config_(bool clean_session) const;
+  void open_session_(esp_mqtt_client_handle_t client);
+  void subscribe_all_(esp_mqtt_client_handle_t client);
+  void send_(Outgoing &job);
   void start_client_();
+  void request_stop_();
+  void on_subscribe_timeout_();
+  void retry_start_();
   void on_connected_();
   void on_message_(const std::string &topic, const std::string &payload);
 
@@ -88,11 +115,23 @@ class AwsIotClient : public Component {
   time::RealTimeClock *time_{nullptr};
 
   Mutex client_mutex_;
-  esp_mqtt_client_handle_t client_{nullptr};
+  std::atomic<esp_mqtt_client_handle_t> client_{nullptr};
   std::atomic<bool> connected_{false};
-  bool enabled_{true};
+  std::atomic<bool> enabled_{true};
+  /// Set while the start or stop task owns the client. Serializes the two.
+  std::atomic<bool> busy_{false};
+  std::atomic<bool> session_opened_{false};
   bool setup_done_{false};
+
+  Mutex subscriptions_mutex_;
   std::vector<Subscription> subscriptions_;
+  bool subscribed_{false};
+
+  /// Only touched from the MQTT task.
+  std::vector<int> pending_subscriptions_;
+  std::atomic<bool> awaiting_suback_{false};
+
+  QueueHandle_t send_queue_{nullptr};
   LazyCallbackManager<void()> connect_callbacks_;
   LazyCallbackManager<void()> disconnect_callbacks_;
 
