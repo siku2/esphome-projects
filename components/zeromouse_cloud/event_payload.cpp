@@ -5,6 +5,7 @@
 #include <cstring>
 
 #include "esphome/core/log.h"
+#include "json_string.h"
 
 namespace esphome::zeromouse_cloud {
 
@@ -27,15 +28,21 @@ std::string format_utc(time_t time) {
 
 std::string build_head(const EventInfo &info) {
   const std::string time = format_utc(info.event_time);
-  std::string out = "{\"deviceID\":\"" + info.device_id + '"';
+  std::string out = "{\"deviceID\":";
+  append_json_string(out, info.device_id);
   out += ",\"eventID\":\"" + std::to_string(info.event_id) + '"';
-  out += ",\"ownerID\":\"" + info.owner_id + '"';
-  out += ",\"identityID\":\"" + info.identity_id + '"';
+  out += ",\"ownerID\":";
+  append_json_string(out, info.owner_id);
+  out += ",\"identityID\":";
+  append_json_string(out, info.identity_id);
   out += ",\"eventTime\":" + std::to_string(static_cast<unsigned long long>(info.event_time));
-  out += ",\"createdAt\":\"" + time + '"';
-  out += ",\"updatedAt\":\"" + time + '"';
+  out += ",\"createdAt\":";
+  append_json_string(out, time);
+  out += ",\"updatedAt\":";
+  append_json_string(out, time);
   out += ",\"pir_time_to_time0\":" + std::to_string(info.pir_time_to_time0_ms);
-  out += ", \"swVersion\":\"" + info.sw_version + '"';
+  out += ", \"swVersion\":";
+  append_json_string(out, info.sw_version);
   out += ",\"air\": [";
   for (size_t i = 0; i < info.air.size(); i++) {
     const AirPoint &point = info.air[i];

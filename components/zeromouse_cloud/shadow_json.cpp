@@ -2,6 +2,8 @@
 
 #include <cctype>
 
+#include "json_string.h"
+
 namespace esphome::zeromouse_cloud {
 
 namespace {
@@ -17,7 +19,7 @@ class ObjectWriter {
   }
   void string(const char *name, const std::string &value) {
     this->key_(name);
-    this->out_ += '"' + value + '"';
+    append_json_string(this->out_, value);
   }
 
  protected:
@@ -116,7 +118,8 @@ std::string build_reported_shadow(const ShadowState &state) {
 
 std::string build_metrics(const ShadowState &state, const MetricsInfo &info) {
   const SystemShadow &s = state.system;
-  std::string out = "{\"deviceID\":\"" + info.device_id + '"';
+  std::string out = "{\"deviceID\":";
+  append_json_string(out, info.device_id);
   // The hardware version is the character after "-H" in the thing name.
   const size_t pos = info.thing_name.find("-H");
   if (pos != std::string::npos && pos + 2 < info.thing_name.size() && std::isdigit(info.thing_name[pos + 2]))
@@ -126,8 +129,10 @@ std::string build_metrics(const ShadowState &state, const MetricsInfo &info) {
   out += ",\"verRevision\":" + std::to_string(s.ver_revision);
   out += ",\"bootCount\":" + std::to_string(info.boot_count);
   out += ",\"eventCount\":" + std::to_string(info.event_count);
-  out += ",\"ownerID\":\"" + s.owner_id + '"';
-  out += ",\"identityID\":\"" + s.identity_id + '"';
+  out += ",\"ownerID\":";
+  append_json_string(out, s.owner_id);
+  out += ",\"identityID\":";
+  append_json_string(out, s.identity_id);
   out += ",\"finaleIntervalMaxCount\":" + std::to_string(s.finale_interval_max_count);
   out += ",\"finaleIntervalDelta\":" + std::to_string(s.finale_interval_delta);
   out += '}';
