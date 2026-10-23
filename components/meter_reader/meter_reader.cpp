@@ -121,10 +121,11 @@ void MeterReader::process_cycle_(uint32_t now) {
     if (pos >= sizeof(wheels_buf))
       break;
     int n;
-    if (w.present)
+    if (w.present) {
       n = snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u=%.2f ", w.level, (double) w.result);
-    else
+    } else {
       n = snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u:- ", w.level);
+    }
     if (n < 0)
       break;
     pos += n;
@@ -169,9 +170,10 @@ void MeterReader::process_cycle_(uint32_t now) {
     if (this->has_saved_) {
       uint64_t candidate = 0;
       if (this->find_consistent_(this->u_, this->reanchor_span_u_(), &candidate)) {
-        if (candidate != this->u_)
+        if (candidate != this->u_) {
           ESP_LOGW(TAG, "Reanchoring: adopting %llu (%+lld quanta)", (unsigned long long) candidate,
                    (long long) (candidate - this->u_));
+        }
         this->u_ = candidate;
         this->anchor_(true, now);
       }
@@ -401,12 +403,13 @@ void MeterReader::publish_rejected_() {
 void MeterReader::update_status_() {
   ReaderStatus status = STATUS_ANCHORING;
   if (this->anchored_) {
-    if (this->divergent_)
+    if (this->divergent_) {
       status = STATUS_DIVERGENT;
-    else if (this->stale_)
+    } else if (this->stale_) {
       status = STATUS_STALE;
-    else
+    } else {
       status = STATUS_OK;
+    }
   }
   if (status == this->status_ && this->status_sensor_ != nullptr && this->status_sensor_->has_state())
     return;

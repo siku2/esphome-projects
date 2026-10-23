@@ -7,19 +7,18 @@
 #include "esphome/components/cover/cover.h"
 #include "esphome/components/cc1101/cc1101.h"
 
-namespace esphome {
-namespace somfy_cover {
+namespace esphome::somfy_cover {
 
 enum class SomfyCommand : uint8_t {
-  My = 0x1,
-  Up = 0x2,
-  MyUp = 0x3,
-  Down = 0x4,
-  MyDown = 0x5,
-  UpDown = 0x6,
-  Prog = 0x8,
-  SunFlag = 0x9,
-  Flag = 0xA
+  MY = 0x1,
+  UP = 0x2,
+  MY_UP = 0x3,
+  DOWN = 0x4,
+  MY_DOWN = 0x5,
+  UP_DOWN = 0x6,
+  PROG = 0x8,
+  SUN_FLAG = 0x9,
+  FLAG = 0xA
 };
 
 class SomfyCover : public cover::Cover, public Component {
@@ -90,5 +89,4 @@ template<typename... Ts> class SomfyCoverResetRollingCodeAction : public Action<
  protected:
   SomfyCover *parent_;
 };
-}  // namespace somfy_cover
-}  // namespace esphome
+}  // namespace esphome::somfy_cover

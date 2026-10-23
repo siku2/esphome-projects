@@ -68,6 +68,6 @@ class Snapshotter : public PollingComponent, public CameraListener {
   void on_stream_start() override;
   void on_stream_stop() override;
 
-  bool notify_next();
+  bool notify_next_();
 };
 }  // namespace esphome::camera::snapshot

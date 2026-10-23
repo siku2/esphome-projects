@@ -78,7 +78,7 @@ class MeterReader : public Component {
   float dial_error_(uint64_t u) const;
   bool consistent_(uint64_t u) const;
   bool coarse_consistent_(uint64_t u) const;
-  bool find_consistent_(uint64_t lo, uint64_t span, uint64_t *out) const;
+  bool find_consistent_(uint64_t center, uint64_t span, uint64_t *out) const;
 
   void process_cycle_(uint32_t now);
   void commit_(uint64_t u, uint32_t now);

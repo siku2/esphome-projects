@@ -7,8 +7,7 @@
 #define COVER_ALMOST_OPEN 0.99f
 #define COVER_ALMOST_CLOSED 0.01f
 
-namespace esphome {
-namespace m5stack_4encodermotor {
+namespace esphome::m5stack_4encodermotor {
 static const char *const TAG = "m5stack_4encodermotor.cover";
 
 using namespace esphome::cover;
@@ -73,13 +72,13 @@ bool M5Stack4EncoderMotorCover::is_at_target_() {
   switch (this->current_operation) {
     case COVER_OPERATION_OPENING:
       if (this->target_position_ == COVER_OPEN) {
-        return this->position >= COVER_ALMOST_OPEN && this->is_moving_ == false;
+        return this->position >= COVER_ALMOST_OPEN && !this->is_moving_;
       } else {
         return this->position >= this->target_position_;
       }
     case COVER_OPERATION_CLOSING:
       if (this->target_position_ == COVER_CLOSED) {
-        return this->position <= COVER_ALMOST_CLOSED && this->is_moving_ == false;
+        return this->position <= COVER_ALMOST_CLOSED && !this->is_moving_;
       } else {
         return this->position <= this->target_position_;
       }
@@ -146,5 +145,4 @@ void M5Stack4EncoderMotorCover::recompute_position_(uint32_t now) {
 
   this->is_moving_ = this->parent_->get_current() >= this->min_current_;
 }
-}  // namespace m5stack_4encodermotor
-}  // namespace esphome
+}  // namespace esphome::m5stack_4encodermotor

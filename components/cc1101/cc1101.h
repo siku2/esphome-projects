@@ -4,8 +4,7 @@
 #include "esphome/core/hal.h"
 #include "esphome/components/spi/spi.h"
 
-namespace esphome {
-namespace cc1101 {
+namespace esphome::cc1101 {
 enum Modulation {
   MODULATION_2FSK = 0,
   MODULATION_GFSK = 1,
@@ -82,5 +81,4 @@ class Cc1101 : public Component,
   void write_modulation_();
   void write_pa_();
 };
-}  // namespace cc1101
-}  // namespace esphome
+}  // namespace esphome::cc1101

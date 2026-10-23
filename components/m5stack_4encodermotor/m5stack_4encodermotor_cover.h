@@ -5,8 +5,7 @@
 #include "esphome/core/component.h"
 #include "esphome/components/cover/cover.h"
 
-namespace esphome {
-namespace m5stack_4encodermotor {
+namespace esphome::m5stack_4encodermotor {
 class M5Stack4EncoderMotorCover : public cover::Cover, public Component {
  public:
   void setup() override;
@@ -54,5 +53,4 @@ class M5Stack4EncoderMotorCover : public cover::Cover, public Component {
   void start_direction_(cover::CoverOperation dir);
   void recompute_position_(uint32_t now);
 };
-}  // namespace m5stack_4encodermotor
-}  // namespace esphome
+}  // namespace esphome::m5stack_4encodermotor

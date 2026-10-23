@@ -83,8 +83,8 @@ class GrillCook : public Component {
     sensor::Sensor *probe{nullptr};
   };
 
-  static float sensor_state_or_nan_(sensor::Sensor *sensor);
-  static bool changed_(float value, float *memo);
+  static float sensor_state_or_nan(sensor::Sensor *sensor);
+  static bool changed(float value, float *memo);
 
   void recompute_(bool meat_fresh);
   void arm_deadline_(uint32_t now_s);

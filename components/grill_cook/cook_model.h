@@ -242,12 +242,10 @@ class CookModel {
   void update_stalled_(bool any_zone_on, bool probe_present) {
     const bool eligible = probe_present && !this->done_ && any_zone_on && this->latest_.meat_temp >= STALL_TEMP_C &&
                           !std::isnan(this->rate_c_per_min_);
-    if (!eligible) {
+    if (!eligible || this->rate_c_per_min_ >= STALL_EXIT_RATE_C_PER_MIN) {
       this->stalled_ = false;
     } else if (this->rate_c_per_min_ < STALL_ENTER_RATE_C_PER_MIN) {
       this->stalled_ = true;
-    } else if (this->rate_c_per_min_ >= STALL_EXIT_RATE_C_PER_MIN) {
-      this->stalled_ = false;
     }
   }
 

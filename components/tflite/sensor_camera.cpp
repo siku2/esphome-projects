@@ -1,6 +1,7 @@
 #include "sensor_camera.h"
 
 #include <cmath>
+#include <numbers>
 #include <esphome/core/log.h>
 
 using namespace esphome::esphome_tflite;
@@ -90,7 +91,7 @@ static std::tuple<float, float> read_output_analog_continuous(const TfLiteTensor
   result = roundf(100.0f * result) / 100.0f;
   // Normalize to [0, 1]: the model outputs a [sin, cos] vector bounded to [-1, 1],
   // so the maximum magnitude is sqrt(2).
-  fit = sqrtf(f1 * f1 + f2 * f2) / float(M_SQRT2);
+  fit = sqrtf(f1 * f1 + f2 * f2) / std::numbers::sqrt2_v<float>;
   return {result, fit};
 }
 

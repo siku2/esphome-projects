@@ -10,8 +10,7 @@
 
 #define SYMBOL 640
 
-namespace esphome {
-namespace somfy_cover {
+namespace esphome::somfy_cover {
 using namespace esphome::cover;
 using namespace esphome::cc1101;
 
@@ -164,15 +163,15 @@ void SomfyCover::start_direction_(CoverOperation dir) {
     case COVER_OPERATION_IDLE:
       // My while idle moves the cover to its favourite position
       if (this->current_operation != COVER_OPERATION_IDLE)
-        this->send_command_(SomfyCommand::My);
+        this->send_command_(SomfyCommand::MY);
       break;
     case COVER_OPERATION_OPENING:
       this->last_operation_ = dir;
-      this->send_command_(SomfyCommand::Up);
+      this->send_command_(SomfyCommand::UP);
       break;
     case COVER_OPERATION_CLOSING:
       this->last_operation_ = dir;
-      this->send_command_(SomfyCommand::Down);
+      this->send_command_(SomfyCommand::DOWN);
       break;
     default:
       return;
@@ -211,7 +210,7 @@ void SomfyCover::recompute_position_() {
   this->last_recompute_time_ = now;
 }
 
-void SomfyCover::program() { this->send_command_(SomfyCommand::Prog); }
+void SomfyCover::program() { this->send_command_(SomfyCommand::PROG); }
 
 void SomfyCover::build_frame_(SomfyCommand command, uint16_t rolling_code, std::array<uint8_t, 7> &frame) {
   frame[0] = 0xA7;                                // Encryption key. Doesn't matter much
@@ -309,5 +308,4 @@ bool SomfyCover::get_next_rolling_code_(uint16_t &code) {
   return this->store_rolling_code_(this->rolling_code_);
 }
 
-}  // namespace somfy_cover
-}  // namespace esphome
+}  // namespace esphome::somfy_cover

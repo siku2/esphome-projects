@@ -103,17 +103,19 @@ void AW9523Component::pin_mode(uint8_t pin, gpio::Flags flags) {
     return;
 
   if (pin < 8) {
-    if (flags & gpio::FLAG_OUTPUT)
+    if (flags & gpio::FLAG_OUTPUT) {
       this->reg(AW9523_REG_CONFIG0) &= ~(1 << pin);
-    else
+    } else {
       this->reg(AW9523_REG_CONFIG0) |= (1 << pin);
+    }
 
     this->reg(AW9523_REG_LEDMODE0) |= (1 << pin);
   } else if (pin < 16) {
-    if (flags & gpio::FLAG_OUTPUT)
+    if (flags & gpio::FLAG_OUTPUT) {
       this->reg(AW9523_REG_CONFIG1) &= ~(1 << (pin - 8));
-    else
+    } else {
       this->reg(AW9523_REG_CONFIG1) |= (1 << (pin - 8));
+    }
 
     this->reg(AW9523_REG_LEDMODE1) |= (1 << (pin - 8));
   }
@@ -128,8 +130,9 @@ void AW9523Component::forward_interrupt(uint8_t pin, bool enable) {
   } else if (pin < 16) {
     addr = AW9523_REG_INTENABLE1;
     pin -= 8;
-  } else
+  } else {
     return;
+  }
 
   // 0-enable; 1-disable
   if (enable) {
@@ -147,16 +150,18 @@ void AW9523Component::digital_write_hw(uint8_t pin, bool bit_value) {
 
   if (pin < 8) {
     uint8_t value = (1 << pin);
-    if (bit_value)
+    if (bit_value) {
       this->reg(AW9523_REG_OUTPUT0) |= value;
-    else
+    } else {
       this->reg(AW9523_REG_OUTPUT0) &= ~value;
+    }
   } else if (pin < 16) {
     uint8_t value = (1 << (pin - 8));
-    if (bit_value)
+    if (bit_value) {
       this->reg(AW9523_REG_OUTPUT1) |= value;
-    else
+    } else {
       this->reg(AW9523_REG_OUTPUT1) &= ~value;
+    }
   }
 }
 

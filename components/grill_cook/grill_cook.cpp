@@ -9,11 +9,11 @@ namespace esphome::grill_cook {
 
 static const char *const TAG = "grill_cook";
 
-float GrillCook::sensor_state_or_nan_(sensor::Sensor *sensor) {
+float GrillCook::sensor_state_or_nan(sensor::Sensor *sensor) {
   return (sensor != nullptr && sensor->has_state()) ? sensor->state : NAN;
 }
 
-bool GrillCook::changed_(float value, float *memo) {
+bool GrillCook::changed(float value, float *memo) {
   const bool changed = std::isnan(value) != std::isnan(*memo) || (!std::isnan(value) && value != *memo);
   *memo = value;
   return changed;
@@ -30,10 +30,10 @@ float GrillCook::zone_target(Zone zone) const {
 }
 
 float GrillCook::zone_temperature(Zone zone) const {
-  return sensor_state_or_nan_(this->zones_[static_cast<size_t>(zone)].probe);
+  return sensor_state_or_nan(this->zones_[static_cast<size_t>(zone)].probe);
 }
 
-float GrillCook::meat_temperature() const { return sensor_state_or_nan_(this->meat_probe_); }
+float GrillCook::meat_temperature() const { return sensor_state_or_nan(this->meat_probe_); }
 
 std::string GrillCook::eta_clock() const {
   if (this->model_.phase() == Phase::DONE)
@@ -83,10 +83,10 @@ void GrillCook::recompute_(bool meat_fresh) {
     const auto *climate = this->zones_[z].climate;
     in.zone_on[z] = climate != nullptr && climate->mode != climate::CLIMATE_MODE_OFF;
     in.zone_target[z] = climate != nullptr ? climate->target_temperature : NAN;
-    in.zone_temp[z] = sensor_state_or_nan_(this->zones_[z].probe);
+    in.zone_temp[z] = sensor_state_or_nan(this->zones_[z].probe);
   }
 
-  in.meat_temp = sensor_state_or_nan_(this->meat_probe_);
+  in.meat_temp = sensor_state_or_nan(this->meat_probe_);
   in.meat_target = (this->meat_target_number_ != nullptr && this->meat_target_number_->has_state())
                        ? this->meat_target_number_->state
                        : NAN;
@@ -103,11 +103,11 @@ void GrillCook::recompute_(bool meat_fresh) {
 
     control_changed |= in.zone_on[z] != this->last_zone_on_[z];
     this->last_zone_on_[z] = in.zone_on[z];
-    control_changed |= changed_(in.zone_target[z], &this->last_zone_target_[z]);
-    measurement_changed |= changed_(in.zone_temp[z], &this->last_zone_temp_[z]);
+    control_changed |= changed(in.zone_target[z], &this->last_zone_target_[z]);
+    measurement_changed |= changed(in.zone_temp[z], &this->last_zone_temp_[z]);
   }
-  control_changed |= changed_(in.meat_target, &this->last_meat_target_);
-  measurement_changed |= changed_(in.meat_temp, &this->last_meat_temp_);
+  control_changed |= changed(in.meat_target, &this->last_meat_target_);
+  measurement_changed |= changed(in.meat_temp, &this->last_meat_temp_);
 
   if (presence_changed)
     this->zone_presence_trigger_.trigger();
@@ -140,7 +140,7 @@ void GrillCook::recompute_(bool meat_fresh) {
   }
 
   const float rate = std::round(this->model_.meat_rate() * 100.0f) / 100.0f;
-  if (changed_(rate, &this->last_meat_rate_)) {
+  if (changed(rate, &this->last_meat_rate_)) {
     measurement_changed = true;
     if (this->meat_rate_sensor_ != nullptr)
       this->meat_rate_sensor_->publish_state(rate);

@@ -108,30 +108,29 @@
 #define READ_BURST 0xC0       // read burst
 #define BYTES_IN_RXFIFO 0x7F  // byte number in RXfifo
 
-namespace esphome {
-namespace cc1101 {
+namespace esphome::cc1101 {
 static const char *const TAG = "cc1101";
 
 // 300 - 348
-static uint8_t PA_TABLE_315[8]{
+static const uint8_t PA_TABLE_315[8]{
     0x12, 0x0D, 0x1C, 0x34, 0x51, 0x85, 0xCB, 0xC2,
 };
 // 387 - 464
-static uint8_t PA_TABLE_433[8]{
+static const uint8_t PA_TABLE_433[8]{
     0x12, 0x0E, 0x1D, 0x34, 0x60, 0x84, 0xC8, 0xC0,
 };
 // 779 - 899.99
 //  -30   -20   -15   -10   -6    0     5     7     10    12
-static uint8_t PA_TABLE_868[10]{
+static const uint8_t PA_TABLE_868[10]{
     0x03, 0x17, 0x1D, 0x26, 0x37, 0x50, 0x86, 0xCD, 0xC5, 0xC0,
 };
 // 900 - 928
 //  -30   -20   -15   -10   -6    0     5     7     10    11
-static uint8_t PA_TABLE_915[10]{
+static const uint8_t PA_TABLE_915[10]{
     0x03, 0x0E, 0x1E, 0x27, 0x38, 0x8E, 0x84, 0xCC, 0xC3, 0xC0,
 };
 
-long map(long x, long in_min, long in_max, long out_min, long out_max) {
+int32_t map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
@@ -544,5 +543,4 @@ void Cc1101::write_pa_() {
   }
   this->write_burst_reg_(CC1101_PATABLE, pa_table, 8);
 }
-}  // namespace cc1101
-}  // namespace esphome
+}  // namespace esphome::cc1101
