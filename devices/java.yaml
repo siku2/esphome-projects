@@ -3,7 +3,7 @@ packages:
     file: "../projects/yamaha-receiver/esp32.yaml"
     vars:
       name: "bean-java"
-      friendly_name: "YAHAMA Receiver"
+      friendly_name: "YAMAHA Receiver"
       language: "de"
 
       api_encryption_key: !secret java_api_encryption_key
