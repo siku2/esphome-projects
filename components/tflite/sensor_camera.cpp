@@ -94,25 +94,34 @@ static std::tuple<float, float> read_output_analog_continuous(const TfLiteTensor
   return {result, fit};
 }
 
-static void feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, const Rect &crop) {
+static bool feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, const Rect &crop) {
   if (input.type != kTfLiteFloat32) {
     ESP_LOGE(TAG, "Input tensor expected to be of type float32");
-    return;
+    return false;
   }
   if (input.dims->size != 4) {
     ESP_LOGE(TAG, "Input tensor expected to have 4 dimensions (NHWC)");
-    return;
+    return false;
   }
   if (input.dims->data[1] <= 0 || input.dims->data[2] <= 0) {
     ESP_LOGE(TAG, "Input tensor has invalid dimensions");
-    return;
+    return false;
   }
   uint16_t target_h = input.dims->data[1];
   uint16_t target_w = input.dims->data[2];
   int channels = input.dims->data[3];
   if (channels != 3) {
     ESP_LOGE(TAG, "Input tensor expected to have 3 channels (RGB)");
-    return;
+    return false;
+  }
+  if (input.bytes < static_cast<size_t>(target_h) * target_w * channels * sizeof(float)) {
+    ESP_LOGE(TAG, "Input tensor is smaller than its dimensions");
+    return false;
+  }
+  if (crop.bottom_right.x <= crop.top_left.x || crop.bottom_right.y <= crop.top_left.y ||
+      crop.bottom_right.x > snapshot.width() || crop.bottom_right.y > snapshot.height()) {
+    ESP_LOGE(TAG, "Crop region lies outside the %ux%u snapshot", snapshot.width(), snapshot.height());
+    return false;
   }
 
   uint16_t crop_w = crop.width();
@@ -173,6 +182,7 @@ static void feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, con
       model_input[out_pixel_idx + 2] = static_cast<float>(color.b);
     }
   }
+  return true;
 }
 
 bool CameraSnapshotSensor::is_listening() const {
@@ -185,7 +195,10 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
   if (this->is_failed())
     return;
 
-  MicroInterpreter &interpreter = this->interpreter_component_->interpreter().value();
+  auto &interpreter_opt = this->interpreter_component_->interpreter();
+  if (this->interpreter_component_->is_failed() || !interpreter_opt.has_value())
+    return;
+  MicroInterpreter &interpreter = *interpreter_opt;
 
   TfLiteTensor *input = interpreter.input(0);
   if (!input) {
@@ -195,7 +208,10 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
 
   switch (this->input_format_) {
     case INPUT_FORMAT_NHWC3:
-      feed_tensor_nhwc3(*input, snapshot, this->crop_);
+      if (!feed_tensor_nhwc3(*input, snapshot, this->crop_)) {
+        ESP_LOGW(TAG, "Skipping inference: could not prepare the input tensor");
+        return;
+      }
       break;
     default:
       ESP_LOGE(TAG, "Unsupported input tensor format");
