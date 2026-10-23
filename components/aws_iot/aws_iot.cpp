@@ -92,7 +92,9 @@ void AwsIotClient::stop_task_(void *arg) {
   auto *that = static_cast<AwsIotClient *>(arg);
   esp_mqtt_client_handle_t client = that->client_.exchange(nullptr);
   // A publish that is still running holds the mutex. Wait for it before the client goes away.
-  { LockGuard guard(that->client_mutex_); }
+  {
+    LockGuard guard(that->client_mutex_);
+  }
   if (client != nullptr) {
     esp_mqtt_client_stop(client);
     esp_mqtt_client_destroy(client);
@@ -113,11 +115,13 @@ void AwsIotClient::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "AWS IoT:\n"
                 "  Endpoint: %s:%u\n"
-                "  Client ID: %s\n"
                 "  Username: %s\n"
+                "  Credentials: %s\n"
                 "  Enabled: %s",
-                this->endpoint_.c_str(), this->port_, this->client_id_.c_str(), this->username_.c_str(),
+                this->endpoint_.c_str(), this->port_, this->username_.c_str(), YESNO(this->has_credentials_()),
                 YESNO(this->enabled_));
+  if (!this->client_id_.empty())
+    ESP_LOGCONFIG(TAG, "  Client ID: %s", this->client_id_.c_str());
 }
 
 esp_mqtt_client_config_t AwsIotClient::make_config_(bool clean_session) const {
@@ -141,7 +145,16 @@ esp_mqtt_client_config_t AwsIotClient::make_config_(bool clean_session) const {
 }
 
 void AwsIotClient::start_client_() {
-  if (!this->enabled_ || this->client_ != nullptr || this->busy_.exchange(true))
+  if (!this->enabled_ || this->client_ != nullptr)
+    return;
+  if (!this->has_credentials_()) {
+    if (!this->warned_no_credentials_) {
+      ESP_LOGW(TAG, "No credentials, not connecting");
+      this->warned_no_credentials_ = true;
+    }
+    return;
+  }
+  if (this->busy_.exchange(true))
     return;
   this->cancel_timeout("start");
   if (xTaskCreate(&AwsIotClient::start_task_, "aws_iot_start", TASK_STACK_SIZE, this, 1, nullptr) != pdPASS) {
@@ -403,9 +416,7 @@ void AwsIotClient::subscribe_all_(esp_mqtt_client_handle_t client) {
   }
 }
 
-void AwsIotClient::push_event_(Event &&event) {
-  this->events_.post(std::move(event));
-}
+void AwsIotClient::push_event_(Event &&event) { this->events_.post(std::move(event)); }
 
 }  // namespace esphome::aws_iot
 

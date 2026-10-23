@@ -106,6 +106,9 @@ class AwsIotClient : public Component {
   void retry_start_();
   void on_connected_();
   void on_message_(const std::string &topic, const std::string &payload);
+  bool has_credentials_() const {
+    return !this->client_id_.empty() && !this->certificate_.empty() && !this->private_key_.empty();
+  }
 
   std::string endpoint_;
   uint16_t port_{8883};
@@ -124,6 +127,7 @@ class AwsIotClient : public Component {
   std::atomic<bool> busy_{false};
   std::atomic<bool> session_opened_{false};
   bool setup_done_{false};
+  bool warned_no_credentials_{false};
 
   Mutex subscriptions_mutex_;
   std::vector<Subscription> subscriptions_;

@@ -56,9 +56,9 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(): cv.declare_id(AwsIotClient),
             cv.Required(CONF_ENDPOINT): cv.domain,
             cv.Optional(CONF_PORT, default=8883): cv.port,
-            cv.Required(CONF_CLIENT_ID): cv.All(cv.string_strict, cv.Length(min=1)),
-            cv.Required(CONF_CERTIFICATE): pem,
-            cv.Required(CONF_PRIVATE_KEY): cv.sensitive(pem),
+            cv.Optional(CONF_CLIENT_ID): cv.All(cv.string_strict, cv.Length(min=1)),
+            cv.Optional(CONF_CERTIFICATE): pem,
+            cv.Optional(CONF_PRIVATE_KEY): cv.sensitive(pem),
             cv.Optional(CONF_ROOT_CA): pem,
             cv.Optional(CONF_USERNAME): cv.string_strict,
             cv.Required(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
@@ -89,9 +89,12 @@ async def to_code(config: ConfigType) -> None:
 
     cg.add(var.set_endpoint(config[CONF_ENDPOINT]))
     cg.add(var.set_port(config[CONF_PORT]))
-    cg.add(var.set_client_id(config[CONF_CLIENT_ID]))
-    cg.add(var.set_certificate(config[CONF_CERTIFICATE]))
-    cg.add(var.set_private_key(config[CONF_PRIVATE_KEY]))
+    if client_id := config.get(CONF_CLIENT_ID):
+        cg.add(var.set_client_id(client_id))
+    if certificate := config.get(CONF_CERTIFICATE):
+        cg.add(var.set_certificate(certificate))
+    if private_key := config.get(CONF_PRIVATE_KEY):
+        cg.add(var.set_private_key(private_key))
     if root_ca := config.get(CONF_ROOT_CA):
         cg.add(var.set_root_ca(root_ca))
     if username := config.get(CONF_USERNAME):
