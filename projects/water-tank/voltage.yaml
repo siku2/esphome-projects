@@ -1,0 +1,21 @@
+sensor:
+# Pressure sensor, see: <https://www.dfrobot.com/product-1863.html>
+- id: "${tank_id}_raw_voltage"
+  name: "${name_voltage}"
+  accuracy_decimals: 3
+  entity_category: "DIAGNOSTIC"
+  filters:
+  - sliding_window_moving_average:
+      window_size: "${window_size}"
+      send_every: "${send_every}"
+      send_first_at: "${send_every}"
+  - delta: 0.0005
+  - round: 3
+  - timeout:
+      timeout: "60s"
+      value: "last"
+  platform: "adc"
+  pin: "${adc_pin}"
+  attenuation: "${attenuation}"
+  samples: "${samples}"
+  update_interval: "${sample_interval}"

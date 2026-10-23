@@ -1,0 +1,86 @@
+substitutions:
+  language: "en"
+  i18n:
+    watertank:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
+
+switch:
+- id: "${tank_id}_level_full_supply"
+  internal: true
+  restore_mode: "ALWAYS_ON"
+  platform: "gpio"
+  pin: "${full_supply_pin}"
+
+- id: "${tank_id}_auto_calibrate"
+  name: "${tank_name} ${i18n.watertank[language].auto_calibrate}"
+  restore_mode: "RESTORE_DEFAULT_ON"
+  entity_category: "CONFIG"
+  device_class: "switch"
+  platform: "template"
+  optimistic: true
+  assumed_state: true
+
+binary_sensor:
+- id: "${tank_id}_level_full"
+  name: "${tank_name} ${i18n.watertank[language].level_full}"
+  platform: "gpio"
+  pin:
+    number: "${full_pin}"
+    inverted: true
+    mode:
+      input: true
+      pulldown: true
+  on_state:
+    then:
+    - binary_sensor.template.publish:
+        id: "${tank_id}_full"
+        state: !lambda "return x;"
+  # As soon as the tank is no longer full, take a voltage reading and update the "full voltage" value.
+  on_release:
+    then:
+    - if:
+        condition:
+        - switch.is_on: "${tank_id}_auto_calibrate"
+        then:
+        - component.update: "${tank_id}_raw_voltage"
+        - number.set:
+            id: "${tank_id}_voltage_full"
+            value: !lambda |-
+              return id(${tank_id}_raw_voltage).state;
+        - event.trigger:
+            id: "${tank_id}_diag"
+            event_type: "auto_calibrated_full"
+
+- id: "${tank_id}_level_empty"
+  name: "${tank_name} ${i18n.watertank[language].level_empty}"
+  platform: "homeassistant"
+  entity_id: "${empty_entity_id}"
+  on_state:
+    then:
+    - binary_sensor.template.publish:
+        id: "${tank_id}_empty"
+        state: !lambda "return x;"
+  # As soon as the tank is no longer empty, take a voltage reading and update the "empty voltage" value.
+  on_release:
+    then:
+    - if:
+        condition:
+        - switch.is_on: "${tank_id}_auto_calibrate"
+        then:
+        - component.update: "${tank_id}_raw_voltage"
+        - number.set:
+            id: "${tank_id}_voltage_empty"
+            value: !lambda |-
+              return id(${tank_id}_raw_voltage).state;
+        - event.trigger:
+            id: "${tank_id}_diag"
+            event_type: "auto_calibrated_empty"
+
+event:
+- id: "${tank_id}_diag"
+  name: "${i18n.watertank[language].diagnostic_events}"
+  platform: "template"
+  event_types:
+  - "auto_calibrated_full"
+  - "auto_calibrated_empty"

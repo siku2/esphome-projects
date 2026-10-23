@@ -1,0 +1,33 @@
+remote_transmitter:
+  pin: "${transmitter_pin}"
+  carrier_duty_percent: "50%"
+  non_blocking: true
+
+switch:
+- id: "sw_ac_power"
+  on_turn_on:
+    then:
+    - delay: "2s"
+    # Force the climate to re-transmit the state.
+    - climate.control:
+        id: "climate_main"
+  on_turn_off:
+    then:
+    - climate.control:
+        id: "climate_main"
+        mode: "OFF"
+  platform: "homeassistant"
+  entity_id: "${power_switch_entity_id}"
+
+climate:
+- id: "climate_main"
+  platform: "coolix"
+  name: "${climate_name}"
+  on_control:
+    then:
+    - if:
+        condition:
+          lambda: !lambda |-
+            return x.get_mode() != CLIMATE_MODE_OFF;
+        then:
+        - switch.turn_on: "sw_ac_power"

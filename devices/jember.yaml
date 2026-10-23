@@ -4,11 +4,41 @@ substitutions:
 
 packages:
   base: !include "../packages/base/device.yaml"
+  tank: !include
+    file: "../projects/water-tank/tank.yaml"
+    vars:
+      tank_id: "wt"
+      tank_name: "Wassertank"
+      adc_pin: "GPIO35"
+      # Around 1.5 V when full
+      attenuation: "6db"
+      samples: 10
+      sample_interval: "1s"
+      window_size: 60
+      send_every: 30
+      voltage_max: 1.8
+      initial_voltage_empty: 1.0
+      initial_voltage_full: 1.0
+      initial_volume_full: 1.0
+      name_voltage: "Wassertank Raw Voltage"
+      name_percentage: "Wassertank"
+      name_volume: "Wassertank Volumen"
+      name_volume_full: "Wassertank Volumen"
+  tank_2: !include
+    file: "../projects/water-tank/voltage.yaml"
+    vars:
+      tank_id: "wt2"
+      adc_pin: "GPIO34"
+      attenuation: "6db"
+      samples: 10
+      sample_interval: "1s"
+      window_size: 60
+      send_every: 30
+      name_voltage: "Wassertank 2 Raw Voltage"
 
 esphome:
-  name: "esp-jember"
+  name: "bean-jember"
   friendly_name: "Jember"
-  merge_warnings: false
 
 esp32:
   board: "esp32dev"
@@ -30,112 +60,3 @@ light:
   num_leds: 365
   channel_colors: "GRB"
   chipset: "WS2812"
-
-sensor:
-- &wt_raw_voltage
-  id: "wt_raw_voltage"
-  name: "Wassertank Raw Voltage"
-  accuracy_decimals: 3
-  entity_category: "DIAGNOSTIC"
-  filters:
-  - sliding_window_moving_average:
-      # Include the last minute of samples
-      window_size: 60
-      # And emit a value every 30s
-      send_every: 30
-      send_first_at: 30
-  - delta: 0.0005
-  - round: 3
-  - timeout:
-      timeout: "60s"
-      value: "last"
-  platform: "adc"
-  pin: "GPIO35"
-  # We saw around 1.5 V when full
-  attenuation: "6db"
-  samples: 10
-  update_interval: "1s"
-
-- <<: *wt_raw_voltage
-  id: "wt2_raw_voltage"
-  name: "Wassertank 2 Raw Voltage"
-  pin: "GPIO34"
-
-- id: "wt_fill_percentage"
-  name: "Wassertank"
-  unit_of_measurement: "%"
-  device_class: ""
-  state_class: "measurement"
-  accuracy_decimals: 0
-  entity_category: ""
-  filters:
-  - lambda: !lambda |
-      float min = id(wt_voltage_empty).state;
-      float max = id(wt_voltage_full).state;
-      return (x - min) / (max - min);
-  - clamp:
-      min_value: 0.0
-      max_value: 1.0
-  - multiply: 100.0
-  - round: 0
-  - delta: 0.5
-  - timeout:
-      timeout: "60s"
-      value: "last"
-  platform: "copy"
-  source_id: "wt_raw_voltage"
-
-- id: "wt_fill_volume"
-  name: "Wassertank Volumen"
-  unit_of_measurement: "L"
-  device_class: "volume"
-  state_class: "measurement"
-  accuracy_decimals: 0
-  entity_category: ""
-  filters:
-    # First we need to go back from 0..=100 to 0..=1
-  - multiply: 0.01 
-  - multiply: !lambda 'return id(wt_volume).state;'
-  - round: 0
-  - delta: 0.5
-  - timeout:
-      timeout: "60s"
-      value: "last"
-  platform: "copy"
-  source_id: "wt_fill_percentage"
-
-number:
-- &wt_voltage_empty
-  id: "wt_voltage_empty"
-  name: "Wassertank Spannung Leer"
-  entity_category: "CONFIG"
-  unit_of_measurement: "V"
-  device_class: "voltage"
-  on_value:
-    then:
-    - lambda: !lambda |
-        // Re-publish the current voltage to trigger recalc.
-        float voltage = id(wt_raw_voltage).state;
-        id(wt_fill_percentage)->publish_state(voltage);
-  platform: "template"
-  min_value: 0.0
-  max_value: 1.8
-  update_interval: "never"
-  optimistic: true
-  step: 0.001
-  restore_value: true
-  initial_value: 1.0
-
-- <<: *wt_voltage_empty
-  id: "wt_voltage_full"
-  name: "Wassertank Spannung Voll"
-
-- <<: *wt_voltage_empty
-  id: "wt_volume"
-  name: "Wassertank Volumen"
-  unit_of_measurement: "L"
-  device_class: "volume"
-  on_value: {} # clear from parent
-  min_value: 0
-  max_value: 10000
-  step: 1

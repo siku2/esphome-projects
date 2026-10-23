@@ -1,0 +1,6 @@
+voltage_empty: "Spannung Leer"
+voltage_full: "Spannung Voll"
+level_full: "Voll"
+level_empty: "leer"
+auto_calibrate: "Autokalibrierung"
+diagnostic_events: "Diagnostic Events"

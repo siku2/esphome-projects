@@ -1,0 +1,129 @@
+substitutions:
+  language: "en"
+  i18n:
+    watertank:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
+
+packages:
+  voltage: !include voltage.yaml
+
+sensor:
+- id: "${tank_id}_fill_percentage"
+  name: "${name_percentage}"
+  unit_of_measurement: "%"
+  device_class: ""
+  state_class: "measurement"
+  entity_category: ""
+  icon: "mdi:percent"
+  accuracy_decimals: 0
+  filters:
+  - lambda: !lambda |-
+      if (id(${tank_id}_full).state) return 1.0f;
+      if (id(${tank_id}_empty).state) return 0.0f;
+      float min = id(${tank_id}_voltage_empty).state;
+      float max = id(${tank_id}_voltage_full).state;
+      return (x - min) / (max - min);
+  - clamp:
+      min_value: 0.0
+      max_value: 1.0
+  - multiply: 100.0
+  - round: 0
+  - delta: 0.5
+  - timeout:
+      timeout: "60s"
+      value: "last"
+  platform: "copy"
+  source_id: "${tank_id}_raw_voltage"
+
+- id: "${tank_id}_fill_volume"
+  name: "${name_volume}"
+  unit_of_measurement: "L"
+  device_class: "volume"
+  state_class: "measurement"
+  entity_category: ""
+  icon: "mdi:water-well"
+  accuracy_decimals: 0
+  filters:
+  # Go back from 0..=100 to 0..=1
+  - multiply: 0.01
+  - multiply: !lambda "return id(${tank_id}_volume_full).state;"
+  - round: 0
+  - delta: 0.5
+  - timeout:
+      timeout: "60s"
+      value: "last"
+  platform: "copy"
+  source_id: "${tank_id}_fill_percentage"
+
+binary_sensor:
+- id: "${tank_id}_full"
+  internal: true
+  on_state:
+    then:
+    - lambda: !lambda |-
+        id(${tank_id}_fill_percentage)->publish_state(id(${tank_id}_raw_voltage).state);
+  platform: "template"
+
+- id: "${tank_id}_empty"
+  internal: true
+  on_state:
+    then:
+    - lambda: !lambda |-
+        id(${tank_id}_fill_percentage)->publish_state(id(${tank_id}_raw_voltage).state);
+  platform: "template"
+
+number:
+- id: "${tank_id}_voltage_empty"
+  name: "${tank_name} ${i18n.watertank[language].voltage_empty}"
+  entity_category: "CONFIG"
+  unit_of_measurement: "V"
+  device_class: "voltage"
+  on_value:
+    then:
+    - lambda: !lambda |-
+        id(${tank_id}_fill_percentage)->publish_state(id(${tank_id}_raw_voltage).state);
+  platform: "template"
+  min_value: 0.0
+  max_value: "${voltage_max}"
+  update_interval: "never"
+  optimistic: true
+  step: 0.001
+  restore_value: true
+  initial_value: "${initial_voltage_empty}"
+
+- id: "${tank_id}_voltage_full"
+  name: "${tank_name} ${i18n.watertank[language].voltage_full}"
+  entity_category: "CONFIG"
+  unit_of_measurement: "V"
+  device_class: "voltage"
+  on_value:
+    then:
+    - lambda: !lambda |-
+        id(${tank_id}_fill_percentage)->publish_state(id(${tank_id}_raw_voltage).state);
+  platform: "template"
+  min_value: 0.0
+  max_value: "${voltage_max}"
+  update_interval: "never"
+  optimistic: true
+  step: 0.001
+  restore_value: true
+  initial_value: "${initial_voltage_full}"
+
+- id: "${tank_id}_volume_full"
+  name: "${name_volume_full}"
+  entity_category: "CONFIG"
+  unit_of_measurement: "L"
+  device_class: "volume"
+  on_value:
+    then:
+    - lambda: !lambda |-
+        id(${tank_id}_fill_volume)->publish_state(id(${tank_id}_fill_percentage).state);
+  platform: "template"
+  min_value: 0
+  max_value: 10000
+  update_interval: "never"
+  optimistic: true
+  step: 1
+  restore_value: true
+  initial_value: "${initial_volume_full}"

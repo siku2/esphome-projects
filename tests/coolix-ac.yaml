@@ -1,0 +1,23 @@
+substitutions:
+  name: "test-coolix-ac"
+  friendly_name: "Test Coolix AC"
+  language: "de"
+  api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
+
+packages:
+  base: !include ../packages/base/device.yaml
+  ac: !include
+    file: "../projects/coolix-ac/ac.yaml"
+    vars:
+      transmitter_pin: 14
+      climate_name: "Test Air Conditioner"
+      power_switch_entity_id: "switch.test_air_conditioner"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+
+esp32:
+  board: "esp32dev"
+  framework:
+    type: "esp-idf"
