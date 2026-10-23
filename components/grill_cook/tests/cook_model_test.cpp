@@ -599,6 +599,28 @@ void test_zone_presence_debounce() {
   assert(model.zone_present(Zone::WEST));
 }
 
+void test_next_deadline_follows_debounce_and_auto_end() {
+  CookModel model;
+  uint32_t deadline = 0;
+  model.update(zone_inputs(0, 20.0f, 20.0f));
+  assert(!model.next_deadline_s(&deadline));
+
+  model.update(zone_inputs(5, NAN, 20.0f));
+  assert(model.next_deadline_s(&deadline) && deadline == 15);
+  model.update(zone_inputs(8, 20.0f, 20.0f));
+  assert(!model.next_deadline_s(&deadline));
+
+  model.start();
+  model.update(make_inputs(100, false, false, 20.0f, NAN, 90.0f));
+  assert(model.next_deadline_s(&deadline) && deadline == 400);
+  model.update(make_inputs(200, true, false, 20.0f, NAN, 90.0f));
+  assert(!model.next_deadline_s(&deadline));
+  model.update(make_inputs(210, false, false, 20.0f, NAN, 90.0f));
+  assert(model.next_deadline_s(&deadline) && deadline == 510);
+  model.end();
+  assert(!model.next_deadline_s(&deadline));
+}
+
 void test_zone_presence_glitch_is_ignored() {
   CookModel model;
   model.update(zone_inputs(0, 20.0f, 20.0f));
@@ -794,6 +816,7 @@ int main() {
   test_history_survives_cook_start_and_end();
   test_zone_presence_takes_first_sample();
   test_zone_presence_debounce();
+  test_next_deadline_follows_debounce_and_auto_end();
   test_zone_presence_glitch_is_ignored();
   test_absent_zone_is_not_grilling();
   test_cold_meat_that_never_warmed_survives();

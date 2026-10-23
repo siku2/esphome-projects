@@ -87,6 +87,7 @@ class GrillCook : public Component {
   static bool changed_(float value, float *memo);
 
   void recompute_(bool meat_fresh);
+  void arm_deadline_(uint32_t now_s);
 
   time::RealTimeClock *time_{nullptr};
   ZoneIo zones_[2]{};

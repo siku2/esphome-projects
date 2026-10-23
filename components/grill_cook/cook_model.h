@@ -109,6 +109,23 @@ class CookModel {
 
   bool is_cooking() const { return this->cooking_; }
 
+  // The earliest time at which update() changes state without new input values.
+  bool next_deadline_s(uint32_t *t_s) const {
+    bool found = false;
+    const auto consider = [&](uint32_t deadline_s) {
+      if (!found || static_cast<int32_t>(deadline_s - *t_s) < 0)
+        *t_s = deadline_s;
+      found = true;
+    };
+    if (this->cooking_ && this->off_since_valid_)
+      consider(this->off_since_s_ + AUTO_END_S);
+    for (size_t z = 0; z < 2; z++) {
+      if (this->presence_change_pending_[z])
+        consider(this->presence_change_since_s_[z] + ZONE_PRESENCE_DEBOUNCE_S);
+    }
+    return found;
+  }
+
   bool zone_present(Zone zone) const { return this->zone_present_[static_cast<size_t>(zone)]; }
 
   Phase phase() const {

@@ -159,6 +159,8 @@ void GrillCook::recompute_(bool meat_fresh) {
   if (measurement_changed)
     this->measurement_trigger_.trigger();
 
+  this->arm_deadline_(in.t_s);
+
   // The climate callback calls back into this method, so this comes last.
   for (size_t z = 0; z < 2; z++) {
     auto *climate = this->zones_[z].climate;
@@ -166,6 +168,18 @@ void GrillCook::recompute_(bool meat_fresh) {
       climate->make_call().set_mode(climate::CLIMATE_MODE_OFF).perform();
     }
   }
+}
+
+void GrillCook::arm_deadline_(uint32_t now_s) {
+  uint32_t deadline_s;
+  if (!this->model_.next_deadline_s(&deadline_s)) {
+    this->cancel_timeout("deadline");
+    return;
+  }
+  const uint32_t wait_s = deadline_s - now_s;
+  const uint32_t into_second_ms = static_cast<uint32_t>(millis_64() % 1000);
+  const uint32_t delay_ms = (wait_s == 0 || wait_s > INT32_MAX) ? 0 : wait_s * 1000 - into_second_ms;
+  this->set_timeout("deadline", delay_ms, [this]() { this->recompute_(false); });
 }
 
 }  // namespace esphome::grill_cook
