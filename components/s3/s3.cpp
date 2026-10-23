@@ -7,6 +7,7 @@
 #include <sdkconfig.h>
 
 #include <ctime>
+#include <utility>
 
 #if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
 #include <esp_crt_bundle.h>
@@ -110,8 +111,32 @@ static std::string host_header(const std::string &endpoint) {
   return host;
 }
 
+static bool is_valid_endpoint(const std::string &endpoint) {
+  const bool scheme = endpoint.rfind("http://", 0) == 0 || endpoint.rfind("https://", 0) == 0;
+  return scheme && !host_header(endpoint).empty();
+}
+
+void S3Client::set_location(const std::string &endpoint, const std::string &bucket) {
+  std::string normalized = endpoint;
+  if (!normalized.empty() && normalized.back() == '/')
+    normalized.pop_back();
+  if (!normalized.empty() && !is_valid_endpoint(normalized)) {
+    ESP_LOGW(TAG, "Invalid endpoint '%s', treating it as empty", endpoint.c_str());
+    normalized.clear();
+  }
+  {
+    LockGuard guard(this->location_mutex_);
+    if (normalized == this->endpoint_ && bucket == this->bucket_)
+      return;
+    this->endpoint_ = normalized;
+    this->bucket_ = bucket;
+    this->host_ = normalized.empty() ? "" : host_header(normalized);
+    this->recreate_client_ = true;
+  }
+  this->config_callbacks_.call();
+}
+
 void S3Client::setup() {
-  this->host_ = host_header(this->endpoint_);
   if (xTaskCreatePinnedToCore(task_entry_, "s3", TASK_STACK_SIZE, this, TASK_PRIORITY, &this->task_, TASK_CORE) !=
       pdPASS) {
     ESP_LOGE(TAG, "Creating the worker task failed");
@@ -128,10 +153,11 @@ void S3Client::dump_config() {
                 "  Endpoint: %s\n"
                 "  Bucket: %s\n"
                 "  Region: %s\n"
-                "  Access key ID: %s\n"
+                "  Credentials: %s\n"
                 "  Custom root CA: %s",
-                this->endpoint_.c_str(), this->bucket_.c_str(), this->region_.c_str(), this->access_key_id_.c_str(),
-                YESNO(!this->root_ca_.empty()));
+                this->endpoint_.empty() ? "not set" : this->endpoint_.c_str(),
+                this->bucket_.empty() ? "not set" : this->bucket_.c_str(), this->region_.c_str(),
+                YESNO(this->has_credentials()), YESNO(!this->root_ca_.empty()));
 }
 
 void S3Client::put(const std::string &key, std::shared_ptr<const std::string> body, const char *content_type,
@@ -147,6 +173,14 @@ void S3Client::put(const std::string &key, const uint8_t *data, size_t length, s
 }
 
 void S3Client::enqueue_(Request &&request) {
+  if (!this->is_configured()) {
+    if (!this->warned_not_configured_) {
+      ESP_LOGW(TAG, "Credentials, endpoint or bucket missing, rejecting requests");
+      this->warned_not_configured_ = true;
+    }
+    this->defer([done = std::move(request.done)]() { done(false, 0); });
+    return;
+  }
   if (!this->is_failed() && this->requests_.post(std::move(request)))
     return;
   ESP_LOGW(TAG, "Request queue is full or the worker failed, rejecting %s", request.key.c_str());
@@ -169,10 +203,10 @@ void S3Client::task_main_() {
   }
 }
 
-bool S3Client::create_client_() {
+bool S3Client::create_client_(const Location &location) {
   esp_http_client_config_t config{};
-  config.url = this->endpoint_.c_str();
-  const bool tls = this->endpoint_.rfind("https://", 0) == 0;
+  config.url = location.endpoint.c_str();
+  const bool tls = location.endpoint.rfind("https://", 0) == 0;
   config.transport_type = tls ? HTTP_TRANSPORT_OVER_SSL : HTTP_TRANSPORT_OVER_TCP;
   config.timeout_ms = TIMEOUT_MS;
   config.buffer_size = RX_BUFFER_SIZE;
@@ -202,7 +236,7 @@ void S3Client::destroy_client_() {
   }
 }
 
-bool S3Client::sign_(const Request &request, const std::string &path) {
+bool S3Client::sign_(const Request &request, const Location &location, const std::string &path) {
   const time_t now = ::time(nullptr);
   tm utc{};
   gmtime_r(&now, &utc);
@@ -221,7 +255,7 @@ bool S3Client::sign_(const Request &request, const std::string &path) {
   }
 
   const std::string payload_hash = sha256_hex(request.data, request.length);
-  const std::string authorization = build_authorization(this->access_key_id_, this->region_, this->host_, path,
+  const std::string authorization = build_authorization(this->access_key_id_, this->region_, location.host, path,
                                                         date_time, payload_hash, this->signing_key_);
 
   esp_http_client_set_header(this->client_, "x-amz-date", date_time.c_str());
@@ -230,12 +264,12 @@ bool S3Client::sign_(const Request &request, const std::string &path) {
   return true;
 }
 
-esp_err_t S3Client::perform_(const Request &request, int &status) {
+esp_err_t S3Client::perform_(const Request &request, const Location &location, int &status) {
   status = 0;
-  const std::string path = "/" + uri_encode(this->bucket_, false) + "/" + uri_encode(request.key, true);
-  if (!this->sign_(request, path))
+  const std::string path = "/" + uri_encode(location.bucket, false) + "/" + uri_encode(request.key, true);
+  if (!this->sign_(request, location, path))
     return ESP_ERR_INVALID_STATE;
-  const std::string url = this->endpoint_ + path;
+  const std::string url = location.endpoint + path;
   esp_http_client_set_url(this->client_, url.c_str());
   esp_http_client_set_method(this->client_, HTTP_METHOD_PUT);
   esp_http_client_set_header(this->client_, "Content-Type", request.content_type);
@@ -248,18 +282,29 @@ esp_err_t S3Client::perform_(const Request &request, int &status) {
 
 S3Client::Result S3Client::execute_(Request &request) {
   Result result{std::move(request.done), std::move(request.keep_alive), false, 0};
-  if (this->client_ == nullptr && !this->create_client_())
+  Location location;
+  bool recreate;
+  {
+    LockGuard guard(this->location_mutex_);
+    location = {this->endpoint_, this->bucket_, this->host_};
+    recreate = std::exchange(this->recreate_client_, false);
+  }
+  if (recreate)
+    this->destroy_client_();
+  if (location.endpoint.empty() || location.bucket.empty())
+    return result;
+  if (this->client_ == nullptr && !this->create_client_(location))
     return result;
 
-  esp_err_t err = this->perform_(request, result.status);
+  esp_err_t err = this->perform_(request, location, result.status);
   if (err == ESP_ERR_INVALID_STATE)
     return result;
   if (err != ESP_OK && this->client_used_) {
     // The server may have closed the idle connection, so try once more on a new one.
     this->destroy_client_();
-    if (!this->create_client_())
+    if (!this->create_client_(location))
       return result;
-    err = this->perform_(request, result.status);
+    err = this->perform_(request, location, result.status);
   }
   this->client_used_ = true;
   if (err != ESP_OK) {

@@ -39,29 +39,22 @@ def endpoint_url(value: object) -> str:
     return value.rstrip("/")
 
 
-def _require_ca_for_https(config: ConfigType) -> ConfigType:
-    if CONF_ROOT_CA in config and not config[CONF_ENDPOINT].startswith("https://"):
-        raise cv.Invalid("root_ca only applies to https endpoints")
-    return config
-
-
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(S3Client),
-            cv.Required(CONF_ENDPOINT): endpoint_url,
-            cv.Required(CONF_BUCKET): cv.All(cv.string_strict, cv.Length(min=1)),
+            cv.Optional(CONF_ENDPOINT): endpoint_url,
+            cv.Optional(CONF_BUCKET): cv.All(cv.string_strict, cv.Length(min=1)),
             cv.Optional(CONF_REGION, default="garage"): cv.All(
                 cv.string_strict, cv.Length(min=1)
             ),
-            cv.Required(CONF_ACCESS_KEY_ID): cv.All(cv.string_strict, cv.Length(min=1)),
-            cv.Required(CONF_SECRET_ACCESS_KEY): cv.sensitive(
+            cv.Optional(CONF_ACCESS_KEY_ID): cv.All(cv.string_strict, cv.Length(min=1)),
+            cv.Optional(CONF_SECRET_ACCESS_KEY): cv.sensitive(
                 cv.All(cv.string_strict, cv.Length(min=1))
             ),
             cv.Optional(CONF_ROOT_CA): pem,
         }
     ).extend(cv.COMPONENT_SCHEMA),
-    _require_ca_for_https,
     cv.only_with_framework("esp-idf"),
 )
 
@@ -71,16 +64,19 @@ async def to_code(config: ConfigType) -> None:
     esp32.include_builtin_idf_component("esp-tls")
     # Keeps idle TLS sessions small, which matters with AWS IoT on the same heap.
     esp32.add_idf_sdkconfig_option("CONFIG_MBEDTLS_DYNAMIC_BUFFER", True)
+    esp32.require_certificate_bundle()
 
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    cg.add(var.set_endpoint(config[CONF_ENDPOINT]))
-    cg.add(var.set_bucket(config[CONF_BUCKET]))
+    if endpoint := config.get(CONF_ENDPOINT):
+        cg.add(var.set_endpoint(endpoint))
+    if bucket := config.get(CONF_BUCKET):
+        cg.add(var.set_bucket(bucket))
     cg.add(var.set_region(config[CONF_REGION]))
-    cg.add(var.set_access_key_id(config[CONF_ACCESS_KEY_ID]))
-    cg.add(var.set_secret_access_key(config[CONF_SECRET_ACCESS_KEY]))
+    if access_key_id := config.get(CONF_ACCESS_KEY_ID):
+        cg.add(var.set_access_key_id(access_key_id))
+    if secret_access_key := config.get(CONF_SECRET_ACCESS_KEY):
+        cg.add(var.set_secret_access_key(secret_access_key))
     if root_ca := config.get(CONF_ROOT_CA):
         cg.add(var.set_root_ca(root_ca))
-    elif config[CONF_ENDPOINT].startswith("https://"):
-        esp32.require_certificate_bundle()
