@@ -21,7 +21,9 @@ void ZeroMouseWatchdog::setup() {
   this->set_interval("check", CHECK_INTERVAL_MS, [this]() { this->check_(); });
 }
 
-void ZeroMouseWatchdog::dump_config() { ESP_LOGCONFIG(TAG, "Watchdog:\n  Interval: %" PRIu32 " ms", CHECK_INTERVAL_MS); }
+void ZeroMouseWatchdog::dump_config() {
+  ESP_LOGCONFIG(TAG, "Watchdog:\n  Interval: %" PRIu32 " ms", CHECK_INTERVAL_MS);
+}
 
 void ZeroMouseWatchdog::check_() {
   const int64_t now = esp_timer_get_time();

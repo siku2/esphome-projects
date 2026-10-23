@@ -160,9 +160,10 @@ void ZeroMouse::task_main_() {
 }
 
 void ZeroMouse::run_scan_() {
-  this->scan_result_ = this->scan_.run(*this->air_, this->presence_sampler_, this->scan_params_, [this](int64_t time_zero_us) {
-    this->post_({MessageType::TIME_ZERO, Outcome::TIME_ZERO, true, 0, time_zero_us});
-  });
+  this->scan_result_ =
+      this->scan_.run(*this->air_, this->presence_sampler_, this->scan_params_, [this](int64_t time_zero_us) {
+        this->post_({MessageType::TIME_ZERO, Outcome::TIME_ZERO, true, 0, time_zero_us});
+      });
 
   Outcome outcome = Outcome::DISCARDED;
   if (this->scan_result_.threshold_reached && !this->scan_result_.failed) {
@@ -175,8 +176,8 @@ void ZeroMouse::run_scan_() {
 
 void ZeroMouse::run_calibration_() {
   const CalibrationResult result = calibrate(*this->air_, this->calibration_ambient_, this->task_abort_);
-  this->post_({result.aborted ? MessageType::CALIBRATION_ABORTED : MessageType::CALIBRATION_FINISHED, Outcome::DISCARDED,
-               result.valid, result.value, 0});
+  this->post_({result.aborted ? MessageType::CALIBRATION_ABORTED : MessageType::CALIBRATION_FINISHED,
+               Outcome::DISCARDED, result.valid, result.value, 0});
 }
 
 void ZeroMouse::run_finale_() {
@@ -330,7 +331,7 @@ bool ZeroMouse::try_start_event_() {
     this->set_blocker_(true);
   }
   if (!this->camera_->arm_event(static_cast<uint8_t>(std::clamp<int32_t>(this->scan_params_.shots_before_t0, 0, 8)),
-                                 this->event_frame_spacing_us_)) {
+                                this->event_frame_spacing_us_)) {
     ESP_LOGW(TAG, "Arming the camera failed");
   }
   ESP_LOGD(TAG, "Event started");

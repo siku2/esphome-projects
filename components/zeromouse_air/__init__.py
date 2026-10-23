@@ -40,16 +40,13 @@ PT2046B_SCHEMA = cv.COMPONENT_SCHEMA.extend(
     }
 )
 
-VCNL4040_SCHEMA = (
-    cv.COMPONENT_SCHEMA.extend(
-        {
-            cv.GenerateID(): cv.declare_id(Vcnl4040),
-            cv.Optional(CONF_CALIBRATION_TOLERANCE, default=5): cv.uint16_t,
-            cv.Optional(CONF_CALIBRATION_MAX, default=650): cv.uint16_t,
-        }
-    )
-    .extend(i2c.i2c_device_schema(0x60))
-)
+VCNL4040_SCHEMA = cv.COMPONENT_SCHEMA.extend(
+    {
+        cv.GenerateID(): cv.declare_id(Vcnl4040),
+        cv.Optional(CONF_CALIBRATION_TOLERANCE, default=5): cv.uint16_t,
+        cv.Optional(CONF_CALIBRATION_MAX, default=650): cv.uint16_t,
+    }
+).extend(i2c.i2c_device_schema(0x60))
 
 CONFIG_SCHEMA = cv.typed_schema(
     {"pt2046b": PT2046B_SCHEMA, "vcnl4040": VCNL4040_SCHEMA}, lower=True

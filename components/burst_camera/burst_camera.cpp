@@ -475,7 +475,8 @@ void BurstCamera::push_image_(std::shared_ptr<BurstCameraImage> image, ImageKind
 }
 
 void BurstCamera::update_light_() {
-  const bool wanted = this->burst_active_ || this->event_state_ != EventState::IDLE || ((this->single_requesters_ | this->stream_requesters_) & ~IDLE_MASK) != 0;
+  const bool wanted = this->burst_active_ || this->event_state_ != EventState::IDLE ||
+                      ((this->single_requesters_ | this->stream_requesters_) & ~IDLE_MASK) != 0;
   if (this->power_.set_light_on(wanted) && wanted)
     this->min_frame_time_us_ = esp_timer_get_time();
 }
@@ -596,10 +597,11 @@ void BurstCamera::finish_capture_(uint32_t generation) {
     const int64_t t0 = this->event_t0_us_;
     const int64_t first_us = frame_time_us_(frames.front());
     const int64_t last_us = frame_time_us_(frames.back());
-    ESP_LOGD(TAG, "Event frames: %u, first %d ms, last %d ms from T0, mean spacing %d ms",
-             static_cast<unsigned>(frame_count), static_cast<int>((first_us - t0) / 1000),
-             static_cast<int>((last_us - t0) / 1000),
-             frame_count > 1 ? static_cast<int>((last_us - first_us) / 1000 / static_cast<int64_t>(frame_count - 1)) : 0);
+    ESP_LOGD(
+        TAG, "Event frames: %u, first %d ms, last %d ms from T0, mean spacing %d ms",
+        static_cast<unsigned>(frame_count), static_cast<int>((first_us - t0) / 1000),
+        static_cast<int>((last_us - t0) / 1000),
+        frame_count > 1 ? static_cast<int>((last_us - first_us) / 1000 / static_cast<int64_t>(frame_count - 1)) : 0);
   }
   std::vector<std::weak_ptr<BurstCameraImage>> images(frame_count);
   for (size_t i = 0; i < frame_count; i++) {

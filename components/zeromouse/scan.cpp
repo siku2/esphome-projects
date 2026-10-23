@@ -79,8 +79,8 @@ ScanResult Scan::run(zeromouse_air::AirSensor &air, zeromouse_air::PresenceSampl
     if (result.sample_count >= static_cast<size_t>(window)) {
       // The stock firmware reads a zeroed slot here when the window is 1 at the first sample.
       sample.slope = result.sample_count > 1 ? sample.mean - this->ring_[(index + SAMPLES - 1) % SAMPLES].mean : 0;
-      triggered = std::abs(sample.slope) > params.slope_thresh ||
-                  (result.max_mean - result.min_mean) > 3 * params.slope_thresh;
+      triggered =
+          std::abs(sample.slope) > params.slope_thresh || (result.max_mean - result.min_mean) > 3 * params.slope_thresh;
     }
 
     const int64_t now = esp_timer_get_time();

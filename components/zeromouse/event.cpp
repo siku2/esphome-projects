@@ -262,7 +262,8 @@ void ZeroMouse::start_finale_() {
   this->finale_params_.check_drift = (this->ir_sensor_status_ & STATUS_RECALIBRATION_COUNT) == 0;
   this->finale_params_.ambient = this->read_number_(this->ir_ambient_, 1000);
   this->finale_params_.min_duration_ms =
-      this->class_index_ == CLASS_CLEAN ? std::max<int32_t>(0, this->read_number_(this->clean_event_time_, 30)) * 1000 : 0;
+      this->class_index_ == CLASS_CLEAN ? std::max<int32_t>(0, this->read_number_(this->clean_event_time_, 30)) * 1000
+                                        : 0;
   this->finale_params_.max_duration_ms = this->finale_total_s_() * 1000;
   this->set_state_(State::FINALE);
   this->command_ = Command::FINALE;
@@ -273,7 +274,8 @@ void ZeroMouse::finish_finale_(const Message &message) {
   if (this->state_ != State::FINALE) {
     return;
   }
-  const char *reason = message.value == static_cast<uint16_t>(FinaleResult::STABLE) ? "finale_stable" : "finale_timeout";
+  const char *reason =
+      message.value == static_cast<uint16_t>(FinaleResult::STABLE) ? "finale_stable" : "finale_timeout";
   const bool prey = (this->class_index_ == CLASS_PREY || this->prey_reference_()) && this->class_index_ != CLASS_CLEAN;
   if (prey) {
     this->forced_scan_ = true;

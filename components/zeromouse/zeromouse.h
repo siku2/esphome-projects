@@ -106,9 +106,7 @@ class ZeroMouse : public Component {
   /// Runs for every event with frames, before it is published.
   void add_on_event_captured(CapturedCallback callback) { this->captured_callbacks_.push_back(std::move(callback)); }
   /// Runs for every event with frames, once the cloud upload is decided. The event id is only valid if published.
-  void add_on_event_published(PublishedCallback callback) {
-    this->published_callbacks_.push_back(std::move(callback));
-  }
+  void add_on_event_published(PublishedCallback callback) { this->published_callbacks_.push_back(std::move(callback)); }
   /// Runs for every classification from the cloud.
   void add_on_classification(ClassificationCallback callback) {
     this->classification_callbacks_.push_back(std::move(callback));
@@ -175,7 +173,13 @@ class ZeroMouse : public Component {
   };
   enum class Command : uint8_t { NONE, SCAN, CALIBRATE, FINALE };
   enum class Outcome : uint8_t { TIME_ZERO, EMPTY, DISCARDED };
-  enum class MessageType : uint8_t { TIME_ZERO, SCAN_FINISHED, CALIBRATION_FINISHED, CALIBRATION_ABORTED, FINALE_FINISHED };
+  enum class MessageType : uint8_t {
+    TIME_ZERO,
+    SCAN_FINISHED,
+    CALIBRATION_FINISHED,
+    CALIBRATION_ABORTED,
+    FINALE_FINISHED
+  };
 
   struct Message {
     MessageType type;

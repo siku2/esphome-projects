@@ -25,9 +25,7 @@ Sths34pf80 = sths34pf80_ns.class_(
 _THRESHOLD = cv.Any(cv.uint16_t, cv.use_id(number.Number))
 
 CONFIG_SCHEMA = (
-    binary_sensor.binary_sensor_schema(
-        Sths34pf80, device_class=DEVICE_CLASS_OCCUPANCY
-    )
+    binary_sensor.binary_sensor_schema(Sths34pf80, device_class=DEVICE_CLASS_OCCUPANCY)
     .extend(
         {
             cv.Required(CONF_INTERRUPT_PIN): pins.internal_gpio_input_pin_schema,

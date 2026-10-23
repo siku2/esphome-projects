@@ -27,7 +27,8 @@ FinaleResult run_finale(zeromouse_air::AirSensor &air, const FinaleParams &param
   int64_t stable_since_ms = 0;
   const int64_t start_ms = esp_timer_get_time() / 1000;
   const int32_t free_value = params.free_value;
-  const int32_t drift_limit = (free_value > DRIFT_MIN_FREE_VALUE ? free_value : DRIFT_MIN_FREE_VALUE) * DRIFT_PERCENT / 100;
+  const int32_t drift_limit =
+      (free_value > DRIFT_MIN_FREE_VALUE ? free_value : DRIFT_MIN_FREE_VALUE) * DRIFT_PERCENT / 100;
 
   air.power_on();
   air.set_one_shot(true);

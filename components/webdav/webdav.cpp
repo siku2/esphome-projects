@@ -53,7 +53,8 @@ void WebDav::put(const std::string &path, std::shared_ptr<const std::string> bod
                  DoneCallback done) {
   const auto *data = reinterpret_cast<const uint8_t *>(body->data());
   const size_t length = body->size();
-  this->enqueue_({Method::PUT, path, data, length, std::shared_ptr<void>(body, nullptr), content_type, std::move(done)});
+  this->enqueue_(
+      {Method::PUT, path, data, length, std::shared_ptr<void>(body, nullptr), content_type, std::move(done)});
 }
 
 void WebDav::put(const std::string &path, const uint8_t *data, size_t length, std::shared_ptr<void> keep_alive,

@@ -78,9 +78,9 @@ class BurstCamera final : public camera::Camera {
   /// Returns false if busy or failed. Call from the main loop only.
   bool capture_burst(uint8_t count, BurstCallback callback);
 
-  /// Turns the light on and keeps the latest `pre_frames` + 1 raw frames until capture_event or disarm_event. Main loop only.
-  /// Finishes a running burst early.
-  /// Event frames start at least `frame_spacing_us` apart (with a small tolerance for timestamp jitter). 0 keeps every frame.
+  /// Turns the light on and keeps the latest `pre_frames` + 1 raw frames until capture_event or disarm_event. Main loop
+  /// only. Finishes a running burst early. Event frames start at least `frame_spacing_us` apart (with a small tolerance
+  /// for timestamp jitter). 0 keeps every frame.
   bool arm_event(uint8_t pre_frames, uint32_t frame_spacing_us = 0);
   /// Uses up to `pre_frames` held frames that started before t0_us, then grabs frames that start at or after t0_us
   /// until `total` frames are held, JPEG encodes them in the framebuffer task and calls back in the main loop with the

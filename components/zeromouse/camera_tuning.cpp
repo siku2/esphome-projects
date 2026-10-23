@@ -60,14 +60,10 @@ void CameraTuning::on_brightness_(float value) {
   const bool ov7670 = sensor == Sensor::OV7670;
   this->applying_brightness_ = true;
   if (this->auto_exp_level != nullptr) {
-    this->auto_exp_level->make_call()
-        .set_value(ov7670 ? OV7670_ROWS[level] : GC032A_LUMA_TARGET[level])
-        .perform();
+    this->auto_exp_level->make_call().set_value(ov7670 ? OV7670_ROWS[level] : GC032A_LUMA_TARGET[level]).perform();
   }
   if (this->gain_ceiling != nullptr) {
-    this->gain_ceiling->make_call()
-        .set_value(ov7670 ? OV7670_GAIN_CEILING[level] : GC032A_PRE_GAIN[level])
-        .perform();
+    this->gain_ceiling->make_call().set_value(ov7670 ? OV7670_GAIN_CEILING[level] : GC032A_PRE_GAIN[level]).perform();
   }
   this->applying_brightness_ = false;
   this->apply_();
@@ -133,8 +129,7 @@ void CameraTuning::apply_() {
   burst_camera::SensorLock lock(*this->camera_);
   const bool ov7670 = sensor == Sensor::OV7670;
   const bool ok = ov7670 ? this->apply_ov7670_(exp_level, gain_ceiling) : this->apply_gc032a_(exp_level, gain_ceiling);
-  ESP_LOGI(TAG,
-           "%s: exposure level %d, gain ceiling %d, gain control %d to %d, gain stable %d to %d, brightness %d%s",
+  ESP_LOGI(TAG, "%s: exposure level %d, gain ceiling %d, gain control %d to %d, gain stable %d to %d, brightness %d%s",
            ov7670 ? "OV7670" : "GC032A", static_cast<int>(exp_level), static_cast<int>(gain_ceiling),
            static_cast<int>(read_(this->auto_gain_ctrl_min, 0)), static_cast<int>(read_(this->auto_gain_ctrl_max, 0)),
            static_cast<int>(read_(this->auto_gain_stbl_min, 0)), static_cast<int>(read_(this->auto_gain_stbl_max, 0)),
