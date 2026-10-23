@@ -3,8 +3,7 @@
 #include "esphome/components/aw9523/aw9523.h"
 #include "esphome/components/output/float_output.h"
 
-namespace esphome {
-namespace aw9523 {
+namespace esphome::aw9523 {
 
 class AW9523Component;
 
@@ -23,7 +22,7 @@ class AW9523FloatOutputChannel : public output::FloatOutput, public Component {
   AW9523Component *parent_;
   uint8_t pin_;
   float max_current_;
+  float current_scale_{1.0f};
 };
 
-}  // namespace aw9523
-}  // namespace esphome
+}  // namespace esphome::aw9523

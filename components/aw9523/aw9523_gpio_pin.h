@@ -2,8 +2,7 @@
 
 #include "esphome/components/aw9523/aw9523.h"
 
-namespace esphome {
-namespace aw9523 {
+namespace esphome::aw9523 {
 
 class AW9523Component;
 
@@ -32,5 +31,4 @@ class AW9523GPIOPin : public GPIOPin {
   bool forward_interrupt_;
 };
 
-}  // namespace aw9523
-}  // namespace esphome
+}  // namespace esphome::aw9523

@@ -10,8 +10,7 @@ template<class T> inline std::string format_binary(T x) {
   return std::string(b);
 }
 
-namespace esphome {
-namespace aw9523 {
+namespace esphome::aw9523 {
 
 static const char *const TAG = "aw9523";
 
@@ -22,9 +21,6 @@ void AW9523Component::setup() {
     this->mark_failed();
     return;
   }
-
-  // reset
-  this->reg(AW9523_REG_SOFTRESET) = 0x00;
 
   // set divider
   uint8_t gcr = (this->divider_ & 0x03);
@@ -38,15 +34,7 @@ void AW9523Component::setup() {
   this->reg(AW9523_REG_INTENABLE1) = 0xff;
 }
 
-void AW9523Component::loop() {
-  if (this->is_failed() || !this->latch_inputs_)
-    return;
-
-  auto input0 = this->reg(AW9523_REG_INPUT0).get();
-  auto input1 = this->reg(AW9523_REG_INPUT1).get();
-
-  this->value_ = input0 | (input1 << 8);
-}
+void AW9523Component::loop() { this->reset_pin_cache_(); }
 
 void AW9523Component::dump_config() {
   ESP_LOGCONFIG(TAG, "AW9523:");
@@ -115,14 +103,14 @@ void AW9523Component::pin_mode(uint8_t pin, gpio::Flags flags) {
     return;
 
   if (pin < 8) {
-    if (flags == gpio::Flags::FLAG_OUTPUT)
+    if (flags & gpio::FLAG_OUTPUT)
       this->reg(AW9523_REG_CONFIG0) &= ~(1 << pin);
     else
       this->reg(AW9523_REG_CONFIG0) |= (1 << pin);
 
     this->reg(AW9523_REG_LEDMODE0) |= (1 << pin);
   } else if (pin < 16) {
-    if (flags == gpio::Flags::FLAG_OUTPUT)
+    if (flags & gpio::FLAG_OUTPUT)
       this->reg(AW9523_REG_CONFIG1) &= ~(1 << (pin - 8));
     else
       this->reg(AW9523_REG_CONFIG1) |= (1 << (pin - 8));
@@ -153,7 +141,7 @@ void AW9523Component::forward_interrupt(uint8_t pin, bool enable) {
   }
 }
 
-void AW9523Component::digital_write(uint8_t pin, bool bit_value) {
+void AW9523Component::digital_write_hw(uint8_t pin, bool bit_value) {
   if (this->is_failed())
     return;
 
@@ -172,23 +160,18 @@ void AW9523Component::digital_write(uint8_t pin, bool bit_value) {
   }
 }
 
-bool AW9523Component::digital_read(uint8_t pin) {
-  if (this->latch_inputs_) {
-    uint16_t value = (1 << pin);
-    return this->value_ & value;
-  } else {
-    if (!this->is_failed()) {
-      if (pin < 8) {
-        uint8_t value = (1 << pin);
-        return this->reg(AW9523_REG_INPUT0).get() & value;
-      } else if (pin < 16) {
-        uint8_t value = (1 << (pin - 8));
-        return this->reg(AW9523_REG_INPUT1).get() & value;
-      }
-    }
+bool AW9523Component::digital_read_hw(uint8_t pin) {
+  if (this->is_failed())
     return false;
-  }
+
+  uint8_t data[2];
+  if (!this->read_bytes(AW9523_REG_INPUT0, data, 2))
+    return false;
+
+  this->value_ = data[0] | (data[1] << 8);
+  return true;
 }
 
-}  // namespace aw9523
-}  // namespace esphome
+bool AW9523Component::digital_read_cache(uint8_t pin) { return this->value_ & (1 << pin); }
+
+}  // namespace esphome::aw9523

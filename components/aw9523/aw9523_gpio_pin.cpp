@@ -2,8 +2,7 @@
 #include "esphome/core/log.h"
 #include "aw9523_gpio_pin.h"
 
-namespace esphome {
-namespace aw9523 {
+namespace esphome::aw9523 {
 
 static const char *const TAG = "aw9523_gpio_pin";
 
@@ -25,5 +24,4 @@ void AW9523GPIOPin::digital_write(bool value) { this->parent_->digital_write(thi
 size_t AW9523GPIOPin::dump_summary(char *buffer, size_t len) const {
   return buf_append_printf(buffer, len, 0, "%u via AW9523", pin_);
 }
-}  // namespace aw9523
-}  // namespace esphome
+}  // namespace esphome::aw9523

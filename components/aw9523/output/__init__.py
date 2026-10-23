@@ -13,7 +13,7 @@ AW9523FloatOutputChannel = aw9523_ns.class_(
     "AW9523FloatOutputChannel", output.FloatOutput, cg.Component
 )
 
-CONFIG_SCHEMA = output.BINARY_OUTPUT_SCHEMA.extend(
+CONFIG_SCHEMA = output.FLOAT_OUTPUT_SCHEMA.extend(
     {
         cv.Required(CONF_ID): cv.declare_id(AW9523FloatOutputChannel),
         cv.Required(CONF_AW9523): cv.use_id(AW9523Component),

@@ -80,7 +80,6 @@ psram:
 
 aw9523:
 - id: "m5s3l_aw9523"
-  latch_inputs: true
   p0_push_pull: true
 
 i2c:
