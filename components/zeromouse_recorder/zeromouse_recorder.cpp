@@ -29,11 +29,13 @@ void ZeroMouseRecorder::setup() {
   }
 
   this->update_quality_();
+  this->s3_->add_on_config_change_callback([this]() { this->update_quality_(); });
   if (this->enabled_ != nullptr) {
     this->enabled_->add_on_state_callback([this](bool) { this->update_quality_(); });
   }
   this->camera_->add_on_event_secondary_ready([this]() { this->on_secondary_ready_(); });
-  this->controller_->add_on_event_captured([this](const zeromouse::CapturedEvent &event) { this->on_captured_(event); });
+  this->controller_->add_on_event_captured(
+      [this](const zeromouse::CapturedEvent &event) { this->on_captured_(event); });
   this->controller_->add_on_event_published(
       [this](bool published, uint32_t event_id) { this->on_published_(published, event_id); });
   this->controller_->add_on_classification([this](const std::string &class_name, int class_index, bool block) {
@@ -57,8 +59,16 @@ void ZeroMouseRecorder::update_quality_() {
   this->camera_->set_event_secondary_quality(this->is_enabled_() ? this->secondary_quality_ : 0);
 }
 
+void ZeroMouseRecorder::warn_if_not_configured_() {
+  if (this->warned_not_configured_ || this->s3_->is_configured())
+    return;
+  ESP_LOGW(TAG, "S3 is not configured, not recording");
+  this->warned_not_configured_ = true;
+}
+
 void ZeroMouseRecorder::on_captured_(const zeromouse::CapturedEvent &event) {
   if (!this->is_enabled_()) {
+    this->warn_if_not_configured_();
     return;
   }
   auto record = std::make_shared<Record>();
@@ -71,7 +81,8 @@ void ZeroMouseRecorder::on_captured_(const zeromouse::CapturedEvent &event) {
   }
   record->air.reserve(event.samples.size());
   for (const auto &sample : event.samples) {
-    record->air.push_back({sample.mean, event.sample_time_ms(sample), sample.slope, sample.environment});
+    record->air.push_back({sample.mean, event.sample_time_ms(sample), sample.slope, sample.environment,
+                           sample.has_presence, sample.motion, sample.presence});
   }
   record->settings = event.settings;
   record->scan = event.scan;
@@ -303,8 +314,7 @@ void ZeroMouseRecorder::run_step_(const RecordPtr &record, size_t index) {
   switch (step.kind) {
     case Step::Kind::FRAME: {
       const auto &image = record->images[step.index];
-      this->s3_->put(path, image->get_data_buffer(), image->get_data_length(), image, "image/jpeg",
-                     std::move(done));
+      this->s3_->put(path, image->get_data_buffer(), image->get_data_length(), image, "image/jpeg", std::move(done));
       break;
     }
     case Step::Kind::FRAME_HQ: {
@@ -436,6 +446,10 @@ std::shared_ptr<ZeroMouseRecorder::Body> ZeroMouseRecorder::build_json_(const Re
     item["t"] = point.t;
     item["s"] = point.s;
     item["e"] = point.e;
+    if (point.has_presence) {
+      item["m"] = point.m;
+      item["p"] = point.p;
+    }
   }
 
   JsonObject settings = doc["settings"].to<JsonObject>();

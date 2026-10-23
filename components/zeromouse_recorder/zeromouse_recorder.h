@@ -52,6 +52,9 @@ class ZeroMouseRecorder : public Component {
     int32_t t;
     int32_t s;
     int32_t e;
+    bool has_presence;
+    int16_t m;
+    int16_t p;
   };
 
   struct Body {
@@ -95,8 +98,11 @@ class ZeroMouseRecorder : public Component {
   };
   using RecordPtr = std::shared_ptr<Record>;
 
-  bool is_enabled_() const { return this->enabled_ == nullptr || this->enabled_->state; }
+  bool is_enabled_() const {
+    return this->s3_->is_configured() && (this->enabled_ == nullptr || this->enabled_->state);
+  }
   void update_quality_();
+  void warn_if_not_configured_();
   void on_captured_(const zeromouse::CapturedEvent &event);
   void on_secondary_ready_();
   void on_published_(bool published, uint32_t event_id);
@@ -119,6 +125,7 @@ class ZeroMouseRecorder : public Component {
   std::string step_path_(const Record &record, const Step &step) const;
 
   s3::S3Client *s3_{nullptr};
+  bool warned_not_configured_{false};
   zeromouse::ZeroMouse *controller_{nullptr};
   burst_camera::BurstCamera *camera_{nullptr};
   switch_::Switch *enabled_{nullptr};
