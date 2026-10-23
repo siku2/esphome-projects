@@ -14,7 +14,14 @@
 #
 # - `m5s3l_aw9523`: The AW9523 I/O expander.
 #
+# ### AXP2101
+#
+# - `m5s3l_axp2101`: The AXP2101 power management IC.
+#
 # ### Binary Sensor
+#
+# - `m5s3l_current_limit`: AXP2101 current limit state.
+# - `m5s3l_vbus_good`: AXP2101 VBUS good indication.
 #
 # The following binary sensors are internal only:
 #
@@ -39,6 +46,10 @@
 #
 # - `m5s3l_lcd_backlight`: The LCD backlight control.
 #
+# ### Output
+#
+# - `m5s3l_lcd_backlight_output`: The LCD backlight supply (AXP2101 DLDO1).
+#
 # ### Speaker
 #
 # - `m5s3l_speaker`: The built-in speaker.
@@ -60,12 +71,9 @@ substitutions:
     type: "local"
     path: "../components"
 
-packages:
-  axp2101: !include axp2101.yaml
-
 external_components:
 - source: "${components_source}"
-  components: ["aw9523"]
+  components: ["aw9523", "axp2101"]
 
 esp32:
   board: "esp32-s3-devkitc-1"
@@ -81,6 +89,9 @@ psram:
 aw9523:
 - id: "m5s3l_aw9523"
   p0_push_pull: true
+
+axp2101:
+- id: "m5s3l_axp2101"
 
 i2c:
 - id: "m5s3l_i2c"
@@ -139,6 +150,22 @@ binary_sensor:
     number: 11
     inverted: true # External pull-up
 
+- id: "m5s3l_current_limit"
+  name: "Current Limit State"
+  device_class: "problem"
+  entity_category: "diagnostic"
+  platform: "axp2101"
+  axp2101_id: "m5s3l_axp2101"
+  type: "current_limit"
+
+- id: "m5s3l_vbus_good"
+  name: "VBUS Good Indication"
+  device_class: "power"
+  entity_category: "diagnostic"
+  platform: "axp2101"
+  axp2101_id: "m5s3l_axp2101"
+  type: "vbus_good"
+
 # TODO: does this even exist? It's not in the schematic.
 # sensor:
 # - id: "m5s3l_proximity"
@@ -154,7 +181,11 @@ binary_sensor:
 
 output:
 # Actual responsive range of backlight is 60% to 100%
-- id: !extend "axp2101_dldo1"
+- id: "m5s3l_lcd_backlight_output"
+  platform: "axp2101"
+  axp2101_id: "m5s3l_axp2101"
+  channel: "DLDO1"
+  max_voltage: "3.3V"
   min_power: "60%"
   zero_means_zero: true
 
@@ -165,7 +196,7 @@ light:
   restore_mode: "ALWAYS_ON"
   entity_category: "CONFIG"
   platform: "monochromatic"
-  output: "axp2101_dldo1"
+  output: "m5s3l_lcd_backlight_output"
 
 i2s_audio:
 - id: "m5s3l_i2s_audio"
