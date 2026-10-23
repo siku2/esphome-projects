@@ -1,0 +1,9 @@
+packages:
+  project: !include
+    file: ../projects/heat-storage/esp32.yaml
+    vars:
+      name: "test-heat-storage"
+      friendly_name: "Test Heat Storage"
+      language: "de"
+
+      api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="

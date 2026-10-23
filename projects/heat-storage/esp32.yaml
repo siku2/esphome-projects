@@ -1,0 +1,198 @@
+substitutions:
+  name: "heat-storage"
+  friendly_name: "Heat Storage"
+  language: "en"
+  i18n:
+    heatstorage:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
+
+packages:
+  base: !include ../../packages/base/device.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "siku2.heat-storage"
+    version: "0.1.0"
+
+esp32:
+  # See: <https://www.espboards.dev/esp32/esp32doit-devkit-v1/>
+  # TODO: confirm this is the correct board
+  board: "esp32doit-devkit-v1"
+  framework:
+    type: "esp-idf"
+
+one_wire:
+- &ow1
+  id: "ow1"
+  platform: "gpio"
+  pin: "GPIO4"
+
+- <<: *ow1
+  id: "ow2"
+  pin: "GPIO18"
+
+- <<: *ow1
+  id: "ow3"
+  pin: "GPIO21"
+
+- <<: *ow1
+  id: "ow4"
+  pin: "GPIO23"
+
+sensor:
+- platform: "uptime"
+  name: "Uptime"
+
+- id: "mixing_valve_voltage"
+  name: "${i18n.heatstorage[language].mixing_valve_voltage}"
+  unit_of_measurement: "V"
+  device_class: "voltage"
+  state_class: "MEASUREMENT"
+  accuracy_decimals: 2
+  entity_category: "DIAGNOSTIC"
+  filters:
+  - round: 2
+  - delta: 0.005
+  # If the value doesn't change still emit a value every 5min
+  - timeout:
+      timeout: "5min"
+      value: "last"
+  platform: "adc"
+  pin: "GPIO32"
+  attenuation: "12db"
+  samples: 20
+  update_interval: "1s"
+
+- id: "mixing_valve"
+  name: "${i18n.heatstorage[language].mixing_valve}"
+  unit_of_measurement: "%"
+  device_class: ""
+  state_class: "MEASUREMENT"
+  icon: "mdi:valve"
+  accuracy_decimals: 0
+  entity_category: ""
+  filters:
+  - lambda: !lambda |
+      float v_closed = id(mixing_valve_closed).state;
+      float v_open = id(mixing_valve_open).state;
+      if (v_closed == v_open) return 0.0f;
+      float norm = (x - v_closed) / (v_open - v_closed);
+      return std::clamp(100.0f * norm, 0.0f, 100.0f);
+  - round_to_multiple_of: 5
+  - delta: 0.5
+  # If the value doesn't change still emit a value every 5min
+  - timeout:
+      timeout: "5min"
+      value: "last"
+  platform: "copy"
+  source_id: "mixing_valve_voltage"
+
+# OW1
+- &ow1_template
+  name: "${i18n.heatstorage[language].storage_middle_top}"
+  filters:
+  - round: 1
+  # Don't report error values (they happen fairly often)
+  - filter_out: "NaN"
+  # Only resort to NaN after 1min of no new value
+  - timeout: "1min"
+  - delta: 0.5
+  # If the value doesn't change still emit a value every 5min
+  - timeout:
+      timeout: "5min"
+      value: "last"
+  platform: "dallas_temp"
+  address: 0x7600080362048C10
+  update_interval: "10s"
+  one_wire_id: "ow1"
+
+- <<: *ow1_template
+  name: "${i18n.heatstorage[language].storage_middle_bottom}"
+  address: 0xE300080362207C10
+
+- <<: *ow1_template
+  name: "${i18n.heatstorage[language].storage_bottom}"
+  address: 0x7E00080361B2D010
+
+- <<: *ow1_template
+  name: "${i18n.heatstorage[language].hot_water}"
+  address: 0x8E00080361B7EA10
+
+- <<: *ow1_template
+  name: "${i18n.heatstorage[language].heating_flow}"
+  address: 0x8B00080362004010
+
+
+# OW2
+- &ow2_template
+  <<: *ow1_template
+  name: "${i18n.heatstorage[language].ventilation_exhaust}"
+  address: 0x0B000803621A9710
+  one_wire_id: "ow2"
+
+- <<: *ow2_template
+  name: "${i18n.heatstorage[language].heating_heat_pump}"
+  address: 0xBA00080362748410
+
+- <<: *ow2_template
+  name: "${i18n.heatstorage[language].heating_soapstone_stove}"
+  address: 0x5D00080361BDE810
+
+- <<: *ow2_template
+  name: "${i18n.heatstorage[language].heating_collector_return}"
+  address: 0x7B00080362422310
+
+- <<: *ow2_template
+  name: "${i18n.heatstorage[language].heating_collector_flow}"
+  address: 0x3100080362C8F810
+
+
+# OW3
+- &ow3_template
+  <<: *ow1_template
+  name: "${i18n.heatstorage[language].ventilation_supply}"
+  address: 0x5700080362DD4210
+  one_wire_id: "ow3"
+
+- <<: *ow3_template
+  name: "${i18n.heatstorage[language].ventilation_outside}"
+  address: 0xDA0008036296FC10
+
+- <<: *ow3_template
+  name: "${i18n.heatstorage[language].ventilation_extract}"
+  address: 0x7E00080361840410
+
+- <<: *ow3_template
+  name: "${i18n.heatstorage[language].heating_solar}"
+  address: 0x790f498a17dfe828
+
+
+# OW4
+- &ow4_template
+  <<: *ow1_template
+  name: "${i18n.heatstorage[language].boiler_room}"
+  address: 0x860000006e33de28
+  one_wire_id: "ow4"
+
+number:
+- &mixing_valve_closed
+  id: "mixing_valve_closed"
+  name: "${i18n.heatstorage[language].mixing_valve_closed}"
+  entity_category: "CONFIG"
+  unit_of_measurement: "V"
+  device_class: "voltage"
+  platform: "template"
+  optimistic: true
+  min_value: 0.0
+  max_value: 3.3
+  step: 0.01
+  restore_value: true
+  initial_value: 0.30
+
+- <<: *mixing_valve_closed
+  id: "mixing_valve_open"
+  name: "${i18n.heatstorage[language].mixing_valve_open}"
+  initial_value: 2.7
