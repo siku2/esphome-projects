@@ -38,7 +38,7 @@ packages:
       voltage_max: 1.8
       initial_voltage_empty: 0.108
       initial_voltage_full: 1.0
-      initial_volume_full: 4000
+      initial_volume_full: 5000
       name_voltage: "Wassertank 2 Raw Voltage"
       name_percentage: "Regenwassertank 3"
       name_volume: "Regenwassertank 3 Volumen"
