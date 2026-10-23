@@ -138,13 +138,14 @@ long map(long x, long in_min, long in_max, long out_min, long out_max) {
 void Cc1101::setup() {
   this->spi_setup();
 
+  this->tx_pin_->setup();
   this->tx_pin_->digital_write(false);
   this->reset_();
 
   this->part_number_ = this->read_reg_(CC1101_PARTNUM);
   this->version_ = this->read_reg_(CC1101_VERSION);
   if (this->version_ == 0) {
-    this->mark_failed("CC1101 not found");
+    this->mark_failed(LOG_STR("CC1101 not found"));
     return;
   }
 
