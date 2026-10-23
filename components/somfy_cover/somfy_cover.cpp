@@ -162,7 +162,9 @@ void SomfyCover::start_direction_(CoverOperation dir) {
   this->recompute_position_();
   switch (dir) {
     case COVER_OPERATION_IDLE:
-      this->send_command_(SomfyCommand::My);
+      // My while idle moves the cover to its favourite position
+      if (this->current_operation != COVER_OPERATION_IDLE)
+        this->send_command_(SomfyCommand::My);
       break;
     case COVER_OPERATION_OPENING:
       this->last_operation_ = dir;
@@ -269,6 +271,11 @@ void SomfyCover::send_frame_(const std::array<uint8_t, 7> &frame, uint8_t sync) 
 void SomfyCover::send_command_(SomfyCommand command, size_t repeat) {
   if (this->is_failed())
     return;
+
+  if (this->cc1101_->is_failed()) {
+    ESP_LOGW(TAG, "CC1101 has failed, not transmitting");
+    return;
+  }
 
   uint16_t rolling_code;
   if (!this->get_next_rolling_code_(rolling_code)) {
