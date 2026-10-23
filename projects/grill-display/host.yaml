@@ -6,7 +6,3 @@ packages:
     file: ../../boards/crowpanel/5_79in_epaper_host.yaml
   probes: !include probes_sim.yaml
   ha_inputs: !include ha_inputs_sim.yaml
-
-external_components:
-- source: "${components_source}"
-  components: ["sdl"]
