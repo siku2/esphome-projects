@@ -91,6 +91,19 @@
               }
             else
               esphomeUnwrapped;
+          # clangd queries the ESP-IDF compiler for its target and headers.
+          clangd =
+            if pkgs.stdenv.hostPlatform.isLinux then
+              pkgs.buildFHSEnv {
+                name = "clangd";
+                targetPkgs = _: [
+                  pkgs.clang-tools
+                  pkgs.zlib
+                ];
+                runScript = "clangd";
+              }
+            else
+              pkgs.clang-tools;
         in
         {
           inherit
@@ -98,6 +111,7 @@
             sdl2
             nixGL
             esphome
+            clangd
             ;
           pythonDev = python.withPackages (ps: [
             ps.aioesphomeapi
@@ -262,6 +276,7 @@
         {
           pkgs,
           esphome,
+          clangd,
           sdl2,
           nixGL,
           treefmt,
@@ -274,6 +289,7 @@
           default = pkgs.mkShell {
             packages = [
               esphome
+              clangd
               sdl2
               sdl2.dev
               pkgs.openssl
@@ -286,6 +302,9 @@
               esphomeSim
             ]
             ++ nixGL;
+            shellHook = ''
+              export CLANGD_FLAGS="--query-driver=$HOME/.cache/esphome/idf/tools/**/xtensa-*"
+            '';
           };
         }
       );

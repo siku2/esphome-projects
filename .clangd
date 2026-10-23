@@ -1,0 +1,31 @@
+CompileFlags:
+  Remove:
+  - "-mlongcalls"
+  - "-mdisable-hardware-atomics"
+  - "-fstrict-volatile-bitfields"
+  - "-fno-tree-switch-conversion"
+---
+If:
+  PathMatch: "components/(aw9523|axp2101|m5stack_4encodermotor)/.*"
+CompileFlags:
+  CompilationDatabase: "tests/.esphome/build/test-catimor/build"
+---
+If:
+  PathMatch: "components/(camera_snapshot|meter_reader|tflite)/.*"
+CompileFlags:
+  CompilationDatabase: "tests/.esphome/build/test-aquasense-rh/build"
+---
+If:
+  PathMatch: "components/grill_cook/.*"
+CompileFlags:
+  CompilationDatabase: "tests/.esphome/build/test-grill-display/build"
+---
+If:
+  PathMatch: "components/(cc1101|somfy_cover)/.*"
+CompileFlags:
+  CompilationDatabase: "tests/.esphome/build/test-somfy-gates/build"
+---
+If:
+  PathMatch: "components/(aws_iot|burst_camera|fdxb_emulator|s3|sths34pf80|task_util|webdav|zeromouse.*)/.*"
+CompileFlags:
+  CompilationDatabase: "tests/.esphome/build/test-zeromouse-v2/build"
