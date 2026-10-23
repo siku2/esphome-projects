@@ -4,10 +4,6 @@ external_components:
 
 s3:
   id: "zm_s3"
-  endpoint: "${s3_endpoint}"
-  bucket: "${s3_bucket}"
-  access_key_id: "${s3_access_key_id}"
-  secret_access_key: "${s3_secret_access_key}"
 
 zeromouse_recorder:
   s3_id: "zm_s3"
@@ -30,3 +26,29 @@ switch:
   entity_category: "CONFIG"
   optimistic: true
   restore_mode: "RESTORE_DEFAULT_ON"
+
+text:
+- id: "zm_s3_endpoint"
+  name: "${i18n.zeromouse[language].s3_endpoint}"
+  platform: "template"
+  entity_category: "CONFIG"
+  mode: "TEXT"
+  optimistic: true
+  restore_value: true
+  max_length: 255
+  initial_value: ""
+  on_value:
+  - lambda: !lambda |-
+      id(zm_s3).set_location(id(zm_s3_endpoint).state, id(zm_s3_bucket).state);
+- id: "zm_s3_bucket"
+  name: "${i18n.zeromouse[language].s3_bucket}"
+  platform: "template"
+  entity_category: "CONFIG"
+  mode: "TEXT"
+  optimistic: true
+  restore_value: true
+  max_length: 255
+  initial_value: ""
+  on_value:
+  - lambda: !lambda |-
+      id(zm_s3).set_location(id(zm_s3_endpoint).state, id(zm_s3_bucket).state);

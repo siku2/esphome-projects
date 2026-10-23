@@ -1,0 +1,41 @@
+external_components:
+- source: "${components_source}"
+  components: ["zeromouse_provisioning"]
+
+zeromouse_provisioning:
+  id: "zm_provisioning"
+  aws_iot_id: "zm_aws_iot"
+  cloud_id: "zm_cloud"
+  controller_id: "zm_controller"
+  s3_id: "zm_s3"
+  cloud_provisioned:
+    name: "${i18n.zeromouse[language].cloud_provisioned}"
+  s3_provisioned:
+    name: "${i18n.zeromouse[language].s3_provisioned}"
+
+api:
+  actions:
+  - action: "provision_cloud"
+    variables:
+      thing_name: "string"
+      certificate: "string"
+      private_key: "string"
+      owner_id: "string"
+      identity_id: "string"
+      event_count: "int"
+      boot_count: "int"
+    then:
+    - lambda: !lambda |-
+        id(zm_provisioning).provision_cloud(thing_name.str(), certificate.str(), private_key.str(), owner_id.str(),
+                                            identity_id.str(), event_count, boot_count);
+  - action: "provision_s3"
+    variables:
+      access_key_id: "string"
+      secret_access_key: "string"
+    then:
+    - lambda: !lambda |-
+        id(zm_provisioning).provision_s3(access_key_id.str(), secret_access_key.str());
+  - action: "clear_provisioning"
+    then:
+    - lambda: !lambda |-
+        id(zm_provisioning).clear();

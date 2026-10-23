@@ -5,9 +5,6 @@ external_components:
 aws_iot:
   id: "zm_aws_iot"
   endpoint: "a1lrk6d93bvma9-ats.iot.eu-central-1.amazonaws.com"
-  client_id: "${aws_thing_name}"
-  certificate: "${aws_certificate}"
-  private_key: "${aws_private_key}"
   username: "?SDK=FreeRTOS&Version=V10.5.1&Platform=ESP32-S3&MQTTLib=core-mqtt@v2.3.1"
   time_id: "zm_sntp"
   on_connect:
@@ -28,11 +25,6 @@ zeromouse:
 zeromouse_cloud:
   id: "zm_cloud"
   aws_iot_id: "zm_aws_iot"
-  thing_name: "${aws_thing_name}"
-  owner_id: "${zeromouse_owner_id}"
-  identity_id: "${zeromouse_identity_id}"
-  event_count: "${zeromouse_event_count}"
-  boot_count: "${zeromouse_boot_count}"
   time_id: "zm_sntp"
   accept_settings: "zm_accept_cloud_settings"
   upload_events: "zm_upload_events"

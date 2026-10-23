@@ -1,16 +1,5 @@
 substitutions:
   api_encryption_key: "" # REQUIRED!
-  aws_thing_name: "" # REQUIRED!
-  aws_certificate: "" # REQUIRED!
-  aws_private_key: "" # REQUIRED!
-  zeromouse_owner_id: "" # REQUIRED!
-  zeromouse_identity_id: "" # REQUIRED!
-  zeromouse_event_count: 0
-  zeromouse_boot_count: 0
-  s3_endpoint: "" # REQUIRED!
-  s3_bucket: "" # REQUIRED!
-  s3_access_key_id: "" # REQUIRED!
-  s3_secret_access_key: "" # REQUIRED!
 
   name: "zeromouse"
   friendly_name: "ZeroMOUSE"
@@ -29,6 +18,7 @@ packages:
   cloud: !include cloud.yaml
   events: !include events.yaml
   recording: !include recording.yaml
+  provisioning: !include provisioning.yaml
 
 esphome:
   name: "${name}"

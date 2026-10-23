@@ -8,21 +8,6 @@ packages:
       board: "v1"
 
       api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
-      aws_thing_name: "MBR-PTF-H1-test"
-      aws_certificate: |
-        -----BEGIN CERTIFICATE-----
-        ZmFrZS10ZXN0LWNlcnRpZmljYXRl
-        -----END CERTIFICATE-----
-      aws_private_key: |
-        -----BEGIN RSA PRIVATE KEY-----
-        ZmFrZS10ZXN0LXByaXZhdGUta2V5
-        -----END RSA PRIVATE KEY-----
-      zeromouse_owner_id: "test-owner"
-      zeromouse_identity_id: "test-identity"
-      s3_endpoint: "http://10.0.0.1:3900"
-      s3_bucket: "zeromouse"
-      s3_access_key_id: "test-access-key"
-      s3_secret_access_key: "test-secret-key"
 
       components_source:
         type: "local"
