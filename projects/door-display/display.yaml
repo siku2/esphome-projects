@@ -3,11 +3,12 @@ spi:
   mosi_pin: "GPIO13"
 
 font:
-# Glyphs must cover every string shown at this size in all languages
+# Glyphs must cover every string shown at this size in all languages.
+# The 48 and 24 fonts also show address and names, so they cover ASCII and umlauts.
 - file: "gfonts://Anton"
   id: "font_anton_x48"
   size: 48
-  glyphs: [' ', '1', '2', 'B', 'D', 'H', 'M', 'S', 'T', 'a', 'c', 'd', 'e', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o', 'r', 's', 'u', 'w', 'y', 'ü']
+  glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~äöüÄÖÜß"
 
 - file: "gfonts://Anton"
   id: "font_anton_x32"
@@ -17,7 +18,7 @@ font:
 - file: "gfonts://Anton"
   id: "font_anton_x24"
   size: 24
-  glyphs: [' ', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'D', 'F', 'I', 'K', 'L', 'M', 'R', 'S', 'T', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o', 'r', 's', 't', 'u', 'x']
+  glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~äöüÄÖÜß"
 
 image:
 - file: "mdi:airplane"
@@ -67,7 +68,7 @@ display:
     lambda: !lambda |-
       auto w = it.get_width();
       auto h = it.get_height();
-      it.print(w / 2, h / 2, id(font_anton_x48), TextAlign::CENTER, "Musterstrasse 1");
+      it.print(w / 2, h / 2, id(font_anton_x48), TextAlign::CENTER, id(address_text).state.c_str());
 
       BaseImage *icon = nullptr;
       switch (id(target_entity_selection).active_index().value_or(0)) {
@@ -104,9 +105,12 @@ display:
       }
       // middle row
       {
+        text::Text *names[] = {id(fp_name_1), id(fp_name_2), id(fp_name_3), id(fp_name_4)};
+        auto index = id(fp_person).active_index().value_or(0);
+        std::string person_name = names[index]->state.empty() ? id(fp_person).current_option() : names[index]->state;
         it.printf(it.get_width() / 2, it.get_height() / 2, id(font_anton_x24), TextAlign::CENTER,
           "%s %s %s",
-          id(fp_person).current_option(),
+          person_name.c_str(),
           id(fp_hand).current_option(),
           id(fp_finger).current_option()
         );
@@ -128,3 +132,18 @@ display:
         id(greeting_selection).current_option(),
         id(fp_last_person).state.c_str()
       );
+
+text:
+- platform: "template"
+  id: "address_text"
+  name: "${i18n.doordisplay[language].address}"
+  icon: "mdi:home"
+  entity_category: "config"
+  mode: "text"
+  max_length: 24
+  initial_value: ""
+  optimistic: true
+  restore_value: true
+  on_value:
+    then:
+    - component.update: "display_main"

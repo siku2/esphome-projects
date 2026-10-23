@@ -141,7 +141,10 @@ text_sensor:
   lambda: !lambda |-
     auto fingers_per_person = id(fp_finger).size() * id(fp_hand).size();
     size_t person_index = id(fp_last_finger_id).state / fingers_per_person;
-    return id(fp_person).at(person_index);
+    text::Text *names[] = {id(fp_name_1), id(fp_name_2), id(fp_name_3), id(fp_name_4)};
+    if (person_index >= 4) return "";
+    auto name = names[person_index]->state;
+    return name.empty() ? id(fp_person).at(person_index).value_or("") : name;
 
 select:
 - platform: "template"
@@ -153,10 +156,10 @@ select:
   optimistic: true
   restore_value: true
   options:
-  - "Person 1"
-  - "Person 2"
-  - "Person 3"
-  - "Person 4"
+  - "${i18n.doordisplay[language].person_1}"
+  - "${i18n.doordisplay[language].person_2}"
+  - "${i18n.doordisplay[language].person_3}"
+  - "${i18n.doordisplay[language].person_4}"
   on_value:
     then:
     - component.update: "fp_finger_id"
@@ -193,6 +196,67 @@ select:
   on_value:
     then:
     - component.update: "fp_finger_id"
+
+text:
+- platform: "template"
+  id: "fp_name_1"
+  name: "${i18n.doordisplay[language].person_1_name}"
+  icon: "mdi:account-edit"
+  entity_category: "config"
+  mode: "text"
+  max_length: 16
+  initial_value: ""
+  optimistic: true
+  restore_value: true
+  on_value:
+    then:
+    - component.update: "fp_last_person"
+    - component.update: "display_main"
+
+- platform: "template"
+  id: "fp_name_2"
+  name: "${i18n.doordisplay[language].person_2_name}"
+  icon: "mdi:account-edit"
+  entity_category: "config"
+  mode: "text"
+  max_length: 16
+  initial_value: ""
+  optimistic: true
+  restore_value: true
+  on_value:
+    then:
+    - component.update: "fp_last_person"
+    - component.update: "display_main"
+
+- platform: "template"
+  id: "fp_name_3"
+  name: "${i18n.doordisplay[language].person_3_name}"
+  icon: "mdi:account-edit"
+  entity_category: "config"
+  mode: "text"
+  max_length: 16
+  initial_value: ""
+  optimistic: true
+  restore_value: true
+  on_value:
+    then:
+    - component.update: "fp_last_person"
+    - component.update: "display_main"
+
+- platform: "template"
+  id: "fp_name_4"
+  name: "${i18n.doordisplay[language].person_4_name}"
+  icon: "mdi:account-edit"
+  entity_category: "config"
+  mode: "text"
+  max_length: 16
+  initial_value: ""
+  optimistic: true
+  restore_value: true
+  on_value:
+    then:
+    - component.update: "fp_last_person"
+    - component.update: "display_main"
 
 number:
 - platform: "template"
