@@ -269,7 +269,7 @@ void MeterReader::anchor_(bool jump, uint32_t now) {
   this->update_status_();
   ESP_LOGI(TAG, "Anchored at %.1f L", this->reading_liters_());
   if (jump)
-    this->save_pref_(now);
+    this->save_pref_(now, true);
 }
 
 void MeterReader::apply_rebase(float liters) {
@@ -287,7 +287,7 @@ void MeterReader::apply_rebase(float liters) {
   this->last_commit_ms_ = now;
   this->publish_reading_();
   this->update_status_();
-  this->save_pref_(now);
+  this->save_pref_(now, true);
   ESP_LOGI(TAG, "Rebased to %.1f L (%llu quanta)", static_cast<double>(liters), (unsigned long long) u);
 }
 
@@ -415,10 +415,13 @@ void MeterReader::update_status_() {
     this->status_sensor_->publish_state(STATUS_STRINGS[status]);
 }
 
-void MeterReader::save_pref_(uint32_t now) {
+// Without flush the value waits for the preferences syncer (flash_write_interval
+// and shutdown). Only explicit user or re-anchor jumps force a flash write.
+void MeterReader::save_pref_(uint32_t now, bool flush) {
   this->last_save_ms_ = now;
   this->rtc_.save(&this->u_);
-  global_preferences->sync();
+  if (flush)
+    global_preferences->sync();
 }
 
 void MeterRebaseNumber::control(float value) {

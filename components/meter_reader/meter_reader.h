@@ -86,7 +86,7 @@ class MeterReader : public Component {
   void publish_reading_();
   void publish_rejected_();
   void update_status_();
-  void save_pref_(uint32_t now);
+  void save_pref_(uint32_t now, bool flush = false);
 
   std::vector<Wheel> wheels_{};
   camera::snapshot::Snapshotter *snapshotter_{nullptr};
