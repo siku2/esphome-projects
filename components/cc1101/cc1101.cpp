@@ -140,7 +140,10 @@ void Cc1101::setup() {
 
   this->tx_pin_->setup();
   this->tx_pin_->digital_write(false);
-  this->reset_();
+  if (!this->reset_()) {
+    this->mark_failed(LOG_STR("CC1101 not responding"));
+    return;
+  }
 
   this->part_number_ = this->read_reg_(CC1101_PARTNUM);
   this->version_ = this->read_reg_(CC1101_VERSION);
@@ -152,7 +155,17 @@ void Cc1101::setup() {
   this->write_config_();
 }
 
-void Cc1101::reset_() {
+bool Cc1101::wait_miso_low_() {
+  const uint32_t start = micros();
+  while (this->miso_pin_->digital_read()) {
+    if (micros() - start > 10000)
+      return false;
+    yield();
+  }
+  return true;
+}
+
+bool Cc1101::reset_() {
   // Hold CSn low and then high for at least 40 μs relative to pulling CSn low
   this->enable();
   delay(1);
@@ -160,14 +173,16 @@ void Cc1101::reset_() {
   delay(1);
   // Pull CSn low and wait for SO to go low
   this->cs_->digital_write(false);
-  while (this->miso_pin_->digital_read())
-    yield();
+  if (!this->wait_miso_low_()) {
+    this->disable();
+    return false;
+  }
 
   this->transfer_byte(CC1101_SRES);
   // When SO goes low again, reset is complete and the chip is in the IDLE state
-  while (this->miso_pin_->digital_read())
-    yield();
+  const bool ok = this->wait_miso_low_();
   this->disable();
+  return ok;
 }
 
 void Cc1101::dump_config() {
@@ -186,11 +201,14 @@ void Cc1101::dump_config() {
   ESP_LOGCONFIG(TAG, "  Version: %d", this->version_);
 }
 
-void Cc1101::enable_and_wait() {
+bool Cc1101::enable_and_wait() {
   this->enable();
   // When CSn is pulled low, the MCU must wait until CC1101 SO pin goes low before starting to transfer the header byte
-  while (this->miso_pin_->digital_read())
-    yield();
+  if (this->wait_miso_low_())
+    return true;
+  this->disable();
+  ESP_LOGE(TAG, "Timed out waiting for MISO to go low");
+  return false;
 }
 
 void Cc1101::enable_tx() {
@@ -205,27 +223,31 @@ void Cc1101::disable_tx() {
 }
 
 void Cc1101::command_strobe_(uint8_t strobe) {
-  this->enable_and_wait();
+  if (!this->enable_and_wait())
+    return;
   this->transfer_byte(strobe);
   this->disable();
 }
 
 void Cc1101::write_reg_(uint8_t addr, uint8_t value) {
-  this->enable_and_wait();
+  if (!this->enable_and_wait())
+    return;
   this->transfer_byte(addr);
   this->transfer_byte(value);
   this->disable();
 }
 
 void Cc1101::write_burst_reg_(uint8_t addr, const uint8_t *data, size_t length) {
-  this->enable_and_wait();
+  if (!this->enable_and_wait())
+    return;
   this->transfer_byte(addr | WRITE_BURST);
   this->write_array(data, length);
   this->disable();
 }
 
 uint8_t Cc1101::read_reg_(uint8_t addr) {
-  this->enable_and_wait();
+  if (!this->enable_and_wait())
+    return 0;
   this->transfer_byte(addr | READ_SINGLE);
   uint8_t value = this->read_byte();
   this->disable();

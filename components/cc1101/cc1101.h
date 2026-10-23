@@ -21,7 +21,7 @@ class Cc1101 : public Component,
   void setup() override;
   void dump_config() override;
 
-  void enable_and_wait();
+  bool enable_and_wait();
 
   void enable_tx();
   void disable_tx();
@@ -65,7 +65,8 @@ class Cc1101 : public Component,
   uint8_t m2_sync_m_{0};
   uint8_t m4_rx_bw_{0};
 
-  void reset_();
+  bool wait_miso_low_();
+  bool reset_();
   void calibrate_();
   void command_strobe_(uint8_t strobe);
 
