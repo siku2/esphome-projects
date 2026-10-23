@@ -1,15 +1,16 @@
 external_components:
 - source: "${components_source}"
-  components: ["webdav", "zeromouse_recorder"]
+  components: ["s3", "zeromouse_recorder"]
 
-webdav:
-  id: "zm_webdav"
-  url: "${nextcloud_url}"
-  username: "${nextcloud_username}"
-  password: "${nextcloud_password}"
+s3:
+  id: "zm_s3"
+  endpoint: "${s3_endpoint}"
+  bucket: "${s3_bucket}"
+  access_key_id: "${s3_access_key_id}"
+  secret_access_key: "${s3_secret_access_key}"
 
 zeromouse_recorder:
-  webdav_id: "zm_webdav"
+  s3_id: "zm_s3"
   controller_id: "zm_controller"
   camera_id: "zm_camera"
   enabled: "zm_record_events"

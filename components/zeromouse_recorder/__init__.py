@@ -3,16 +3,16 @@ import esphome.config_validation as cv
 from esphome import automation
 from esphome.components import switch
 from esphome.components.burst_camera import BurstCamera
-from esphome.components.webdav import WebDav
+from esphome.components.s3 import S3Client
 from esphome.components.zeromouse import ZeroMouse
 from esphome.const import CONF_ID
 from esphome.types import ConfigType
 
 AUTO_LOAD = ["json"]
-DEPENDENCIES = ["burst_camera", "esp32", "time", "webdav", "zeromouse"]
+DEPENDENCIES = ["burst_camera", "esp32", "s3", "time", "zeromouse"]
 
 CONF_ENABLED = "enabled"
-CONF_WEBDAV_ID = "webdav_id"
+CONF_S3_ID = "s3_id"
 CONF_CONTROLLER_ID = "controller_id"
 CONF_CAMERA_ID = "camera_id"
 CONF_SECONDARY_JPEG_QUALITY = "secondary_jpeg_quality"
@@ -27,7 +27,7 @@ ZeroMouseRecorder = zeromouse_recorder_ns.class_("ZeroMouseRecorder", cg.Compone
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(ZeroMouseRecorder),
-        cv.Required(CONF_WEBDAV_ID): cv.use_id(WebDav),
+        cv.Required(CONF_S3_ID): cv.use_id(S3Client),
         cv.Required(CONF_CONTROLLER_ID): cv.use_id(ZeroMouse),
         cv.Required(CONF_CAMERA_ID): cv.use_id(BurstCamera),
         cv.Optional(CONF_ENABLED): cv.use_id(switch.Switch),
@@ -46,7 +46,7 @@ async def to_code(config: ConfigType) -> None:
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 
-    cg.add(var.set_webdav(await cg.get_variable(config[CONF_WEBDAV_ID])))
+    cg.add(var.set_s3(await cg.get_variable(config[CONF_S3_ID])))
     cg.add(var.set_controller(await cg.get_variable(config[CONF_CONTROLLER_ID])))
     cg.add(var.set_camera(await cg.get_variable(config[CONF_CAMERA_ID])))
     if enabled := config.get(CONF_ENABLED):

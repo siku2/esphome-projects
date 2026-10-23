@@ -256,9 +256,6 @@ void ZeroMouseRecorder::start_attempt_(const RecordPtr &record) {
     return;
   }
   record->steps.clear();
-  for (uint8_t i = 0; i < 3; i++) {
-    record->steps.push_back({Step::Kind::MKCOL, i});
-  }
   for (size_t i = 0; i < record->images.size(); i++) {
     record->steps.push_back({Step::Kind::FRAME, static_cast<uint8_t>(i)});
     if (record->frames[i].bytes_hq != 0) {
@@ -274,15 +271,6 @@ void ZeroMouseRecorder::start_attempt_(const RecordPtr &record) {
 
 std::string ZeroMouseRecorder::step_path_(const Record &record, const Step &step) const {
   switch (step.kind) {
-    case Step::Kind::MKCOL: {
-      size_t end = record.folder.size();
-      if (step.index == 0) {
-        end = record.folder.find('/');
-      } else if (step.index == 1) {
-        end = record.folder.find('/', record.folder.find('/') + 1);
-      }
-      return record.folder.substr(0, end);
-    }
     case Step::Kind::FRAME:
       return record.folder + "/frame_" + std::to_string(step.index) + ".jpg";
     case Step::Kind::FRAME_HQ:
@@ -313,13 +301,10 @@ void ZeroMouseRecorder::run_step_(const RecordPtr &record, size_t index) {
     this->run_step_(record, index + 1);
   };
   switch (step.kind) {
-    case Step::Kind::MKCOL:
-      this->webdav_->mkcol(path, std::move(done));
-      break;
     case Step::Kind::FRAME: {
       const auto &image = record->images[step.index];
-      this->webdav_->put(path, image->get_data_buffer(), image->get_data_length(), image, "image/jpeg",
-                         std::move(done));
+      this->s3_->put(path, image->get_data_buffer(), image->get_data_length(), image, "image/jpeg",
+                     std::move(done));
       break;
     }
     case Step::Kind::FRAME_HQ: {
@@ -328,13 +313,13 @@ void ZeroMouseRecorder::run_step_(const RecordPtr &record, size_t index) {
         this->run_step_(record, index + 1);
         break;
       }
-      this->webdav_->put(path, image->get_secondary_data(), image->get_secondary_length(), image, "image/jpeg",
-                         std::move(done));
+      this->s3_->put(path, image->get_secondary_data(), image->get_secondary_length(), image, "image/jpeg",
+                     std::move(done));
       break;
     }
     case Step::Kind::JSON:
-      this->webdav_->put(path, record->body->data.get(), record->body->size, record->body, "application/json",
-                         std::move(done));
+      this->s3_->put(path, record->body->data.get(), record->body->size, record->body, "application/json",
+                     std::move(done));
       break;
   }
 }
@@ -381,7 +366,7 @@ void ZeroMouseRecorder::resend_json_(const RecordPtr &record) {
     return;
   }
   const std::string path = record->folder + "/event.json";
-  this->webdav_->put(path, body->data.get(), body->size, body, "application/json", [path](bool ok, int status) {
+  this->s3_->put(path, body->data.get(), body->size, body, "application/json", [path](bool ok, int status) {
     if (!ok) {
       ESP_LOGW(TAG, "Updating %s failed with status %d", path.c_str(), status);
     }

@@ -7,9 +7,10 @@ substitutions:
   zeromouse_identity_id: "" # REQUIRED!
   zeromouse_event_count: 0
   zeromouse_boot_count: 0
-  nextcloud_url: "https://cloud.bg12.ch/remote.php/dav/files/zeromouse/ZeroMOUSE"
-  nextcloud_username: "" # REQUIRED!
-  nextcloud_password: "" # REQUIRED!
+  s3_endpoint: "" # REQUIRED!
+  s3_bucket: "" # REQUIRED!
+  s3_access_key_id: "" # REQUIRED!
+  s3_secret_access_key: "" # REQUIRED!
 
   name: "zeromouse"
   friendly_name: "ZeroMOUSE"

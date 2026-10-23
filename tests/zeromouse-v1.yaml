@@ -19,8 +19,10 @@ packages:
         -----END RSA PRIVATE KEY-----
       zeromouse_owner_id: "test-owner"
       zeromouse_identity_id: "test-identity"
-      nextcloud_username: "test-user"
-      nextcloud_password: "test-password"
+      s3_endpoint: "http://10.0.0.1:3900"
+      s3_bucket: "zeromouse"
+      s3_access_key_id: "test-access-key"
+      s3_secret_access_key: "test-secret-key"
 
       components_source:
         type: "local"

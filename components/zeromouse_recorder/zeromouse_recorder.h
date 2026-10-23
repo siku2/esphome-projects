@@ -10,7 +10,7 @@
 
 #include "esphome/components/burst_camera/burst_camera.h"
 #include "esphome/components/switch/switch.h"
-#include "esphome/components/webdav/webdav.h"
+#include "esphome/components/s3/s3.h"
 #include "esphome/components/zeromouse/zeromouse.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
@@ -18,10 +18,10 @@
 
 namespace esphome::zeromouse_recorder {
 
-/// Uploads every event with its frames and metadata to a WebDAV server as training data.
+/// Uploads every event with its frames and metadata to an S3 bucket as training data.
 class ZeroMouseRecorder : public Component {
  public:
-  void set_webdav(webdav::WebDav *webdav) { this->webdav_ = webdav; }
+  void set_s3(s3::S3Client *s3) { this->s3_ = s3; }
   void set_controller(zeromouse::ZeroMouse *controller) { this->controller_ = controller; }
   void set_camera(burst_camera::BurstCamera *camera) { this->camera_ = camera; }
   void set_enabled(switch_::Switch *enabled) { this->enabled_ = enabled; }
@@ -60,7 +60,7 @@ class ZeroMouseRecorder : public Component {
   };
 
   struct Step {
-    enum class Kind : uint8_t { MKCOL, FRAME, FRAME_HQ, JSON } kind;
+    enum class Kind : uint8_t { FRAME, FRAME_HQ, JSON } kind;
     uint8_t index;
   };
 
@@ -118,7 +118,7 @@ class ZeroMouseRecorder : public Component {
   std::shared_ptr<Body> build_json_(const Record &record) const;
   std::string step_path_(const Record &record, const Step &step) const;
 
-  webdav::WebDav *webdav_{nullptr};
+  s3::S3Client *s3_{nullptr};
   zeromouse::ZeroMouse *controller_{nullptr};
   burst_camera::BurstCamera *camera_{nullptr};
   switch_::Switch *enabled_{nullptr};
