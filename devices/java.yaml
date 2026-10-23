@@ -1,0 +1,431 @@
+packages:
+  base: !include "packages/base.yaml"
+
+esphome:
+  name: "esp-java"
+  friendly_name: "YAHAMA Receiver"
+
+esp32:
+  board: "esp32dev"
+  framework:
+    type: "esp-idf"
+
+ota:
+- platform: "esphome"
+  password: !secret java_ota_password
+
+esp32_ble_tracker:
+  scan_parameters:
+    # We currently use the defaults to ensure Bluetooth
+    # can co-exist with WiFi In the future we may be able to
+    # enable the built-in coexistence logic in ESP-IDF
+    active: true
+
+bluetooth_proxy:
+  active: true
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret java_api_encryption_key
+
+remote_transmitter:
+  id: "ir_transmitter"
+  pin: "GPIO14"
+  carrier_duty_percent: "50%"
+  non_blocking: false # We want to wait for the tx to finish
+
+globals:
+- id: "NEC_ZONE1_TOGGLE_POWER"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x817E, .command=0xD52A, .command_repeats=1 }'
+- id: "NEC_ZONE2_TOGGLE_POWER"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x857A, .command=0x3A45, .command_repeats=1 }'
+
+- id: "NEC_ZONE1_SCENE_DVD"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x857A, .command=0x7F00, .command_repeats=1 }'
+- id: "NEC_ZONE1_SCENE_TV"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x857A, .command=0x7C03, .command_repeats=1 }'
+- id: "NEC_ZONE1_SCENE_CD"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x857A, .command=0x7906, .command_repeats=1 }'
+- id: "NEC_ZONE1_SCENE_RADIO"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x857A, .command=0x7609, .command_repeats=1 }'
+
+- id: "NEC_ZONE1_VOLUME_UP"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x857A, .command=0xE51A, .command_repeats=1 }'
+- id: "NEC_ZONE1_VOLUME_DOWN"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x857A, .command=0xE41B, .command_repeats=1 }'
+- id: "NEC_ZONE1_TOGGLE_MUTE"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x857A, .command=0xE31C, .command_repeats=1 }'
+
+- id: "NEC_ZONE2_VOLUME_UP"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x857A, .command=0x25DA, .command_repeats=1 }'
+- id: "NEC_ZONE2_VOLUME_DOWN"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x857A, .command=0x24DB, .command_repeats=1 }'
+- id: "NEC_ZONE2_TOGGLE_MUTE"
+  type: "esphome::remote_base::NECData"
+  initial_value: '{ .address=0x857A, .command=0x23DC, .command_repeats=1 }'
+
+remote_receiver:
+  pin:
+    number: "GPIO26"
+    inverted: true
+  on_nec:
+    then:
+    - logger.log:
+        format: "received { .address=0x%X, .command=0x%X }"
+        args: ['x.address', 'x.command']
+    - lambda: !lambda |
+        // toggle power
+        if (x == id(NEC_ZONE1_TOGGLE_POWER)) {
+          id(zone1_power).toggle();
+        } else if (x == id(NEC_ZONE2_TOGGLE_POWER)) {
+          id(zone2_power).toggle();
+        }
+        // toggle mute
+        else if (x == id(NEC_ZONE1_TOGGLE_MUTE) && id(zone1_power).state) {
+          id(zone1_mute).toggle();
+        } else if (x == id(NEC_ZONE2_TOGGLE_MUTE) && id(zone2_power).state) {
+          id(zone2_mute).toggle();
+        }
+        // select scene
+        else if (x == id(NEC_ZONE1_SCENE_DVD)) {
+          id(zone1_power).turn_on();
+          id(zone1_scene_select).publish_state("DVD");
+        } else if (x == id(NEC_ZONE1_SCENE_TV)) {
+          id(zone1_power).turn_on();
+          id(zone1_scene_select).publish_state("TV");
+        } else if (x == id(NEC_ZONE1_SCENE_CD)) {
+          id(zone1_power).turn_on();
+          id(zone1_scene_select).publish_state("CD");
+        } else if (x == id(NEC_ZONE1_SCENE_RADIO)) {
+          id(zone1_power).turn_on();
+          id(zone1_scene_select).publish_state("RADIO");
+        }
+
+script:
+- id: "toggle_power"
+  mode: "parallel"
+  parameters:
+    zone: "uint8_t"
+  then:
+  - lambda: !lambda |-
+      esphome::remote_base::NECData data;
+      switch (zone) {
+        case 1:
+          data = id(NEC_ZONE1_TOGGLE_POWER);
+          break;
+        case 2:
+          data = id(NEC_ZONE2_TOGGLE_POWER);
+          break;
+        default:
+          return;
+      }
+      auto call = id(ir_transmitter).transmit();
+      esphome::remote_base::NECProtocol().encode(call.get_data(), data);
+      call.perform();
+  - delay: "200ms"
+
+- id: "set_power"
+  mode: "queued"
+  parameters:
+    zone: "uint8_t"
+    power_on: "bool"
+  then:
+  - lambda: !lambda |-
+      bool currently_on;
+      switch (zone) {
+        case 1:
+          currently_on = id(zone1_power).state;
+          break;
+        case 2:
+          currently_on = id(zone2_power).state;
+          break;
+        default:
+          return;
+      }
+      if (power_on != currently_on) {
+        id(toggle_power)->execute(zone);
+      }
+  - script.wait: "toggle_power"
+
+- id: "toggle_mute"
+  mode: "parallel"
+  parameters:
+    zone: "uint8_t"
+  then:
+  - lambda: !lambda |-
+      esphome::remote_base::NECData data;
+      switch (zone) {
+        case 1:
+          data = id(NEC_ZONE1_TOGGLE_MUTE);
+          break;
+        case 2:
+          data = id(NEC_ZONE2_TOGGLE_MUTE);
+          break;
+        default:
+          return;
+      }
+      auto call = id(ir_transmitter).transmit();
+      esphome::remote_base::NECProtocol().encode(call.get_data(), data);
+      call.perform();
+  - delay: "200ms"
+
+- id: "set_mute"
+  mode: "queued"
+  parameters:
+    zone: "uint8_t"
+    muted: "bool"
+  then:
+  - lambda: !lambda |-
+      bool currently_muted;
+      switch (zone) {
+        case 1:
+          currently_muted = id(zone1_mute).state;
+          break;
+        case 2:
+          currently_muted = id(zone2_mute).state;
+          break;
+        default:
+          return;
+      }
+      if (muted != currently_muted) {
+        id(toggle_mute)->execute(zone);
+      }
+  - script.wait: "toggle_mute"
+
+- id: "volume_change"
+  mode: "parallel"
+  parameters:
+    zone: "uint8_t"
+    up: "bool"
+  then:
+  - lambda: !lambda |-
+      esphome::remote_base::NECData data;
+      // zone 1
+      if (zone == 1 && up) {
+        data = id(NEC_ZONE1_VOLUME_UP);
+      } else if (zone == 1 && !up) {
+        data = id(NEC_ZONE1_VOLUME_DOWN);
+      }
+      // zone 2
+      else if (zone == 2 && up) {
+        data = id(NEC_ZONE2_VOLUME_UP);
+      } else if (zone == 2 && !up) {
+        data = id(NEC_ZONE2_VOLUME_DOWN);
+      }
+      // unknown
+      else {
+        return;
+      }
+      auto call = id(ir_transmitter).transmit();
+      esphome::remote_base::NECProtocol().encode(call.get_data(), data);
+      call.perform();
+
+- id: "zone1_set_scene"
+  mode: "parallel"
+  parameters:
+    scene_id: "uint8_t"
+  then:
+  - lambda: !lambda |-
+      esphome::remote_base::NECData data;
+      switch (scene_id) {
+        // DVD
+        case 0:
+          data = id(NEC_ZONE1_SCENE_DVD);
+          break;
+        // TV
+        case 1:
+          data = id(NEC_ZONE1_SCENE_TV);
+          break;
+        // CD
+        case 2:
+          data = id(NEC_ZONE1_SCENE_CD);
+          break;
+        // RADIO
+        case 3:
+          data = id(NEC_ZONE1_SCENE_RADIO);
+          break;
+        default:
+          return;
+      }
+      auto call = id(ir_transmitter).transmit();
+      esphome::remote_base::NECProtocol().encode(call.get_data(), data);
+      call.perform();
+
+switch:
+# internal state
+# ==================
+
+# zone 1
+
+- platform: "template"
+  id: "zone1_power"
+  name: "Zone 1 Power Internal State"
+  entity_category: config
+  device_class: switch
+  restore_mode: RESTORE_DEFAULT_OFF
+  optimistic: true
+
+- platform: "template"
+  id: "zone1_mute"
+  name: "Zone 1 Mute Internal State"
+  entity_category: config
+  device_class: switch
+  restore_mode: RESTORE_DEFAULT_OFF
+  optimistic: true
+
+# zone 2
+
+- platform: "template"
+  id: zone2_power
+  name: "Zone 2 Power Internal State"
+  entity_category: config
+  device_class: switch
+  restore_mode: RESTORE_DEFAULT_OFF
+  optimistic: true
+
+- platform: "template"
+  id: zone2_mute
+  name: "Zone 2 Mute Internal State"
+  entity_category: config
+  device_class: switch
+  restore_mode: RESTORE_DEFAULT_OFF
+  optimistic: true
+
+# ux
+# =====================
+
+# zone 1
+
+- platform: "template"
+  name: "Zone 1 Power"
+  icon: mdi:power
+  device_class: switch
+  lambda: !lambda 'return id(zone1_power).state;'
+  turn_on_action:
+  - script.execute:
+      id: set_power
+      zone: 1
+      power_on: true
+  turn_off_action:
+  - script.execute:
+      id: set_power
+      zone: 1
+      power_on: false
+
+- platform: template
+  name: "Zone 1 Mute"
+  icon: mdi:volume-off
+  device_class: switch
+  lambda: !lambda 'return id(zone1_mute).state;'
+  turn_on_action:
+  - script.execute:
+      id: set_mute
+      zone: 1
+      muted: true
+  turn_off_action:
+  - script.execute:
+      id: set_mute
+      zone: 1
+      muted: false
+
+# zone 2
+
+- platform: template
+  name: "Zone 2 Power"
+  icon: mdi:power
+  device_class: switch
+  lambda: !lambda 'return id(zone2_power).state;'
+  turn_on_action:
+  - script.execute:
+      id: set_power
+      zone: 2
+      power_on: true
+  turn_off_action:
+  - script.execute:
+      id: set_power
+      zone: 2
+      power_on: false
+
+- platform: template
+  name: "Zone 2 Mute"
+  icon: mdi:volume-off
+  device_class: switch
+  lambda: !lambda 'return id(zone2_mute).state;'
+  turn_on_action:
+  - script.execute:
+      id: set_mute
+      zone: 2
+      muted: true
+  turn_off_action:
+  - script.execute:
+      id: set_mute
+      zone: 2
+      muted: false
+
+select:
+- platform: "template"
+  id: "zone1_scene_select"
+  name: "Zone 1 Scene"
+  update_interval: "never"
+  restore_value: true
+  options:
+    - "DVD"
+    - "TV"
+    - "CD"
+    - "RADIO"
+  set_action:
+    then:
+    - script.execute:
+        id: "zone1_set_scene"
+        scene_id: !lambda 'return id(zone1_scene_select).index_of(x).value_or(0);'
+
+button:
+- platform: "template"
+  name: "Zone 1 Volume Up"
+  icon: "mdi:volume-plus"
+  on_press:
+    then:
+    - script.execute:
+        id: "volume_change"
+        zone: 1
+        up: true
+- platform: "template"
+  name: "Zone 1 Volume Down"
+  icon: "mdi:volume-minus"
+  on_press:
+    then:
+    - script.execute:
+        id: "volume_change"
+        zone: 1
+        up: false
+
+- platform: "template"
+  name: "Zone 2 Volume Up"
+  icon: "mdi:volume-plus"
+  on_press:
+    then:
+    - script.execute:
+        id: "volume_change"
+        zone: 2
+        up: true
+- platform: "template"
+  name: "Zone 2 Volume Down"
+  icon: "mdi:volume-minus"
+  on_press:
+    then:
+    - script.execute:
+        id: "volume_change"
+        zone: 2
+        up: false

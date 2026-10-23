@@ -1,0 +1,18 @@
+packages:
+  projects:
+    url: "https://github.com/siku2/esphome-projects"
+    ref: "4577da6c0931e70e6dd4e915199cf5843adee709"
+    files:
+      - path: "projects/grill-display/core.yaml"
+        vars:
+          git_ref: "4577da6c0931e70e6dd4e915199cf5843adee709"
+          name: "grill-display"
+          friendly_name: "Grill Display"
+          language: "de"
+    
+          api_encryption_key: !secret grill_display_api_encryption_key
+          ota_password: !secret grill_display_ota_password
+
+esphome:
+  name: "grill-display"
+  friendly_name: "Grill Display"

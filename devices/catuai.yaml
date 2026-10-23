@@ -1,0 +1,201 @@
+packages:
+  base: !include packages/base.yaml
+
+esphome:
+  name: "esp-catuai"
+  friendly_name: "Speicher"
+  
+esp32:
+  # See: <https://www.espboards.dev/esp32/esp32doit-devkit-v1/>
+  # TODO: confirm this is the correc board
+  board: "esp32doit-devkit-v1"
+  framework:
+    type: "esp-idf"
+
+api:
+  encryption:
+    key: !secret catuai_api_encryption_key
+
+ota:
+- platform: "esphome"
+  password: !secret catuai_ota_password
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: true
+
+bluetooth_proxy:
+  active: true
+
+one_wire:
+- &ow1
+  id: "ow1"
+  platform: "gpio"
+  pin: "GPIO4"
+
+- <<: *ow1
+  id: "ow2"
+  pin: "GPIO18"
+
+- <<: *ow1
+  id: "ow3"
+  pin: "GPIO21"
+
+- <<: *ow1
+  id: "ow4"
+  pin: "GPIO23"
+
+sensor:
+- platform: "uptime"
+  name: "Uptime"
+
+- id: "mixing_valve_voltage"
+  name: "Mischventil Spannung"
+  unit_of_measurement: "V"
+  device_class: "voltage"
+  state_class: "MEASUREMENT"
+  accuracy_decimals: 2
+  entity_category: "DIAGNOSTIC"
+  filters:
+  - round: 2
+  - delta: 0.005
+  # If the value doesn't change still emit a value every 5min
+  - timeout:
+      timeout: "5min"
+      value: "last"
+  platform: "adc"
+  pin: "GPIO32"
+  attenuation: "12db"
+  samples: 20
+  update_interval: "1s"
+
+- id: "mixing_valve"
+  name: "Mischventil"
+  unit_of_measurement: "%"
+  device_class: ""
+  state_class: "MEASUREMENT"
+  icon: "mdi:valve"
+  accuracy_decimals: 0
+  entity_category: ""
+  filters:
+  - lambda: !lambda |
+      float v_closed = id(mixing_valve_closed).state;
+      float v_open = id(mixing_valve_open).state;
+      if (v_closed == v_open) return 0.0f;
+      float norm = (x - v_closed) / (v_open - v_closed);
+      return std::clamp(100.0f * norm, 0.0f, 100.0f);
+  - round_to_multiple_of: 5
+  - delta: 0.5
+  # If the value doesn't change still emit a value every 5min
+  - timeout:
+      timeout: "5min"
+      value: "last"
+  platform: "copy"
+  source_id: "mixing_valve_voltage"
+
+# OW1
+- &ow1_template
+  name: "Speicher Mitte-Oben"
+  filters:
+  - round: 1
+  # Don't report error values (they happen fairly often)
+  - filter_out: "NaN"
+  # Only resort to NaN after 1min of no new value
+  - timeout: "1min"
+  - delta: 0.5
+  # If the value doesn't change still emit a value every 5min
+  - timeout:
+      timeout: "5min"
+      value: "last"
+  platform: "dallas_temp"
+  address: 0x7600080362048C10
+  update_interval: "10s"
+  one_wire_id: "ow1"
+
+- <<: *ow1_template
+  name: "Speicher Mitte-Unten"
+  address: 0xE300080362207C10
+
+- <<: *ow1_template
+  name: "Speicher Unten"
+  address: 0x7E00080361B2D010
+
+- <<: *ow1_template
+  name: "Warmwasser"
+  address: 0x8E00080361B7EA10
+
+- <<: *ow1_template
+  name: "Heizung Vorlauf"
+  address: 0x8B00080362004010
+
+
+# OW2
+- &ow2_template
+  <<: *ow1_template
+  name: "Lüftung Abluft"
+  address: 0x0B000803621A9710
+  one_wire_id: "ow2"
+
+- <<: *ow2_template
+  name: "Heizung Wärmepumpe"
+  address: 0xBA00080362748410
+
+- <<: *ow2_template
+  name: "Heizung Specksteinofen"
+  address: 0x5D00080361BDE810
+
+- <<: *ow2_template
+  name: "Heizung Kollektor Rücklauf"
+  address: 0x7B00080362422310
+
+- <<: *ow2_template
+  name: "Heizung Kollektor Vorlauf"
+  address: 0x3100080362C8F810
+
+
+# OW3
+- &ow3_template
+  <<: *ow1_template
+  name: "Lüftung Zuluft"
+  address: 0x5700080362DD4210
+  one_wire_id: "ow3"
+  
+- <<: *ow3_template
+  name: "Lüftung Aussenluft"
+  address: 0xDA0008036296FC10
+
+- <<: *ow3_template
+  name: "Lüftung Fortluft"
+  address: 0x7E00080361840410
+
+- <<: *ow3_template
+  name: "Heizung Solar"
+  address: 0x790f498a17dfe828
+
+
+# OW4
+- &ow4_template
+  <<: *ow1_template
+  name: "Heizraum"
+  address: 0x860000006e33de28
+  one_wire_id: "ow4"
+
+number:
+- &mixing_valve_closed
+  id: "mixing_valve_closed"
+  name: "Mischventil Spannung Zu"
+  entity_category: "CONFIG"
+  unit_of_measurement: "V"
+  device_class: "voltage"
+  platform: "template"
+  optimistic: true
+  min_value: 0.0
+  max_value: 3.3
+  step: 0.01
+  restore_value: true
+  initial_value: 0.30
+
+- <<: *mixing_valve_closed
+  id: "mixing_valve_open"
+  name: "Mischventil Spannung Offen"
+  initial_value: 2.7

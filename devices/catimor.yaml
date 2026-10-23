@@ -1,0 +1,17 @@
+packages:
+  projects:
+    url: "https://github.com/siku2/esphome-projects"
+    ref: "2b5c8ac0085eb2e929ea5538f3eff1d74226351f"
+    files:
+    - path: "projects/catimor/core.yaml"
+      vars:
+        friendly_name: "Zimmer Simon Rollladen"
+        language: "de"
+
+        blind_left_cover_id: "cover.zimmer_simon_store_sud_shelly2pmg3_28372f2012d0"
+        blind_right_cover_id: "cover.zimmer_simon_store_nord_shelly2pmg4_7c2c677a1768"
+        climate_id: "climate.midea_ac_16492674468636"
+
+        api_encryption_key: !secret catimor_api_encryption_key
+        ota_password: !secret catimor_ota_password
+        git_ref: "2b5c8ac0085eb2e929ea5538f3eff1d74226351f"

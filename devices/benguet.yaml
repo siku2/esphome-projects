@@ -1,0 +1,508 @@
+substitutions:
+  door_lock_entity_id: "lock.smart_lock_pro"
+
+packages:
+  base: !include "packages/base.yaml"
+
+esphome:
+  name: "esp-benguet"
+  friendly_name: "DoorDisplay"
+
+esp32:
+  board: "nodemcu-32s"
+  framework:
+    type: "esp-idf"
+
+api:
+  id: "api_server"
+  encryption:
+    key: !secret benguet_api_encryption_key
+  homeassistant_services: true
+
+ota:
+- platform: "esphome"
+  password: !secret benguet_ota_password
+
+debug:
+  update_interval: 5s
+
+script:
+# reset the target entity back to the door
+- id: reset_target_selection
+  mode: restart
+  then:
+  - delay: 5min
+  - select.set_index:
+      id: target_entity_selection
+      index: 0
+
+- id: perform_target_action
+  mode: queued
+  then:
+  - lambda: !lambda |
+      HomeassistantActionRequest call{};
+      switch (id(target_entity_selection).active_index().value_or(0)) {
+        // house door
+        case 0:
+          call.set_service(StringRef::from_lit("script.gang_eg_schloss_hausture_toggle"));
+          break;
+        // bicycle
+        case 1: {
+          call.set_service(StringRef::from_lit("cover.toggle"));
+          call.data.init(1);
+          auto &kv = call.data.emplace_back();
+          kv.set_key(StringRef::from_lit("entity_id"));
+          kv.value = "cover.aussen_veloraum";
+          break;
+        }
+        // bastelraum tor
+        case 2:
+          call.set_service(StringRef::from_lit("script.bastelraum_tor_toggle"));
+          break;
+        default:
+          return;
+      }
+      ESP_LOGI("main", "Performing action %s", call.service_ref_.c_str());
+      id(api_server).send_homeassistant_action(call);
+
+spi:
+  clk_pin: GPIO33
+  mosi_pin: GPIO13
+
+font:
+- file: gfonts://Anton
+  id: font_anton_x48
+  size: 48
+  # >>> sorted(set("Musterstrasse 1HalloHiHoiHeyPerson 4Person 2Person 3Person 1TschauTschüss"))
+  glyphs: [' ', '1', '2', 'B', 'D', 'H', 'M', 'S', 'T', 'a', 'c', 'd', 'e', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o', 'r', 's', 'u', 'y', 'ü']
+
+- file: gfonts://Anton
+  id: font_anton_x32
+  size: 32
+  # >>> set("Registrieren")
+  glyphs: ['R', 'e', 'g', 'i', 'n', 'r', 's', 't']
+
+- file: gfonts://Anton
+  id: font_anton_x24
+  size: 24
+  # >>> sorted(set("Person 4Person 1Person 3Person 21234567890/MittelfingerRingfingerZeigefingerKleiner FingerDaumenLinksRechts"))
+  glyphs: [' ', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'D', 'F', 'K', 'L', 'M', 'R', 'S', 'Z', 'a', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o', 'r', 's', 't', 'u']
+
+image:
+- file: mdi:airplane
+  type: BINARY
+  id: img_mdi_airplane
+  resize: 32x32
+
+- file: mdi:bicycle
+  type: BINARY
+  id: img_mdi_bicycle
+  resize: 32x32
+
+- file: mdi:door-closed
+  type: BINARY
+  id: img_mdi_door_closed
+  resize: 32x32
+
+- file: mdi:door-closed-lock
+  type: BINARY
+  id: img_mdi_door_closed_lock
+  resize: 32x32
+
+- file: mdi:fingerprint
+  type: BINARY
+  id: img_mdi_fingerprint
+  resize: 32x32
+
+display:
+- platform: waveshare_epaper
+  id: display_main
+  model: 2.90inv2-r2
+  cs_pin: GPIO14
+  dc_pin: GPIO27
+  busy_pin: GPIO25
+  reset_pin: GPIO26
+  rotation: "90°"
+  update_interval: never
+  on_page_change:
+  - then:
+    - component.update: display_main
+  - to: pg_hello
+    then:
+    - delay: 3s
+    - display.page.show: pg_main
+  pages:
+  - id: pg_main
+    lambda: |-
+      auto w = it.get_width();
+      auto h = it.get_height();
+      it.print(w / 2, h / 2, id(font_anton_x48), TextAlign::CENTER, "Musterstrasse 1");
+
+      BaseImage *icon = nullptr;
+      switch (id(target_entity_selection).active_index().value_or(0)) {
+        // house door
+        case 0:
+          icon = (id(sensor_door_lock).get_state() == "unlocked") ? id(img_mdi_door_closed) : id(img_mdi_door_closed_lock);
+          break;
+        // bicycle
+        case 1:
+          icon = id(img_mdi_bicycle);
+          break;
+        // bastelraum tor
+        case 2:
+          icon = id(img_mdi_airplane);
+          break;
+      }
+      if (icon != nullptr) it.image(w / 2, h, icon, ImageAlign::BOTTOM_CENTER);
+
+  - id: pg_enroll
+    lambda: |-
+      // top row
+      {
+        auto icon = id(img_mdi_fingerprint);
+        auto text = "Registrieren";
+        auto font = id(font_anton_x32);
+        
+        int text_w, text_h, tmp;
+        font->measure(text, &text_w, &tmp, &tmp, &text_h);
+        auto row_w = text_w + icon->get_width();
+        auto row_start_x = (it.get_width() - row_w) / 2;
+        it.image(row_start_x, text_h / 2, icon, ImageAlign::CENTER_LEFT);
+        it.print(row_start_x + icon->get_width(), 0, font, TextAlign::TOP_LEFT, text);
+        it.line(0, text_h, it.get_width(), text_h);
+      }
+      // middle row
+      {
+        it.printf(it.get_width() / 2, it.get_height() / 2, id(font_anton_x24), TextAlign::CENTER,
+          "%s %s %s",
+          id(fp_person).current_option(),
+          id(fp_hand).current_option(),
+          id(fp_finger).current_option()
+        );
+      }
+      // bottom row
+      {
+        it.printf(it.get_width() / 2, it.get_height(), id(font_anton_x24), TextAlign::BOTTOM_CENTER,
+          "%d/%d",
+          (int) id(fp_num_scans_counter).state,
+          (int) id(fp_num_scans).state
+        );
+      }
+
+  - id: pg_hello
+    lambda: |-
+      id(greeting_selection).make_call().select_next(true).perform();
+      it.printf(it.get_width() / 2, it.get_height() / 2, id(font_anton_x48), TextAlign::CENTER,
+        "%s %s",
+        id(greeting_selection).current_option(),
+        id(fp_last_person).state.c_str()
+      );
+
+uart:
+  rx_pin: GPIO35
+  tx_pin: GPIO32
+  baud_rate: 57600
+
+fingerprint_grow:
+  sensing_pin:
+    number: GPIO21
+    allow_other_uses: true
+  password: !secret benguet_fingerprint_password
+  on_finger_scan_matched:
+  - fingerprint_grow.aura_led_control:
+      state: BREATHING
+      speed: 200
+      color: BLUE
+      count: 1
+  - script.execute: perform_target_action
+  - display.page.show: pg_hello
+
+  on_finger_scan_unmatched:
+  - fingerprint_grow.aura_led_control:
+      state: FLASHING
+      speed: 25
+      color: RED
+      count: 2
+
+  on_enrollment_scan:
+  - lambda: !lambda |-
+      auto counter = id(fp_num_scans_counter);
+      counter->publish_state(counter->state + 1);
+  - fingerprint_grow.aura_led_control:
+      state: FLASHING
+      speed: 25
+      color: BLUE
+      count: 2
+  - fingerprint_grow.aura_led_control:
+      state: ALWAYS_ON
+      speed: 0
+      color: PURPLE
+      count: 0
+
+  on_enrollment_done:
+  - fingerprint_grow.aura_led_control:
+      state: BREATHING
+      speed: 100
+      color: BLUE
+      count: 2
+
+  on_enrollment_failed:
+  - fingerprint_grow.aura_led_control:
+      state: FLASHING
+      speed: 25
+      color: RED
+      count: 4
+
+binary_sensor:
+- platform: fingerprint_grow
+  name: Fingerprint Registrierung Aktiv
+  entity_category: diagnostic
+  on_press:
+    then:
+    - lambda: !lambda 'id(fp_num_scans_counter).publish_state(0);'
+    - display.page.show: pg_enroll
+    - fingerprint_grow.aura_led_control:
+        state: ALWAYS_ON
+        speed: 0
+        color: PURPLE
+        count: 0
+  on_release:
+    then:
+    - display.page.show: pg_main
+
+- platform: gpio
+  pin:
+    number: GPIO21
+    allow_other_uses: true
+  name: Fingerprint Finger Touch
+  entity_category: diagnostic
+  filters:
+    - invert
+  on_click:
+    min_length: 50ms
+    max_length: 400ms
+    then:
+    - select.next:
+        id: target_entity_selection
+    - fingerprint_grow.aura_led_control:
+        state: FLASHING
+        speed: 50
+        color: WHITE
+        count: 1
+
+sensor:
+- platform: fingerprint_grow
+  fingerprint_count:
+    name: Fingerprint Anzahl
+    entity_category: diagnostic
+  last_finger_id:
+    name: Fingerprint Letzte ID
+    id: fp_last_finger_id
+    entity_category: diagnostic
+    on_value:
+      then:
+      - component.update: fp_last_person
+  last_confidence:
+    name: Fingerprint Letzte Zuversicht
+    entity_category: diagnostic
+  # status:
+  #   name: Fingerprint Status
+  #   entity_category: diagnostic
+  capacity:
+    name: Fingerprint Kapazität
+    entity_category: diagnostic
+  # security_level:
+  #   name: Fingerprint Sicherheitslevel
+  #   entity_category: diagnostic
+
+- platform: internal_temperature
+  name: Interne Temperatur
+  update_interval: 5min
+  entity_category: diagnostic
+
+- platform: template
+  id: fp_finger_id
+  name: Fingerprint Aktive ID
+  accuracy_decimals: 0
+  entity_category: diagnostic
+  update_interval: never
+  lambda: !lambda |
+    auto fingers_per_hand = id(fp_finger).size();
+    auto fingers_per_person = fingers_per_hand * id(fp_hand).size();
+    return id(fp_finger).active_index().value_or(0)
+      + fingers_per_hand * id(fp_hand).active_index().value_or(0)
+      + fingers_per_person * id(fp_person).active_index().value_or(0);
+
+- platform: template
+  id: fp_num_scans_counter
+  name: Fingerprint Scans Abgeschlossen
+  accuracy_decimals: 0
+  entity_category: diagnostic
+  update_interval: never
+  on_value:
+    then:
+    - component.update: display_main
+
+text_sensor:
+- platform: debug
+  device:
+    name: "Device Info"
+  reset_reason:
+    name: "Reset Reason"
+
+- platform: homeassistant
+  id: sensor_door_lock
+  entity_id: ${door_lock_entity_id}
+  on_value:
+    then:
+    - component.update: display_main
+
+- platform: template
+  id: fp_last_person
+  name: Letzte Person
+  icon: mdi:account
+  update_interval: never
+  lambda: !lambda |-
+    auto fingers_per_person = id(fp_finger).size() * id(fp_hand).size();
+    size_t person_index = id(fp_last_finger_id).state / fingers_per_person;
+    return id(fp_person).at(person_index);
+
+select:
+- platform: template
+  id: target_entity_selection
+  name: Auswahl
+  icon: mdi:target
+  update_interval: never
+  optimistic: true
+  restore_value: true
+  options:
+  - Haustüre
+  - Velo
+  - Bastelraum Tor
+  on_value:
+    then:
+    - component.update: display_main
+    # make sure to reset the selected target back to the main door after a while
+    - script.execute: reset_target_selection
+
+- platform: template
+  id: fp_person
+  name: Fingerprint Person
+  icon: mdi:account
+  entity_category: config
+  update_interval: never
+  optimistic: true
+  restore_value: true
+  options:
+  - Person 1
+  - Person 2
+  - Person 3
+  - Person 4
+  on_value:
+    then:
+    - component.update: fp_finger_id
+
+- platform: template
+  id: fp_hand
+  name: Fingerprint Hand
+  icon: mdi:hand-back-left
+  entity_category: config
+  update_interval: never
+  optimistic: true
+  restore_value: true
+  options:
+  - Links
+  - Rechts
+  on_value:
+    then:
+    - component.update: fp_finger_id
+
+- platform: template
+  id: fp_finger
+  name: Fingerprint Finger
+  icon: mdi:fingerprint
+  entity_category: config
+  update_interval: never
+  optimistic: true
+  restore_value: true
+  options:
+  - Daumen
+  - Zeigefinger
+  - Mittelfinger
+  - Ringfinger
+  - Kleiner Finger
+  on_value:
+    then:
+    - component.update: fp_finger_id
+
+- platform: template
+  id: greeting_selection
+  internal: true
+  update_interval: never
+  optimistic: true
+  restore_value: true
+  options:
+  - Hi
+  - Hoi
+  - Hallo
+  - Hey
+
+- platform: template
+  id: farewell_selection
+  internal: true
+  update_interval: never
+  optimistic: true
+  restore_value: true
+  options:
+  - Tschau
+  - Tschüss
+
+number:
+  - platform: template
+    id: fp_num_scans
+    name: Fingerprint Scans
+    icon: mdi:counter
+    entity_category: config
+    mode: box
+    min_value: 2
+    max_value: 6
+    step: 1
+    update_interval: never
+    optimistic: true
+    restore_value: true
+
+button:
+- platform: template
+  name: Registrieren
+  icon: mdi:key-plus
+  entity_category: config
+  on_press:
+    then:
+    - fingerprint_grow.enroll:
+        finger_id: !lambda 'return id(fp_finger_id).state;'
+        num_scans: !lambda 'return id(fp_num_scans).state;'
+
+- platform: template
+  name: Registrierung Abbrechen
+  icon: mdi:cancel
+  entity_category: config
+  on_press:
+    then:
+    - fingerprint_grow.cancel_enroll:
+
+- platform: template
+  name: Fingerprint Löschen
+  icon: mdi:key-minus
+  entity_category: config
+  on_press:
+    then:
+    - fingerprint_grow.delete:
+        finger_id: !lambda 'return id(fp_finger_id).state;'
+
+- platform: template
+  name: ALLES Löschen
+  icon: mdi:alert
+  entity_category: diagnostic
+  on_press:
+    then:
+    - fingerprint_grow.delete_all:

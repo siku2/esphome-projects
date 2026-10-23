@@ -1,0 +1,50 @@
+packages:
+  wifi_config: !include "wifi_config.yaml"
+
+debug:
+  update_interval: "never"
+
+logger:
+  level: "VERBOSE"
+  initial_level: "DEBUG"
+
+# Peripherals
+
+button:
+- id: "base_restart"
+  platform: "restart"
+  name: "Neustarten"
+
+select:
+- id: "base_log_level"
+  platform: "logger"
+  name: "Log Level"
+
+sensor:
+- id: "base_last_restart"
+  entity_category: "DIAGNOSTIC"
+  platform: "uptime"
+  type: "timestamp"
+  name: "Letzter Neustart"
+
+- id: "base_wifi_signal"
+  name: "WiFi Signal"
+  entity_category: "DIAGNOSTIC"
+  filters:
+  - round: 1
+  # Only send significant changes or every 24h
+  - or:
+    - throttle: "24h"
+    - delta: 5.0
+  platform: "wifi_signal"
+  update_interval: "5min"
+
+text_sensor:
+- platform: "debug"
+  reset_reason:
+    name: "Neustart Grund"
+
+time:
+- id: "base_homeassistant_time"
+  timezone: "Europe/Zurich"
+  platform: "homeassistant"

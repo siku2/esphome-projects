@@ -3,5 +3,6 @@
 .ruff_cache/
 .venv/
 __pycache__/
+secrets.yaml
 /result
 /result-*
