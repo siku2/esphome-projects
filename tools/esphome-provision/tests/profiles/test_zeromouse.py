@@ -20,6 +20,7 @@ from esphome_provision.profiles import all_profiles
 from esphome_provision.profiles.zeromouse.efuse import USER_DATA, board_id, check_board
 from esphome_provision.profiles.zeromouse.names import entity_names
 from esphome_provision.profiles.zeromouse.nvs import identity_from_image, parse_nvs
+from esphome_provision.profiles.zeromouse.settings import STOCK_SETTINGS, stock_settings
 
 NAMESPACES = {"iot", "system", "prox", "camera", "rfid"}
 BOARDS = [
@@ -187,3 +188,25 @@ def test_entity_names_exist_in_both_languages() -> None:
         "s3_bucket",
     ):
         assert len(entity_names(key)) == 2
+
+
+def test_stock_settings_cover_the_entities(dumps: Path) -> None:
+    image = (dumps / BOARDS[1][1]).read_bytes()
+    _, _, partition = identity_from_image(image)
+    content = parse_nvs(image[partition.offset : partition.offset + partition.size])
+    settings = stock_settings(content, skip=set())
+    assert len(settings) == len(STOCK_SETTINGS)
+    assert settings[0].key == "brightness"
+    for setting in settings:
+        assert entity_names(setting.key)
+    observed = stock_settings(content, skip={"block_enabled"})
+    assert "block_enabled" not in {s.key for s in observed}
+
+
+def test_stock_settings_skip_missing_keys() -> None:
+    settings = stock_settings({("prox", "irPreyTime"): 120}, skip=set())
+    assert [(s.key, s.kind, s.value) for s in settings] == [
+        ("ir_prey_event_time", "number", 120)
+    ]
+    with pytest.raises(ProvisionError):
+        _ = stock_settings({("system", "cleanET"): b"x"}, skip=set())

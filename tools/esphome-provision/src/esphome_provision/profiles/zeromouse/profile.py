@@ -13,7 +13,8 @@ from esphome_provision.profiles.zeromouse.efuse import (
     board_id,
     check_board,
 )
-from esphome_provision.profiles.zeromouse.nvs import identity_from_image
+from esphome_provision.profiles.zeromouse.nvs import identity_from_image, parse_nvs
+from esphome_provision.profiles.zeromouse.settings import stock_settings
 
 CHIP = "ESP32-S3"
 FLASH_SIZE = 16 * 1024 * 1024
@@ -94,7 +95,11 @@ class ZeroMouseProfile:
             + f"thing name {identity.thing_name}, event count {identity.event_count}, boot count {identity.boot_count}"
         )
         s3 = steps.s3_values(secrets, args.device) if args.device else None
-        return steps.Context(identity, s3)
+        content = parse_nvs(image[nvs.offset : nvs.offset + nvs.size])
+        skip = {"block_enabled"} if args.observe_only else set()
+        settings = stock_settings(content, skip=skip)
+        print(f"  {len(settings)} stock settings to carry over")
+        return steps.Context(identity, s3, settings)
 
     async def provision(
         self, factory: SessionFactory, context: Any, args: argparse.Namespace

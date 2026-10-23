@@ -13,6 +13,10 @@ from esphome_provision.api import Session, SessionFactory
 from esphome_provision.common import ProvisionError
 from esphome_provision.profiles.zeromouse.names import entity_names
 from esphome_provision.profiles.zeromouse.nvs import StockIdentity
+from esphome_provision.profiles.zeromouse.settings import (
+    StockSetting,
+    apply_stock_settings,
+)
 
 PROJECT_NAME = "siku2.zeromouse"
 LOG_TAG = "zeromouse_provisioning"
@@ -29,6 +33,7 @@ OBSERVE_SWITCHES = (
 class Context:
     identity: StockIdentity
     s3: ExecuteServiceDataType | None
+    settings: list[StockSetting]
 
 
 def cloud_values(
@@ -137,6 +142,8 @@ async def provision(
     connected_names = entity_names("cloud_connected")
     if args.observe_only:
         await turn_observe_switches_off(factory)
+    print("Carrying over the stock settings")
+    await apply_stock_settings(factory, context.settings)
     print("Provisioning the cloud credentials")
     await api.run_action(
         factory, "provision_cloud", cloud_values(context.identity), log_tag=LOG_TAG
