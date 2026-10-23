@@ -11,6 +11,7 @@
 #include <memory>
 #include <string>
 
+#include "esphome/components/task_util/task_util.h"
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
 
@@ -85,10 +86,8 @@ class S3Client : public Component {
   bool client_used_{false};
   TaskHandle_t task_{nullptr};
 
-  Mutex requests_mutex_;
-  std::deque<Request> requests_;
-  Mutex results_mutex_;
-  std::deque<Result> results_;
+  task_util::TaskInbox<Request> requests_{MAX_QUEUED};
+  task_util::LoopInbox<Result> results_{this, SIZE_MAX};
 };
 
 }  // namespace esphome::s3

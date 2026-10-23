@@ -1,6 +1,6 @@
 external_components:
 - source: "${components_source}"
-  components: ["s3", "zeromouse_recorder"]
+  components: ["s3", "task_util", "zeromouse_recorder"]
 
 s3:
   id: "zm_s3"

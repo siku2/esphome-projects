@@ -23,6 +23,7 @@ from esphome.const import (
 )
 from esphome.types import ConfigType
 
+AUTO_LOAD = ["task_util"]
 DEPENDENCIES = ["esp32", "network", "time"]
 
 CONF_ENDPOINT = "endpoint"

@@ -1,6 +1,6 @@
 external_components:
 - source: "${components_source}"
-  components: ["aws_iot", "zeromouse_cloud"]
+  components: ["aws_iot", "task_util", "zeromouse_cloud"]
 
 aws_iot:
   id: "zm_aws_iot"

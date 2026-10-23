@@ -18,7 +18,6 @@ static constexpr int BUFFER_SIZE = 8 * 1024;
 static constexpr int TASK_STACK_SIZE = 8 * 1024;
 // esp-mqtt drops unacknowledged messages after 30 s, so a larger timeout means no resend while connected.
 static constexpr int RETRANSMIT_TIMEOUT_MS = 60000;
-static constexpr UBaseType_t SEND_QUEUE_LENGTH = 8;
 static constexpr uint32_t START_RETRY_MS = 30000;
 static constexpr uint32_t SUBACK_TIMEOUT_MS = 10000;
 static constexpr int QOS = 1;
@@ -46,13 +45,13 @@ void AwsIotClient::setup() {
   if (this->root_ca_.empty())
     this->root_ca_ = AMAZON_ROOT_CA_1;
 
-  this->send_queue_ = xQueueCreate(SEND_QUEUE_LENGTH, sizeof(Outgoing *));
-  if (this->send_queue_ == nullptr ||
-      xTaskCreate(&AwsIotClient::sender_task_, "aws_iot_tx", TASK_STACK_SIZE, this, 1, nullptr) != pdPASS) {
+  TaskHandle_t sender = nullptr;
+  if (xTaskCreate(&AwsIotClient::sender_task_, "aws_iot_tx", TASK_STACK_SIZE, this, 1, &sender) != pdPASS) {
     ESP_LOGE(TAG, "Failed to start the sender task");
     this->mark_failed();
     return;
   }
+  this->send_queue_.set_task(sender);
 
   this->time_->add_on_time_sync_callback([this]() { this->start_client_(); });
   if (this->time_->utcnow().is_valid())
@@ -104,12 +103,7 @@ void AwsIotClient::stop_task_(void *arg) {
     that->subscribed_ = false;
   }
   that->awaiting_suback_ = false;
-  {
-    LockGuard guard(that->events_mutex_);
-    that->events_.erase(std::remove_if(that->events_.begin(), that->events_.end(),
-                                       [](const Event &event) { return event.type != Event::Type::PUBLISHED; }),
-                        that->events_.end());
-  }
+  that->events_.remove_if([](const Event &event) { return event.type != Event::Type::PUBLISHED; });
   that->busy_ = false;
   that->push_event_({Event::Type::STOPPED, {}, {}});
   vTaskDelete(nullptr);
@@ -209,9 +203,8 @@ bool AwsIotClient::publish_blocking(const std::string &topic, const char *data, 
 
 bool AwsIotClient::publish_async(const std::string &topic, const char *data, size_t len, PublishCallback done) {
   auto *job = new Outgoing{Outgoing::Kind::PUBLISH, topic, std::string(data, len), std::move(done)};
-  if (xQueueSend(this->send_queue_, &job, 0) != pdTRUE) {
+  if (!this->send_queue_.post(std::unique_ptr<Outgoing>(job))) {
     ESP_LOGW(TAG, "Sender queue is full, dropping publish on %s", topic.c_str());
-    delete job;
     return false;
   }
   return true;
@@ -230,19 +223,17 @@ void AwsIotClient::subscribe(const std::string &topic, MessageCallback callback)
   if (!live || known)
     return;
   auto *job = new Outgoing{Outgoing::Kind::SUBSCRIBE, topic, {}, nullptr};
-  if (xQueueSend(this->send_queue_, &job, 0) != pdTRUE) {
+  if (!this->send_queue_.post(std::unique_ptr<Outgoing>(job)))
     ESP_LOGW(TAG, "Sender queue is full, not subscribing to %s", topic.c_str());
-    delete job;
-  }
 }
 
 void AwsIotClient::sender_task_(void *arg) {
   auto *that = static_cast<AwsIotClient *>(arg);
   while (true) {
-    Outgoing *job;
-    xQueueReceive(that->send_queue_, &job, portMAX_DELAY);
-    std::unique_ptr<Outgoing> owner(job);
-    that->send_(*owner);
+    that->send_queue_.wait();
+    std::unique_ptr<Outgoing> job;
+    while (that->send_queue_.pop(job))
+      that->send_(*job);
   }
 }
 
@@ -262,15 +253,7 @@ void AwsIotClient::send_(Outgoing &job) {
 }
 
 void AwsIotClient::loop() {
-  while (true) {
-    Event event;
-    {
-      LockGuard guard(this->events_mutex_);
-      if (this->events_.empty())
-        break;
-      event = std::move(this->events_.front());
-      this->events_.pop_front();
-    }
+  this->events_.drain([this](Event event) {
     switch (event.type) {
       case Event::Type::SUBSCRIBING:
         this->set_timeout("suback", SUBACK_TIMEOUT_MS, [this]() { this->on_subscribe_timeout_(); });
@@ -301,7 +284,7 @@ void AwsIotClient::loop() {
         this->retry_start_();
         break;
     }
-  }
+  });
   this->disable_loop();
 }
 
@@ -421,12 +404,7 @@ void AwsIotClient::subscribe_all_(esp_mqtt_client_handle_t client) {
 }
 
 void AwsIotClient::push_event_(Event &&event) {
-  {
-    LockGuard guard(this->events_mutex_);
-    this->events_.push_back(std::move(event));
-  }
-  this->enable_loop_soon_any_context();
-  App.wake_loop_threadsafe();
+  this->events_.post(std::move(event));
 }
 
 }  // namespace esphome::aws_iot

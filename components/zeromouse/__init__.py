@@ -20,7 +20,7 @@ from esphome.const import (
 )
 from esphome.types import ConfigType
 
-AUTO_LOAD = ["binary_sensor", "number", "select", "sensor", "switch", "text_sensor"]
+AUTO_LOAD = ["binary_sensor", "number", "select", "sensor", "switch", "task_util", "text_sensor"]
 DEPENDENCIES = ["burst_camera", "esp32", "network", "time", "zeromouse_air"]
 
 CONF_AIR_SENSOR = "air_sensor"

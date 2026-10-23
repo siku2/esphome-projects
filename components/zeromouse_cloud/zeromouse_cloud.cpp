@@ -150,15 +150,13 @@ void ZeroMouseCloud::setup() {
     system.kkzm_out_open_at = extras.kkzm_out_open_at;
   }
 
-  this->job_queue_ = xQueueCreate(1, sizeof(Job *));
-  this->result_queue_ = xQueueCreate(1, sizeof(bool));
-  if (this->job_queue_ == nullptr || this->result_queue_ == nullptr ||
-      xTaskCreatePinnedToCore(&ZeroMouseCloud::worker_task_, "zm_event", WORKER_STACK_SIZE, this, WORKER_PRIORITY,
+  if (xTaskCreatePinnedToCore(&ZeroMouseCloud::worker_task_, "zm_event", WORKER_STACK_SIZE, this, WORKER_PRIORITY,
                               &this->worker_, WORKER_CORE) != pdPASS) {
     ESP_LOGE(TAG, "Failed to start the event worker");
     this->mark_failed();
     return;
   }
+  this->jobs_.set_task(this->worker_);
   this->disable_loop();
 
   this->aws_iot_->subscribe(this->device_topic_("command"),
@@ -511,8 +509,7 @@ void ZeroMouseCloud::publish_event_async(EventData data, PublishCallback callbac
   this->pending_event_id_ = reservation.id;
   this->pending_callback_ = std::move(callback);
   this->building_ = true;
-  if (xQueueSend(this->job_queue_, &job, 0) != pdTRUE) {
-    delete job;
+  if (!this->jobs_.post(std::unique_ptr<Job>(job))) {
     this->building_ = false;
     this->fail_async_(std::move(this->pending_callback_));
   }
@@ -521,15 +518,14 @@ void ZeroMouseCloud::publish_event_async(EventData data, PublishCallback callbac
 void ZeroMouseCloud::worker_task_(void *arg) {
   auto *that = static_cast<ZeroMouseCloud *>(arg);
   while (true) {
-    Job *job;
-    xQueueReceive(that->job_queue_, &job, portMAX_DELAY);
-    std::unique_ptr<Job> owner(job);
-    bool ok = false;
-    that->build_and_publish_(*owner, ok);
-    owner.reset();
-    xQueueSend(that->result_queue_, &ok, portMAX_DELAY);
-    that->enable_loop_soon_any_context();
-    App.wake_loop_threadsafe();
+    that->jobs_.wait();
+    std::unique_ptr<Job> job;
+    while (that->jobs_.pop(job)) {
+      bool ok = false;
+      that->build_and_publish_(*job, ok);
+      job.reset();
+      that->results_.post(ok);
+    }
   }
 }
 
@@ -553,14 +549,13 @@ void ZeroMouseCloud::build_and_publish_(Job &job, bool &ok) {
 }
 
 void ZeroMouseCloud::loop() {
-  bool ok;
-  while (xQueueReceive(this->result_queue_, &ok, 0) == pdTRUE) {
+  this->results_.drain([this](bool ok) {
     this->building_ = false;
     auto callback = std::move(this->pending_callback_);
     this->pending_callback_ = nullptr;
     if (callback)
       callback(ok, this->pending_event_id_);
-  }
+  });
   this->disable_loop();
 }
 

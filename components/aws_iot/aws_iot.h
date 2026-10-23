@@ -10,9 +10,11 @@
 #include <atomic>
 #include <deque>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "esphome/components/task_util/task_util.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
@@ -131,12 +133,11 @@ class AwsIotClient : public Component {
   std::vector<int> pending_subscriptions_;
   std::atomic<bool> awaiting_suback_{false};
 
-  QueueHandle_t send_queue_{nullptr};
+  task_util::TaskInbox<std::unique_ptr<Outgoing>> send_queue_{8};
   LazyCallbackManager<void()> connect_callbacks_;
   LazyCallbackManager<void()> disconnect_callbacks_;
 
-  Mutex events_mutex_;
-  std::deque<Event> events_;
+  task_util::LoopInbox<Event> events_{this, SIZE_MAX};
   MessageReassembler reassembler_;
 };
 

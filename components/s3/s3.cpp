@@ -118,6 +118,7 @@ void S3Client::setup() {
     this->mark_failed();
     return;
   }
+  this->requests_.set_task(this->task_);
   this->disable_loop();
 }
 
@@ -146,33 +147,14 @@ void S3Client::put(const std::string &key, const uint8_t *data, size_t length, s
 }
 
 void S3Client::enqueue_(Request &&request) {
-  bool accepted = !this->is_failed();
-  if (accepted) {
-    LockGuard guard(this->requests_mutex_);
-    accepted = this->requests_.size() < MAX_QUEUED;
-    if (accepted)
-      this->requests_.push_back(std::move(request));
-  }
-  if (accepted) {
-    xTaskNotifyGive(this->task_);
+  if (!this->is_failed() && this->requests_.post(std::move(request)))
     return;
-  }
   ESP_LOGW(TAG, "Request queue is full or the worker failed, rejecting %s", request.key.c_str());
   this->defer([done = std::move(request.done)]() { done(false, 0); });
 }
 
 void S3Client::loop() {
-  while (true) {
-    Result result{};
-    {
-      LockGuard guard(this->results_mutex_);
-      if (this->results_.empty())
-        break;
-      result = std::move(this->results_.front());
-      this->results_.pop_front();
-    }
-    result.done(result.ok, result.status);
-  }
+  this->results_.drain([](Result result) { result.done(result.ok, result.status); });
   this->disable_loop();
 }
 
@@ -180,24 +162,10 @@ void S3Client::task_entry_(void *arg) { static_cast<S3Client *>(arg)->task_main_
 
 void S3Client::task_main_() {
   while (true) {
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    while (true) {
-      Request request{};
-      {
-        LockGuard guard(this->requests_mutex_);
-        if (this->requests_.empty())
-          break;
-        request = std::move(this->requests_.front());
-        this->requests_.pop_front();
-      }
-      Result result = this->execute_(request);
-      {
-        LockGuard guard(this->results_mutex_);
-        this->results_.push_back(std::move(result));
-      }
-      this->enable_loop_soon_any_context();
-      App.wake_loop_threadsafe();
-    }
+    this->requests_.wait();
+    Request request{};
+    while (this->requests_.pop(request))
+      this->results_.post(this->execute_(request));
   }
 }
 

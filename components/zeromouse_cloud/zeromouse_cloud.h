@@ -17,6 +17,7 @@
 #include "esphome/components/number/number.h"
 #include "esphome/components/select/select.h"
 #include "esphome/components/switch/switch.h"
+#include "esphome/components/task_util/task_util.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
@@ -149,8 +150,8 @@ class ZeroMouseCloud : public Component {
   ESPPreferenceObject system_extras_pref_;
   std::function<bool()> idle_check_;
 
-  QueueHandle_t job_queue_{nullptr};
-  QueueHandle_t result_queue_{nullptr};
+  task_util::TaskInbox<std::unique_ptr<Job>> jobs_{1};
+  task_util::LoopInbox<bool> results_{this, 1};
   TaskHandle_t worker_{nullptr};
   bool building_{false};
   uint32_t pending_event_id_{0};

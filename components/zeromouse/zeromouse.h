@@ -19,6 +19,7 @@
 #include "esphome/components/select/select.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/switch/switch.h"
+#include "esphome/components/task_util/task_util.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/components/zeromouse_air/air_sensor.h"
@@ -281,7 +282,7 @@ class ZeroMouse : public Component {
   Trigger<uint32_t> published_trigger_;
 
   TaskHandle_t task_{nullptr};
-  QueueHandle_t queue_{nullptr};
+  task_util::LoopInbox<Message> queue_{this, 8};
   Scan scan_{&this->presence_active_, &this->task_abort_};
   ScanParams scan_params_;
   ScanResult scan_result_;

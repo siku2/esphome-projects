@@ -22,7 +22,6 @@ static const char *const TAG = "zeromouse";
 static constexpr uint32_t TASK_STACK_BYTES = 4096;
 static constexpr BaseType_t TASK_CORE = 1;
 static constexpr UBaseType_t TASK_PRIORITY_OFFSET = 2;
-static constexpr UBaseType_t QUEUE_LENGTH = 8;
 
 static constexpr int32_t MAX_PREY_LOCK_S = 300;
 static constexpr int32_t MAX_FINALE_S = 180;
@@ -69,11 +68,9 @@ const char *ZeroMouse::state_name_(State state) {
 }
 
 void ZeroMouse::setup() {
-  this->queue_ = xQueueCreate(QUEUE_LENGTH, sizeof(Message));
   const UBaseType_t priority = uxTaskPriorityGet(nullptr) + TASK_PRIORITY_OFFSET;
-  if (this->queue_ == nullptr ||
-      xTaskCreatePinnedToCore(task_entry_, "zeromouse", TASK_STACK_BYTES, this, priority, &this->task_, TASK_CORE) !=
-          pdPASS) {
+  if (xTaskCreatePinnedToCore(task_entry_, "zeromouse", TASK_STACK_BYTES, this, priority, &this->task_, TASK_CORE) !=
+      pdPASS) {
     ESP_LOGE(TAG, "Creating the scan task failed");
     this->mark_failed();
     return;
@@ -136,10 +133,7 @@ void ZeroMouse::dump_config() {
 }
 
 void ZeroMouse::loop() {
-  Message message;
-  while (xQueueReceive(this->queue_, &message, 0) == pdTRUE) {
-    this->handle_(message);
-  }
+  this->queue_.drain([this](Message message) { this->handle_(message); });
   this->disable_loop();
 }
 
@@ -191,10 +185,9 @@ void ZeroMouse::run_finale_() {
 }
 
 void ZeroMouse::post_(const Message &message) {
-  if (xQueueSend(this->queue_, &message, 0) != pdTRUE) {
+  if (!this->queue_.post(message)) {
     ESP_LOGE(TAG, "Message queue is full");
   }
-  this->enable_loop_soon_any_context();
 }
 
 void ZeroMouse::handle_(const Message &message) {

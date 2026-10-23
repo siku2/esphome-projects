@@ -7,6 +7,7 @@ from esphome.components import esp32
 from esphome.const import CONF_ID
 from esphome.types import ConfigType
 
+AUTO_LOAD = ["task_util"]
 DEPENDENCIES = ["esp32", "network"]
 
 CONF_ENDPOINT = "endpoint"

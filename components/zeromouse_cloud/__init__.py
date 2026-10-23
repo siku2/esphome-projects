@@ -9,7 +9,7 @@ from esphome.components.burst_camera import BurstCamera
 from esphome.const import CONF_ID, CONF_TIME_ID
 from esphome.types import ConfigType
 
-AUTO_LOAD = ["json", "number", "select", "switch"]
+AUTO_LOAD = ["json", "number", "select", "switch", "task_util"]
 DEPENDENCIES = ["esp32", "aws_iot", "burst_camera", "time"]
 
 CONF_THING_NAME = "thing_name"
