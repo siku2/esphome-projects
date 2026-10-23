@@ -1,0 +1,36 @@
+remote_receiver:
+  pin:
+    number: "GPIO26"
+    inverted: true
+  on_nec:
+    then:
+    - logger.log:
+        format: "received { .address=0x%X, .command=0x%X }"
+        args: ["x.address", "x.command"]
+    - lambda: !lambda |
+        // toggle power
+        if (x == id(NEC_ZONE1_TOGGLE_POWER)) {
+          id(zone1_power).toggle();
+        } else if (x == id(NEC_ZONE2_TOGGLE_POWER)) {
+          id(zone2_power).toggle();
+        }
+        // toggle mute
+        else if (x == id(NEC_ZONE1_TOGGLE_MUTE) && id(zone1_power).state) {
+          id(zone1_mute).toggle();
+        } else if (x == id(NEC_ZONE2_TOGGLE_MUTE) && id(zone2_power).state) {
+          id(zone2_mute).toggle();
+        }
+        // select scene
+        else if (x == id(NEC_ZONE1_SCENE_DVD)) {
+          id(zone1_power).turn_on();
+          id(zone1_scene_select).publish_state("DVD");
+        } else if (x == id(NEC_ZONE1_SCENE_TV)) {
+          id(zone1_power).turn_on();
+          id(zone1_scene_select).publish_state("TV");
+        } else if (x == id(NEC_ZONE1_SCENE_CD)) {
+          id(zone1_power).turn_on();
+          id(zone1_scene_select).publish_state("CD");
+        } else if (x == id(NEC_ZONE1_SCENE_RADIO)) {
+          id(zone1_power).turn_on();
+          id(zone1_scene_select).publish_state("RADIO");
+        }

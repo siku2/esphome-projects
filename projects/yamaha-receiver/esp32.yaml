@@ -1,0 +1,28 @@
+substitutions:
+  name: "yamaha-receiver"
+  friendly_name: "Yamaha Receiver"
+  language: "en"
+  i18n:
+    yamaha:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
+
+packages:
+  base: !include ../../packages/base/device.yaml
+  ir: !include ir.yaml
+  receiver: !include receiver.yaml
+  scripts: !include scripts.yaml
+  state: !include state.yaml
+  controls: !include controls.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "siku2.yamaha-receiver"
+    version: "0.1.0"
+
+esp32:
+  board: "esp32dev"
+  framework:
+    type: "esp-idf"
