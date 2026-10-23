@@ -1,5 +1,5 @@
 extend-exclude = [".ruff_cache"]
-src = [".", "simulator", "tools/zeromouse-provision/src"]
+src = [".", "simulator", "tools/esphome-provision/src"]
 # Otherwise a path named on the command line is linted even when excluded.
 force-exclude = true
 

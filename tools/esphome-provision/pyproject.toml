@@ -3,17 +3,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "zeromouse-provision"
+name = "esphome-provision"
 version = "0.1.0"
-description = "Replace the stock ZeroMOUSE firmware with ESPHome and provision the device"
+description = "Install ESPHome firmware on ESP32 devices with a verified backup and provision them"
 requires-python = ">=3.13"
 dependencies = ["aioesphomeapi", "cryptography", "pyserial", "PyYAML"]
 
 [project.scripts]
-zeromouse-provision = "zeromouse_provision.cli:main"
+esphome-provision = "esphome_provision.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/zeromouse_provision"]
+packages = ["src/esphome_provision"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

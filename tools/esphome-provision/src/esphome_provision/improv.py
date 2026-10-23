@@ -7,7 +7,7 @@ from enum import IntEnum
 from typing import Protocol
 from urllib.parse import urlparse
 
-from zeromouse_provision.common import ProvisionError, strip_ansi
+from esphome_provision.common import ProvisionError, strip_ansi
 
 HEADER = b"IMPROV"
 VERSION = 1

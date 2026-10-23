@@ -7,8 +7,8 @@ from dataclasses import dataclass, field
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 
-from zeromouse_provision.common import ProvisionError
-from zeromouse_provision.partitions import Partition, find_nvs_partition
+from esphome_provision.common import ProvisionError
+from esphome_provision.partitions import Partition, find_nvs_partition
 
 PAGE_SIZE = 4096
 ENTRY_SIZE = 32

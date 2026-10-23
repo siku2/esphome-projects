@@ -4,7 +4,7 @@ import hashlib
 import struct
 from dataclasses import dataclass
 
-from zeromouse_provision.common import ProvisionError
+from esphome_provision.common import ProvisionError
 
 ENTRY_SIZE = 32
 NVS_PAGE_SIZE = 4096

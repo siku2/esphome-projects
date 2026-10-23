@@ -1,7 +1,7 @@
 import pytest
 
-from zeromouse_provision.common import ProvisionError
-from zeromouse_provision.improv import (
+from esphome_provision.common import ProvisionError
+from esphome_provision.improv import (
     HEADER,
     Command,
     ImprovClient,
