@@ -80,9 +80,9 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(ZeroMouseCloud),
         cv.Required(CONF_AWS_IOT_ID): cv.use_id(AwsIotClient),
-        cv.Required(CONF_THING_NAME): cv.All(cv.string_strict, cv.Length(min=1)),
-        cv.Required(CONF_OWNER_ID): cv.All(cv.string_strict, cv.Length(min=1)),
-        cv.Required(CONF_IDENTITY_ID): cv.All(cv.string_strict, cv.Length(min=1)),
+        cv.Optional(CONF_THING_NAME): cv.All(cv.string_strict, cv.Length(min=1)),
+        cv.Optional(CONF_OWNER_ID): cv.All(cv.string_strict, cv.Length(min=1)),
+        cv.Optional(CONF_IDENTITY_ID): cv.All(cv.string_strict, cv.Length(min=1)),
         cv.Optional(CONF_EVENT_COUNT, default=0): cv.uint32_t,
         cv.Optional(CONF_BOOT_COUNT, default=0): cv.uint32_t,
         cv.Optional(CONF_SW_VERSION, default="0.17.12"): sw_version,
@@ -108,9 +108,12 @@ async def to_code(config: ConfigType) -> None:
 
     cg.add(var.set_aws_iot(await cg.get_variable(config[CONF_AWS_IOT_ID])))
     cg.add(var.set_time(await cg.get_variable(config[CONF_TIME_ID])))
-    cg.add(var.set_thing_name(config[CONF_THING_NAME]))
-    cg.add(var.set_owner_id(config[CONF_OWNER_ID]))
-    cg.add(var.set_identity_id(config[CONF_IDENTITY_ID]))
+    if thing_name := config.get(CONF_THING_NAME):
+        cg.add(var.set_thing_name(thing_name))
+    if owner_id := config.get(CONF_OWNER_ID):
+        cg.add(var.set_owner_id(owner_id))
+    if identity_id := config.get(CONF_IDENTITY_ID):
+        cg.add(var.set_identity_id(identity_id))
     cg.add(var.set_event_count(config[CONF_EVENT_COUNT]))
     cg.add(var.set_boot_count(config[CONF_BOOT_COUNT]))
     cg.add(var.set_sw_version(*config[CONF_SW_VERSION]))

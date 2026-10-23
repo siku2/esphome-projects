@@ -48,6 +48,8 @@ class ZeroMouseCloud : public Component {
   void set_identity_id(const std::string &identity_id) { this->shadow_.system.identity_id = identity_id; }
   void set_event_count(uint32_t event_count) { this->event_count_ = event_count; }
   void set_boot_count(uint32_t boot_count) { this->boot_count_ = boot_count; }
+  /// Sets the counters and saves them.
+  void store_counters(uint32_t event_count, uint32_t boot_count);
   void set_sw_version(uint8_t major, uint8_t minor, uint8_t revision);
 
   void setup() override;
@@ -56,7 +58,9 @@ class ZeroMouseCloud : public Component {
 
   void set_accept_settings(switch_::Switch *accept_settings) { this->accept_settings_ = accept_settings; }
   void set_upload_events(switch_::Switch *upload_events) { this->upload_events_ = upload_events; }
-  void bind_number(Setting setting, number::Number *number) { this->bindings_.push_back({setting, number, nullptr, nullptr}); }
+  void bind_number(Setting setting, number::Number *number) {
+    this->bindings_.push_back({setting, number, nullptr, nullptr});
+  }
   void bind_switch(Setting setting, switch_::Switch *sw) { this->bindings_.push_back({setting, nullptr, sw, nullptr}); }
   void bind_select(Setting setting, select::Select *select) {
     this->bindings_.push_back({setting, nullptr, nullptr, select});

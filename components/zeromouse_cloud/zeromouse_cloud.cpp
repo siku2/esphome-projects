@@ -118,6 +118,13 @@ void ZeroMouseCloud::set_thing_name(const std::string &thing_name) {
   this->device_id_ = thing_name.compare(0, prefix.size(), prefix) == 0 ? thing_name.substr(prefix.size()) : thing_name;
 }
 
+void ZeroMouseCloud::store_counters(uint32_t event_count, uint32_t boot_count) {
+  this->event_count_ = event_count;
+  this->boot_count_ = boot_count;
+  this->event_count_pref_.save(&this->event_count_);
+  this->boot_count_pref_.save(&this->boot_count_);
+}
+
 void ZeroMouseCloud::set_sw_version(uint8_t major, uint8_t minor, uint8_t revision) {
   this->shadow_.system.ver_major = major;
   this->shadow_.system.ver_minor = minor;
@@ -159,24 +166,29 @@ void ZeroMouseCloud::setup() {
   this->jobs_.set_task(this->worker_);
   this->disable_loop();
 
-  this->aws_iot_->subscribe(this->device_topic_("command"),
-                            [this](const std::string &, const std::string &payload) { this->on_command_(payload); });
-  this->aws_iot_->subscribe(this->shadow_topic_("get/accepted"),
-                            [this](const std::string &, const std::string &payload) { this->on_shadow_(payload); });
-  this->aws_iot_->subscribe(this->shadow_topic_("update/delta"),
-                            [this](const std::string &, const std::string &payload) { this->on_delta_(payload); });
-  this->aws_iot_->subscribe(this->shadow_topic_("get/rejected"),
-                            [this](const std::string &, const std::string &payload) {
-                              ESP_LOGW(TAG, "Shadow get rejected, reporting a new shadow: %s", payload.c_str());
-                              this->publish_shadow_();
-                            });
-  this->aws_iot_->subscribe(this->shadow_topic_("update/accepted"),
-                            [](const std::string &, const std::string &) { ESP_LOGV(TAG, "Shadow update accepted"); });
-  this->aws_iot_->subscribe(this->shadow_topic_("update/rejected"),
-                            [](const std::string &, const std::string &payload) {
-                              ESP_LOGW(TAG, "Shadow update rejected: %s", payload.c_str());
-                            });
-  this->aws_iot_->add_on_connect_callback([this]() { this->on_connect_(); });
+  if (this->thing_name_.empty()) {
+    ESP_LOGW(TAG, "No thing name, not subscribing");
+  } else {
+    this->aws_iot_->subscribe(this->device_topic_("command"),
+                              [this](const std::string &, const std::string &payload) { this->on_command_(payload); });
+    this->aws_iot_->subscribe(this->shadow_topic_("get/accepted"),
+                              [this](const std::string &, const std::string &payload) { this->on_shadow_(payload); });
+    this->aws_iot_->subscribe(this->shadow_topic_("update/delta"),
+                              [this](const std::string &, const std::string &payload) { this->on_delta_(payload); });
+    this->aws_iot_->subscribe(this->shadow_topic_("get/rejected"),
+                              [this](const std::string &, const std::string &payload) {
+                                ESP_LOGW(TAG, "Shadow get rejected, reporting a new shadow: %s", payload.c_str());
+                                this->publish_shadow_();
+                              });
+    this->aws_iot_->subscribe(this->shadow_topic_("update/accepted"), [](const std::string &, const std::string &) {
+      ESP_LOGV(TAG, "Shadow update accepted");
+    });
+    this->aws_iot_->subscribe(this->shadow_topic_("update/rejected"),
+                              [](const std::string &, const std::string &payload) {
+                                ESP_LOGW(TAG, "Shadow update rejected: %s", payload.c_str());
+                              });
+    this->aws_iot_->add_on_connect_callback([this]() { this->on_connect_(); });
+  }
 
   for (const Binding &binding : this->bindings_) {
     const Setting setting = binding.setting;
@@ -205,6 +217,8 @@ void ZeroMouseCloud::dump_config() {
 }
 
 void ZeroMouseCloud::on_connect_() {
+  if (this->thing_name_.empty())
+    return;
   this->aws_iot_->publish_async(this->shadow_topic_("get"), "{}", 2);
 }
 
@@ -397,6 +411,8 @@ void ZeroMouseCloud::apply_setting_(const char *section, const char *key, JsonVa
 }
 
 void ZeroMouseCloud::publish_shadow_() {
+  if (this->thing_name_.empty())
+    return;
   const std::string payload = build_reported_shadow(this->shadow_);
   this->aws_iot_->publish_async(this->shadow_topic_("update"), payload.data(), payload.size(), [this](bool sent) {
     if (sent)
@@ -405,6 +421,8 @@ void ZeroMouseCloud::publish_shadow_() {
 }
 
 void ZeroMouseCloud::publish_metrics_() {
+  if (this->thing_name_.empty())
+    return;
   const std::string payload =
       build_metrics(this->shadow_, {this->device_id_, this->thing_name_, this->boot_count_, this->event_count_});
   this->aws_iot_->publish_async(this->device_topic_("flaps_dev"), payload.data(), payload.size());
@@ -443,8 +461,8 @@ void ZeroMouseCloud::fail_async_(PublishCallback callback) {
 }
 
 bool ZeroMouseCloud::can_publish_event_() const {
-  return !this->is_failed() && (this->upload_events_ == nullptr || this->upload_events_->state) &&
-         this->aws_iot_->is_connected();
+  return !this->is_failed() && !this->thing_name_.empty() &&
+         (this->upload_events_ == nullptr || this->upload_events_->state) && this->aws_iot_->is_connected();
 }
 
 ZeroMouseCloud::EventReservation ZeroMouseCloud::reserve_event() {
@@ -472,6 +490,11 @@ void ZeroMouseCloud::update_sensor_state(uint32_t ir_free_value, uint32_t ir_fre
 void ZeroMouseCloud::publish_event_async(EventData data, PublishCallback callback) {
   if (this->is_failed() || this->building_) {
     ESP_LOGW(TAG, "Event worker is not available, dropping event");
+    this->fail_async_(std::move(callback));
+    return;
+  }
+  if (this->thing_name_.empty()) {
+    ESP_LOGW(TAG, "No thing name, dropping event");
     this->fail_async_(std::move(callback));
     return;
   }
