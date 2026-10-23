@@ -1,0 +1,22 @@
+packages:
+  project: !include
+    file: "../projects/zeromouse/esp32.yaml"
+    vars:
+      name: "bean-kopi"
+      friendly_name: "Katzenklappe"
+      language: "de"
+      board: "v2"
+
+api:
+  encryption:
+    key: !remove
+
+ota:
+- id: !extend "base_ota"
+  encryption: !remove
+
+wifi:
+  ssid: !remove
+  password: !remove
+
+improv_serial:
