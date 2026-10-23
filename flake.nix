@@ -40,6 +40,14 @@
         ];
       };
 
+      provisionSrc = lib.fileset.toSource {
+        root = ./tools/zeromouse-provision;
+        fileset = lib.fileset.unions [
+          ./tools/zeromouse-provision/pyproject.toml
+          (pythonFiles ./tools/zeromouse-provision)
+        ];
+      };
+
       perSystem = lib.genAttrs systems (
         system:
         let
@@ -115,7 +123,9 @@
             ;
           pythonDev = python.withPackages (ps: [
             ps.aioesphomeapi
+            ps.cryptography
             ps.mypy
+            ps.pyserial
             ps.pytest
             ps.pyyaml
             ps.types-pyyaml
@@ -160,6 +170,32 @@
             ];
             meta.mainProgram = "esphome-sim";
           };
+          zeromouseProvision = python.pkgs.buildPythonApplication {
+            pname = "zeromouse-provision";
+            version = "0.1.0";
+            pyproject = true;
+            src = provisionSrc;
+            build-system = [ python.pkgs.hatchling ];
+            dependencies = [
+              python.pkgs.aioesphomeapi
+              python.pkgs.cryptography
+              python.pkgs.pyserial
+              python.pkgs.pyyaml
+            ];
+            nativeCheckInputs = [ python.pkgs.pytestCheckHook ];
+            pythonImportsCheck = [ "zeromouse_provision" ];
+            # The tool runs the esptool and espefuse CLIs and checks the backup path with git.
+            makeWrapperArgs = [
+              "--prefix"
+              "PATH"
+              ":"
+              (lib.makeBinPath [
+                pkgs.esptool
+                pkgs.git
+              ])
+            ];
+            meta.mainProgram = "zeromouse-provision";
+          };
           treefmt = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
           validateConfigs = pkgs.writeShellApplication {
             name = "validate-configs";
@@ -183,9 +219,10 @@
       formatter = forSystems ({ treefmt, ... }: treefmt.config.build.wrapper);
 
       packages = forSystems (
-        { esphomeSim, ... }:
+        { esphomeSim, zeromouseProvision, ... }:
         {
           esphome-sim = esphomeSim;
+          zeromouse-provision = zeromouseProvision;
         }
       );
 
@@ -195,6 +232,7 @@
           treefmt,
           pythonDev,
           esphomeSim,
+          zeromouseProvision,
           ...
         }:
         {
@@ -213,6 +251,7 @@
                     (pythonFiles ./components)
                     (pythonFiles ./projects)
                     (pythonFiles ./simulator)
+                    (pythonFiles ./tools)
                   ];
                 };
               }
@@ -234,6 +273,8 @@
               '';
 
           esphome-sim = esphomeSim;
+
+          zeromouse-provision = zeromouseProvision;
 
           test-grill-cook =
             pkgs.runCommand "check-test-grill-cook"
@@ -257,7 +298,12 @@
       );
 
       apps = forSystems (
-        { validateConfigs, esphomeSim, ... }:
+        {
+          validateConfigs,
+          esphomeSim,
+          zeromouseProvision,
+          ...
+        }:
         {
           validate-configs = {
             type = "app";
@@ -268,6 +314,11 @@
             type = "app";
             program = lib.getExe esphomeSim;
             meta.description = "Run and drive ESPHome host simulations";
+          };
+          zeromouse-provision = {
+            type = "app";
+            program = lib.getExe zeromouseProvision;
+            meta.description = "Install ESPHome on a ZeroMOUSE cat flap and provision it";
           };
         }
       );
@@ -283,6 +334,7 @@
           validateConfigs,
           pythonDev,
           esphomeSim,
+          zeromouseProvision,
           ...
         }:
         {
@@ -300,6 +352,8 @@
               treefmt.config.build.wrapper
               validateConfigs
               esphomeSim
+              zeromouseProvision
+              pkgs.esptool
             ]
             ++ nixGL;
             shellHook = ''
