@@ -1,0 +1,245 @@
+uart:
+  rx_pin: "GPIO35"
+  tx_pin: "GPIO32"
+  baud_rate: 57600
+
+fingerprint_grow:
+  sensing_pin:
+    number: "GPIO21"
+    allow_other_uses: true
+  password: "${fingerprint_password}"
+  on_finger_scan_matched:
+  - fingerprint_grow.aura_led_control:
+      state: "BREATHING"
+      speed: 200
+      color: "BLUE"
+      count: 1
+  - script.execute: "perform_target_action"
+  - display.page.show: "pg_hello"
+
+  on_finger_scan_unmatched:
+  - fingerprint_grow.aura_led_control:
+      state: "FLASHING"
+      speed: 25
+      color: "RED"
+      count: 2
+
+  on_enrollment_scan:
+  - lambda: !lambda |-
+      auto counter = id(fp_num_scans_counter);
+      counter->publish_state(counter->state + 1);
+  - fingerprint_grow.aura_led_control:
+      state: "FLASHING"
+      speed: 25
+      color: "BLUE"
+      count: 2
+  - fingerprint_grow.aura_led_control:
+      state: "ALWAYS_ON"
+      speed: 0
+      color: "PURPLE"
+      count: 0
+
+  on_enrollment_done:
+  - fingerprint_grow.aura_led_control:
+      state: "BREATHING"
+      speed: 100
+      color: "BLUE"
+      count: 2
+
+  on_enrollment_failed:
+  - fingerprint_grow.aura_led_control:
+      state: "FLASHING"
+      speed: 25
+      color: "RED"
+      count: 4
+
+binary_sensor:
+- platform: "fingerprint_grow"
+  name: "${i18n.doordisplay[language].enroll_active}"
+  entity_category: "diagnostic"
+  on_press:
+    then:
+    - lambda: !lambda 'id(fp_num_scans_counter).publish_state(0);'
+    - display.page.show: "pg_enroll"
+    - fingerprint_grow.aura_led_control:
+        state: "ALWAYS_ON"
+        speed: 0
+        color: "PURPLE"
+        count: 0
+  on_release:
+    then:
+    - display.page.show: "pg_main"
+
+- platform: "gpio"
+  pin:
+    number: "GPIO21"
+    allow_other_uses: true
+  name: "${i18n.doordisplay[language].finger_touch}"
+  entity_category: "diagnostic"
+  filters:
+  - invert
+  on_click:
+    min_length: "50ms"
+    max_length: "400ms"
+    then:
+    - select.next:
+        id: "target_entity_selection"
+    - fingerprint_grow.aura_led_control:
+        state: "FLASHING"
+        speed: 50
+        color: "WHITE"
+        count: 1
+
+sensor:
+- platform: "fingerprint_grow"
+  fingerprint_count:
+    name: "${i18n.doordisplay[language].finger_count}"
+    entity_category: "diagnostic"
+  last_finger_id:
+    name: "${i18n.doordisplay[language].last_finger_id}"
+    id: "fp_last_finger_id"
+    entity_category: "diagnostic"
+    on_value:
+      then:
+      - component.update: "fp_last_person"
+  last_confidence:
+    name: "${i18n.doordisplay[language].last_confidence}"
+    entity_category: "diagnostic"
+  capacity:
+    name: "${i18n.doordisplay[language].capacity}"
+    entity_category: "diagnostic"
+
+- platform: "template"
+  id: "fp_finger_id"
+  name: "${i18n.doordisplay[language].active_id}"
+  accuracy_decimals: 0
+  entity_category: "diagnostic"
+  update_interval: "never"
+  lambda: !lambda |
+    auto fingers_per_hand = id(fp_finger).size();
+    auto fingers_per_person = fingers_per_hand * id(fp_hand).size();
+    return id(fp_finger).active_index().value_or(0)
+      + fingers_per_hand * id(fp_hand).active_index().value_or(0)
+      + fingers_per_person * id(fp_person).active_index().value_or(0);
+
+- platform: "template"
+  id: "fp_num_scans_counter"
+  name: "${i18n.doordisplay[language].scans_done}"
+  accuracy_decimals: 0
+  entity_category: "diagnostic"
+  update_interval: "never"
+  on_value:
+    then:
+    - component.update: "display_main"
+
+text_sensor:
+- platform: "template"
+  id: "fp_last_person"
+  name: "${i18n.doordisplay[language].last_person}"
+  icon: "mdi:account"
+  update_interval: "never"
+  lambda: !lambda |-
+    auto fingers_per_person = id(fp_finger).size() * id(fp_hand).size();
+    size_t person_index = id(fp_last_finger_id).state / fingers_per_person;
+    return id(fp_person).at(person_index);
+
+select:
+- platform: "template"
+  id: "fp_person"
+  name: "${i18n.doordisplay[language].person}"
+  icon: "mdi:account"
+  entity_category: "config"
+  update_interval: "never"
+  optimistic: true
+  restore_value: true
+  options:
+  - "Person 1"
+  - "Person 2"
+  - "Person 3"
+  - "Person 4"
+  on_value:
+    then:
+    - component.update: "fp_finger_id"
+
+- platform: "template"
+  id: "fp_hand"
+  name: "${i18n.doordisplay[language].hand}"
+  icon: "mdi:hand-back-left"
+  entity_category: "config"
+  update_interval: "never"
+  optimistic: true
+  restore_value: true
+  options:
+  - "${i18n.doordisplay[language].hand_left}"
+  - "${i18n.doordisplay[language].hand_right}"
+  on_value:
+    then:
+    - component.update: "fp_finger_id"
+
+- platform: "template"
+  id: "fp_finger"
+  name: "${i18n.doordisplay[language].finger}"
+  icon: "mdi:fingerprint"
+  entity_category: "config"
+  update_interval: "never"
+  optimistic: true
+  restore_value: true
+  options:
+  - "${i18n.doordisplay[language].finger_thumb}"
+  - "${i18n.doordisplay[language].finger_index}"
+  - "${i18n.doordisplay[language].finger_middle}"
+  - "${i18n.doordisplay[language].finger_ring}"
+  - "${i18n.doordisplay[language].finger_little}"
+  on_value:
+    then:
+    - component.update: "fp_finger_id"
+
+number:
+- platform: "template"
+  id: "fp_num_scans"
+  name: "${i18n.doordisplay[language].scans}"
+  icon: "mdi:counter"
+  entity_category: "config"
+  mode: "box"
+  min_value: 2
+  max_value: 6
+  step: 1
+  update_interval: "never"
+  optimistic: true
+  restore_value: true
+
+button:
+- platform: "template"
+  name: "${i18n.doordisplay[language].enroll_button}"
+  icon: "mdi:key-plus"
+  entity_category: "config"
+  on_press:
+    then:
+    - fingerprint_grow.enroll:
+        finger_id: !lambda 'return id(fp_finger_id).state;'
+        num_scans: !lambda 'return id(fp_num_scans).state;'
+
+- platform: "template"
+  name: "${i18n.doordisplay[language].cancel_enroll}"
+  icon: "mdi:cancel"
+  entity_category: "config"
+  on_press:
+    then:
+    - fingerprint_grow.cancel_enroll:
+
+- platform: "template"
+  name: "${i18n.doordisplay[language].delete}"
+  icon: "mdi:key-minus"
+  entity_category: "config"
+  on_press:
+    then:
+    - fingerprint_grow.delete:
+        finger_id: !lambda 'return id(fp_finger_id).state;'
+
+- platform: "template"
+  name: "${i18n.doordisplay[language].delete_all}"
+  icon: "mdi:alert"
+  entity_category: "diagnostic"
+  on_press:
+    then:
+    - fingerprint_grow.delete_all:

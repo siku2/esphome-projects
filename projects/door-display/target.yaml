@@ -1,0 +1,85 @@
+script:
+# reset the target entity back to the door
+- id: "reset_target_selection"
+  mode: "restart"
+  then:
+  - delay: "5min"
+  - select.set_index:
+      id: "target_entity_selection"
+      index: 0
+
+- id: "perform_target_action"
+  mode: "queued"
+  then:
+  - lambda: !lambda |
+      HomeassistantActionRequest call{};
+      switch (id(target_entity_selection).active_index().value_or(0)) {
+        // house door
+        case 0:
+          call.set_service(StringRef::from_lit("script.gang_eg_schloss_hausture_toggle"));
+          break;
+        // bicycle
+        case 1: {
+          call.set_service(StringRef::from_lit("cover.toggle"));
+          call.data.init(1);
+          auto &kv = call.data.emplace_back();
+          kv.set_key(StringRef::from_lit("entity_id"));
+          kv.value = "cover.aussen_veloraum";
+          break;
+        }
+        // workshop gate
+        case 2:
+          call.set_service(StringRef::from_lit("script.bastelraum_tor_toggle"));
+          break;
+        default:
+          return;
+      }
+      ESP_LOGI("main", "Performing action %s", call.service_ref_.c_str());
+      id(api_server).send_homeassistant_action(call);
+
+text_sensor:
+- platform: "homeassistant"
+  id: "sensor_door_lock"
+  entity_id: "${door_lock_entity_id}"
+  on_value:
+    then:
+    - component.update: "display_main"
+
+select:
+- platform: "template"
+  id: "target_entity_selection"
+  name: "${i18n.doordisplay[language].target}"
+  icon: "mdi:target"
+  update_interval: "never"
+  optimistic: true
+  restore_value: true
+  options:
+  - "${i18n.doordisplay[language].target_door}"
+  - "${i18n.doordisplay[language].target_bicycle}"
+  - "${i18n.doordisplay[language].target_gate}"
+  on_value:
+    then:
+    - component.update: "display_main"
+    - script.execute: "reset_target_selection"
+
+- platform: "template"
+  id: "greeting_selection"
+  internal: true
+  update_interval: "never"
+  optimistic: true
+  restore_value: true
+  options:
+  - "${i18n.doordisplay[language].greeting_1}"
+  - "${i18n.doordisplay[language].greeting_2}"
+  - "${i18n.doordisplay[language].greeting_3}"
+  - "${i18n.doordisplay[language].greeting_4}"
+
+- platform: "template"
+  id: "farewell_selection"
+  internal: true
+  update_interval: "never"
+  optimistic: true
+  restore_value: true
+  options:
+  - "${i18n.doordisplay[language].farewell_1}"
+  - "${i18n.doordisplay[language].farewell_2}"

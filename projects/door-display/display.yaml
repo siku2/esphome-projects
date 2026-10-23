@@ -1,0 +1,130 @@
+spi:
+  clk_pin: "GPIO33"
+  mosi_pin: "GPIO13"
+
+font:
+# Glyphs must cover every string shown at this size in all languages
+- file: "gfonts://Anton"
+  id: "font_anton_x48"
+  size: 48
+  glyphs: [' ', '1', '2', 'B', 'D', 'H', 'M', 'S', 'T', 'a', 'c', 'd', 'e', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o', 'r', 's', 'u', 'w', 'y', 'ü']
+
+- file: "gfonts://Anton"
+  id: "font_anton_x32"
+  size: 32
+  glyphs: ['E', 'R', 'e', 'g', 'i', 'l', 'n', 'o', 'r', 's', 't']
+
+- file: "gfonts://Anton"
+  id: "font_anton_x24"
+  size: 24
+  glyphs: [' ', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'D', 'F', 'I', 'K', 'L', 'M', 'R', 'S', 'T', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'k', 'l', 'm', 'n', 'o', 'r', 's', 't', 'u', 'x']
+
+image:
+- file: "mdi:airplane"
+  type: "BINARY"
+  id: "img_mdi_airplane"
+  resize: "32x32"
+
+- file: "mdi:bicycle"
+  type: "BINARY"
+  id: "img_mdi_bicycle"
+  resize: "32x32"
+
+- file: "mdi:door-closed"
+  type: "BINARY"
+  id: "img_mdi_door_closed"
+  resize: "32x32"
+
+- file: "mdi:door-closed-lock"
+  type: "BINARY"
+  id: "img_mdi_door_closed_lock"
+  resize: "32x32"
+
+- file: "mdi:fingerprint"
+  type: "BINARY"
+  id: "img_mdi_fingerprint"
+  resize: "32x32"
+
+display:
+- platform: "waveshare_epaper"
+  id: "display_main"
+  model: "2.90inv2-r2"
+  cs_pin: "GPIO14"
+  dc_pin: "GPIO27"
+  busy_pin: "GPIO25"
+  reset_pin: "GPIO26"
+  rotation: "90°"
+  update_interval: "never"
+  on_page_change:
+  - then:
+    - component.update: "display_main"
+  - to: "pg_hello"
+    then:
+    - delay: "3s"
+    - display.page.show: "pg_main"
+  pages:
+  - id: "pg_main"
+    lambda: !lambda |-
+      auto w = it.get_width();
+      auto h = it.get_height();
+      it.print(w / 2, h / 2, id(font_anton_x48), TextAlign::CENTER, "Musterstrasse 1");
+
+      BaseImage *icon = nullptr;
+      switch (id(target_entity_selection).active_index().value_or(0)) {
+        // house door
+        case 0:
+          icon = (id(sensor_door_lock).get_state() == "unlocked") ? id(img_mdi_door_closed) : id(img_mdi_door_closed_lock);
+          break;
+        // bicycle
+        case 1:
+          icon = id(img_mdi_bicycle);
+          break;
+        // workshop gate
+        case 2:
+          icon = id(img_mdi_airplane);
+          break;
+      }
+      if (icon != nullptr) it.image(w / 2, h, icon, ImageAlign::BOTTOM_CENTER);
+
+  - id: "pg_enroll"
+    lambda: !lambda |-
+      // top row
+      {
+        auto icon = id(img_mdi_fingerprint);
+        auto text = "${i18n.doordisplay[language].enroll}";
+        auto font = id(font_anton_x32);
+
+        int text_w, text_h, tmp;
+        font->measure(text, &text_w, &tmp, &tmp, &text_h);
+        auto row_w = text_w + icon->get_width();
+        auto row_start_x = (it.get_width() - row_w) / 2;
+        it.image(row_start_x, text_h / 2, icon, ImageAlign::CENTER_LEFT);
+        it.print(row_start_x + icon->get_width(), 0, font, TextAlign::TOP_LEFT, text);
+        it.line(0, text_h, it.get_width(), text_h);
+      }
+      // middle row
+      {
+        it.printf(it.get_width() / 2, it.get_height() / 2, id(font_anton_x24), TextAlign::CENTER,
+          "%s %s %s",
+          id(fp_person).current_option(),
+          id(fp_hand).current_option(),
+          id(fp_finger).current_option()
+        );
+      }
+      // bottom row
+      {
+        it.printf(it.get_width() / 2, it.get_height(), id(font_anton_x24), TextAlign::BOTTOM_CENTER,
+          "%d/%d",
+          (int) id(fp_num_scans_counter).state,
+          (int) id(fp_num_scans).state
+        );
+      }
+
+  - id: "pg_hello"
+    lambda: !lambda |-
+      id(greeting_selection).make_call().select_next(true).perform();
+      it.printf(it.get_width() / 2, it.get_height() / 2, id(font_anton_x48), TextAlign::CENTER,
+        "%s %s",
+        id(greeting_selection).current_option(),
+        id(fp_last_person).state.c_str()
+      );
