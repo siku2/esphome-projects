@@ -11,7 +11,7 @@ namespace esphome::camera::snapshot {
 
 class SnapshotListener {
  public:
-  virtual bool is_listening() const;
+  virtual bool is_listening() const { return true; }
   virtual void on_snapshot(const Snapshot &snapshot) {}
 };
 

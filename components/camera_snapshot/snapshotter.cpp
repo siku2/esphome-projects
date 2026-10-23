@@ -5,6 +5,9 @@ static const char *const TAG = "camera_snapshot";
 
 using namespace esphome::camera::snapshot;
 
+static constexpr uint32_t IMAGE_TIMEOUT_MS = 5000;
+static const char *const IMAGE_TIMEOUT_NAME = "image_timeout";
+
 Decoder Snapshotter::global_decoder = Decoder(JPEG_PIXEL_FORMAT_RGB888);
 
 void Snapshotter::setup() {
@@ -34,6 +37,15 @@ void Snapshotter::loop() {
       if (!this->pre_snapshot_.is_action_running()) {
         this->remaining_drain_frame_buffer_count_ = this->drain_frame_buffer_count_;
         this->phase_ = Phase::WAITING_FOR_IMAGE;
+        this->set_timeout(IMAGE_TIMEOUT_NAME, IMAGE_TIMEOUT_MS, [this]() {
+          if (this->phase_ != Phase::WAITING_FOR_IMAGE)
+            return;
+          ESP_LOGW(TAG, "Timed out waiting for a camera image.");
+          this->pending_image_.reset();
+          this->snapshot_.reset();
+          this->post_snapshot_.trigger();
+          this->phase_ = Phase::POST_SNAPSHOT;
+        });
       }
       break;
     case Phase::WAITING_FOR_IMAGE:
@@ -46,6 +58,7 @@ void Snapshotter::loop() {
         jpeg_error_t ret = Snapshotter::global_decoder.decode(this->pending_image_->get_data_buffer(),
                                                               this->pending_image_->get_data_length(), this->rotate_);
         this->pending_image_.reset();
+        this->cancel_timeout(IMAGE_TIMEOUT_NAME);
         if (ret == JPEG_ERR_OK) {
           this->snapshot_ = Snapshotter::global_decoder.get_snapshot();
         } else {
