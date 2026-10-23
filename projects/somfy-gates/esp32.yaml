@@ -1,0 +1,109 @@
+substitutions:
+  name: "somfy-gates"
+  friendly_name: "Somfy Gates"
+  language: "en"
+  i18n:
+    somfygates:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
+
+packages:
+  base: !include ../../packages/base/device.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "siku2.somfy-gates"
+    version: "0.1.0"
+
+esp32:
+  board: "esp32doit-devkit-v1"
+  framework:
+    type: "arduino"
+
+external_components:
+- source: "github://HarmEllis/esphome-cc1101@8c6f99d0c5f170aa553c98345bd8cad7a9f42f12"
+  components: ["cc1101"]
+- source: "github://HarmEllis/esphome-somfy-cover-remote@f6f654dea679b1cd4174593fd3b036050f90bbcc"
+  components: ["somfy_cover"]
+
+logger:
+  level: "DEBUG"
+  initial_level: "INFO"
+
+cc1101:
+  id: "cc_module"
+  cc1101_frequency: 433.42
+  mosi_pin: "GPIO23"
+  miso_pin: "GPIO19"
+  clk_pin: "GPIO18"
+  cs_pin: "GPIO5"
+  cc1101_emitter_pin: "GPIO2"
+
+button:
+- &program_velo
+  id: "program_velo"
+  name: "${i18n.somfygates[language].velo_program}"
+  icon: "mdi:access-point"
+  entity_category: "config"
+  platform: "template"
+
+- <<: *program_velo
+  id: "program_unterstand"
+  name: "${i18n.somfygates[language].unterstand_program}"
+
+- <<: *program_velo
+  id: "program_garage"
+  name: "${i18n.somfygates[language].garage_program}"
+
+- name: "${i18n.somfygates[language].velo_brute_force}"
+  entity_category: "config"
+  on_press:
+    then:
+    - repeat:
+        count: 0x7fff
+        then:
+        - lambda: !lambda |
+            if (iteration % 256 == 0) {
+              uint32_t prog = 100 * iteration / 0x7fff;
+              ESP_LOGI("main", "progress: %d", prog);
+            }
+        - cover.close: "velo"
+        - cover.open: "velo"
+        - delay: "20ms"
+  platform: "template"
+
+cover:
+- id: "velo"
+  name: "${i18n.somfygates[language].velo}"
+  device_class: "garage"
+  platform: "somfy_cover"
+  cc1101_module: "cc_module"
+  remote_code: 0xB51201
+  open_duration: "40s"
+  close_duration: "35s"
+  storage_key: "velo"
+  prog_button: "program_velo"
+
+- id: "unterstand"
+  name: "${i18n.somfygates[language].unterstand}"
+  device_class: "shutter"
+  platform: "somfy_cover"
+  cc1101_module: "cc_module"
+  remote_code: 0xB51221
+  open_duration: "41s"
+  close_duration: "36s"
+  storage_key: "unterstand"
+  prog_button: "program_unterstand"
+
+- id: "garage"
+  name: "${i18n.somfygates[language].garage}"
+  device_class: "garage"
+  platform: "somfy_cover"
+  cc1101_module: "cc_module"
+  remote_code: 0xB51222
+  open_duration: "25s"
+  close_duration: "24s"
+  storage_key: "garage"
+  prog_button: "program_garage"
