@@ -30,6 +30,7 @@ class ZeroMouseRecorder : public Component {
   /// Limit for the image bytes held by pending events.
   void set_max_pending_bytes(uint32_t bytes) { this->max_pending_bytes_ = bytes; }
   void set_board(const std::string &board) { this->board_ = board; }
+  void set_prefix(const std::string &prefix) { this->prefix_ = prefix; }
 
   /// Arguments are the event folder, the cloud event id (0 if not published) and the class name (empty if unknown).
   Trigger<std::string, uint32_t, std::string> *get_recorded_trigger() { return &this->recorded_trigger_; }
@@ -130,6 +131,7 @@ class ZeroMouseRecorder : public Component {
   burst_camera::BurstCamera *camera_{nullptr};
   switch_::Switch *enabled_{nullptr};
   std::string board_;
+  std::string prefix_;
   uint8_t secondary_quality_{80};
   uint8_t max_pending_{3};
   uint32_t max_pending_bytes_{3000000};

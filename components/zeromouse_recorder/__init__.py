@@ -1,3 +1,5 @@
+import re
+
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
@@ -19,10 +21,23 @@ CONF_SECONDARY_JPEG_QUALITY = "secondary_jpeg_quality"
 CONF_MAX_PENDING = "max_pending"
 CONF_MAX_PENDING_BYTES = "max_pending_bytes"
 CONF_BOARD = "board"
+CONF_PREFIX = "prefix"
 CONF_ON_RECORDED = "on_recorded"
 
 zeromouse_recorder_ns = cg.esphome_ns.namespace("zeromouse_recorder")
 ZeroMouseRecorder = zeromouse_recorder_ns.class_("ZeroMouseRecorder", cg.Component)
+
+_PREFIX = re.compile(r"^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$")
+
+
+def object_prefix(value: object) -> str:
+    value = cv.string_strict(value)
+    if not _PREFIX.match(value):
+        raise cv.Invalid(
+            "Expected path segments of letters, digits, '.', '_' or '-' separated by '/'"
+        )
+    return value
+
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -37,6 +52,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_MAX_PENDING, default=3): cv.int_range(min=1, max=16),
         cv.Optional(CONF_MAX_PENDING_BYTES, default=3000000): cv.int_range(min=1),
         cv.Required(CONF_BOARD): cv.All(cv.string_strict, cv.Length(min=1)),
+        cv.Optional(CONF_PREFIX, default="events"): object_prefix,
         cv.Optional(CONF_ON_RECORDED): automation.validate_automation(single=True),
     }
 ).extend(cv.COMPONENT_SCHEMA)
@@ -55,6 +71,7 @@ async def to_code(config: ConfigType) -> None:
     cg.add(var.set_max_pending(config[CONF_MAX_PENDING]))
     cg.add(var.set_max_pending_bytes(config[CONF_MAX_PENDING_BYTES]))
     cg.add(var.set_board(config[CONF_BOARD]))
+    cg.add(var.set_prefix(config[CONF_PREFIX]))
 
     if action := config.get(CONF_ON_RECORDED):
         await automation.build_automation(

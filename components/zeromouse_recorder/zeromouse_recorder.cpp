@@ -20,7 +20,6 @@ static constexpr uint32_t FIRST_RETRY_MS = 30000;
 static constexpr uint8_t MAX_RETRIES = 3;
 // A pending secondary copy counts as this many times the primary size.
 static constexpr size_t SECONDARY_SIZE_ESTIMATE = 3;
-static constexpr const char *INBOX = "inbox";
 
 void ZeroMouseRecorder::setup() {
   this->counter_pref_ = global_preferences->make_preference<uint32_t>(fnv1_hash("zeromouse_recorder.counter"));
@@ -48,10 +47,11 @@ void ZeroMouseRecorder::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "ZeroMOUSE Recorder:\n"
                 "  Board: %s\n"
+                "  Prefix: %s\n"
                 "  Secondary JPEG quality: %u\n"
                 "  Max pending events: %u\n"
                 "  Max pending bytes: %u",
-                this->board_.c_str(), this->secondary_quality_, this->max_pending_,
+                this->board_.c_str(), this->prefix_.c_str(), this->secondary_quality_, this->max_pending_,
                 static_cast<unsigned>(this->max_pending_bytes_));
 }
 
@@ -189,8 +189,7 @@ void ZeroMouseRecorder::name_folder_(Record &record) {
     this->counter_pref_.save(&this->counter_);
     id = "local" + std::to_string(this->counter_);
   }
-  record.folder =
-      std::string(INBOX) + "/" + local.strftime("%Y-%m-%d") + "/" + local.strftime("%Y%m%d-%H%M%S") + "_" + id;
+  record.folder = this->prefix_ + "/" + local.strftime("%Y-%m-%d") + "/" + local.strftime("%Y%m%d-%H%M%S") + "_" + id;
 }
 
 void ZeroMouseRecorder::on_published_(bool published, uint32_t event_id) {
