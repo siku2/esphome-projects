@@ -2,6 +2,10 @@
 
 #include "esphome/core/log.h"
 
+#ifdef USE_ESP32
+#include <nvs.h>
+#endif
+
 // See: <https://github.com/Legion2/Somfy_Remote_Lib>
 
 #define SYMBOL 640
@@ -13,20 +17,23 @@ using namespace esphome::cc1101;
 
 static const char *const TAG = "somfy_cover";
 
-static const uint32_t RESTORE_STATE_VERSION = 0xB2D7C9D7UL;
+#ifdef USE_ESP32
+static const char *const LEGACY_NVS_NAMESPACE = "somfy_cover";
+#endif
 
 void SomfyCover::dump_config() {
   LOG_COVER("", "Somfy Cover", this);
   ESP_LOGCONFIG(TAG, "  CC1101: %p", static_cast<void *>(this->cc1101_));
   ESP_LOGCONFIG(TAG, "  Cover ID: %s", this->cover_id_);
+  ESP_LOGCONFIG(TAG, "  Storage Key: %s", this->storage_key_);
+  ESP_LOGCONFIG(TAG, "  Rolling Code: %u", this->rolling_code_);
   ESP_LOGCONFIG(TAG, "  Remote Code: 0x%08X", this->remote_code_);
   ESP_LOGCONFIG(TAG, "  Open Duration: %.1fs", this->open_duration_ / 1e3f);
   ESP_LOGCONFIG(TAG, "  Close Duration: %.1fs", this->close_duration_ / 1e3f);
 }
 
 void SomfyCover::setup() {
-  this->rolling_code_pref_ =
-      global_preferences->make_preference<uint16_t>(this->get_preference_hash() ^ RESTORE_STATE_VERSION);
+  this->load_rolling_code_();
 
   auto restore = this->restore_state_();
   if (restore.has_value()) {
@@ -34,6 +41,34 @@ void SomfyCover::setup() {
   } else {
     this->position = 0.5f;
   }
+}
+
+void SomfyCover::load_rolling_code_() {
+  this->rolling_code_pref_ =
+      global_preferences->make_preference<uint16_t>(fnv1_hash(std::string("somfy_cover_") + this->storage_key_));
+
+  uint16_t code;
+  if (this->rolling_code_pref_.load(&code)) {
+    this->rolling_code_ = code;
+    return;
+  }
+
+  this->rolling_code_ = 1;
+#ifdef USE_ESP32
+  nvs_handle_t handle;
+  if (nvs_open(LEGACY_NVS_NAMESPACE, NVS_READONLY, &handle) == ESP_OK) {
+    if (nvs_get_u16(handle, this->storage_key_, &code) == ESP_OK) {
+      if (this->store_rolling_code_(code)) {
+        this->rolling_code_ = code;
+        ESP_LOGI(TAG, "Migrated rolling code %u from legacy storage '%s'", code, this->storage_key_);
+      } else {
+        ESP_LOGE(TAG, "Failed to migrate rolling code %u from legacy storage '%s'", code, this->storage_key_);
+        this->mark_failed();
+      }
+    }
+    nvs_close(handle);
+  }
+#endif
 }
 
 void SomfyCover::loop() {
@@ -232,8 +267,17 @@ void SomfyCover::send_frame_(const std::array<uint8_t, 7> &frame, uint8_t sync) 
 }
 
 void SomfyCover::send_command_(SomfyCommand command, size_t repeat) {
+  if (this->is_failed())
+    return;
+
+  uint16_t rolling_code;
+  if (!this->get_next_rolling_code_(rolling_code)) {
+    ESP_LOGE(TAG, "Failed to store the rolling code, not transmitting");
+    return;
+  }
+
   std::array<uint8_t, 7> frame;
-  this->build_frame_(command, this->get_next_rolling_code_(), frame);
+  this->build_frame_(command, rolling_code, frame);
 
   this->cc1101_->enable_tx();
   this->send_frame_(frame, 2);
@@ -244,16 +288,18 @@ void SomfyCover::send_command_(SomfyCommand command, size_t repeat) {
 }
 
 void SomfyCover::reset_rolling_code() {
-  uint16_t code = 1;
-  this->rolling_code_pref_.save(&code);
+  this->rolling_code_ = 1;
+  this->store_rolling_code_(1);
 }
 
-uint16_t SomfyCover::get_next_rolling_code_() {
-  uint16_t code = 1;
-  this->rolling_code_pref_.load(&code);
-  uint16_t next_code = code + 1;
-  this->rolling_code_pref_.save(&next_code);
-  return code;
+bool SomfyCover::store_rolling_code_(uint16_t code) {
+  return this->rolling_code_pref_.save(&code) && global_preferences->sync();
+}
+
+bool SomfyCover::get_next_rolling_code_(uint16_t &code) {
+  code = this->rolling_code_;
+  this->rolling_code_ = code + 1;
+  return this->store_rolling_code_(this->rolling_code_);
 }
 
 }  // namespace somfy_cover

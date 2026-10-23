@@ -11,6 +11,7 @@ from esphome.const import CONF_CLOSE_DURATION, CONF_ID, CONF_OPEN_DURATION
 DEPENDENCIES = ["cc1101"]
 
 CONF_REMOTE_CODE = "remote_code"
+CONF_STORAGE_KEY = "storage_key"
 
 somfy_cover_ns = cg.esphome_ns.namespace("somfy_cover")
 
@@ -29,6 +30,9 @@ CONFIG_SCHEMA = (
             cv.GenerateID(CONF_ID): cv.declare_id(SomfyCover),
             cv.GenerateID(CONF_CC1101_ID): cv.use_id(Cc1101),
             cv.Required(CONF_REMOTE_CODE): cv.uint32_t,
+            cv.Required(CONF_STORAGE_KEY): cv.All(
+                cv.string_strict, cv.Length(min=1, max=15)
+            ),
             cv.Required(CONF_OPEN_DURATION): cv.positive_time_period_milliseconds,
             cv.Required(CONF_CLOSE_DURATION): cv.positive_time_period_milliseconds,
         },
@@ -42,6 +46,7 @@ async def to_code(config):
     await cg.register_component(var, config)
 
     cg.add(var.set_cover_id(str(config[CONF_ID])))
+    cg.add(var.set_storage_key(config[CONF_STORAGE_KEY]))
     cg.add(var.set_remote_code(config[CONF_REMOTE_CODE]))
     cg.add(var.set_cc1101(await cg.get_variable(config[CONF_CC1101_ID])))
     cg.add(var.set_open_duration(config[CONF_OPEN_DURATION]))

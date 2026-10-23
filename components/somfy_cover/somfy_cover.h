@@ -2,6 +2,7 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
+#include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
 #include "esphome/components/cover/cover.h"
 #include "esphome/components/cc1101/cc1101.h"
@@ -30,6 +31,7 @@ class SomfyCover : public cover::Cover, public Component {
 
   void set_cc1101(cc1101::Cc1101 *cc1101) { this->cc1101_ = cc1101; }
   void set_cover_id(const char *cover_id) { this->cover_id_ = cover_id; }
+  void set_storage_key(const char *storage_key) { this->storage_key_ = storage_key; }
   void set_remote_code(uint32_t remote_code) { this->remote_code_ = remote_code; }
   void set_open_duration(uint32_t open_duration) { this->open_duration_ = open_duration; }
   void set_close_duration(uint32_t close_duration) { this->close_duration_ = close_duration; }
@@ -40,11 +42,13 @@ class SomfyCover : public cover::Cover, public Component {
  protected:
   cc1101::Cc1101 *cc1101_;
   const char *cover_id_;
+  const char *storage_key_;
   uint32_t remote_code_;
   uint32_t open_duration_;
   uint32_t close_duration_;
 
   ESPPreferenceObject rolling_code_pref_;
+  uint16_t rolling_code_{1};
   uint32_t last_recompute_time_{0};
   uint32_t start_dir_time_{0};
   uint32_t last_publish_time_{0};
@@ -62,7 +66,9 @@ class SomfyCover : public cover::Cover, public Component {
   void send_frame_(const std::array<uint8_t, 7> &frame, uint8_t sync);
 
   void send_command_(SomfyCommand command, size_t repeat = 4);
-  uint16_t get_next_rolling_code_();
+  bool get_next_rolling_code_(uint16_t &code);
+  bool store_rolling_code_(uint16_t code);
+  void load_rolling_code_();
 };
 
 template<typename... Ts> class SomfyCoverProgramAction : public Action<Ts...> {
