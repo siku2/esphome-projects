@@ -1,0 +1,9 @@
+packages:
+  projects: !include
+    file: ../projects/flow-meter/esp32.yaml
+    vars:
+      name: "bean-typica"
+      friendly_name: "Durchflussmesser"
+      language: "de"
+
+      api_encryption_key: !secret typica_api_encryption_key

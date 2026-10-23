@@ -1,0 +1,9 @@
+packages:
+  projects: !include
+    file: ../projects/grill-display/core.yaml
+    vars:
+      name: "bean-sumatra"
+      friendly_name: "Grill Display"
+      language: "de"
+
+      api_encryption_key: !secret sumatra_api_encryption_key

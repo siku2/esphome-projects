@@ -19,6 +19,10 @@ substitutions:
         restart_reason: "Restart Reason"
         cpu_temperature: "CPU Temperature"
 
+api:
+  encryption:
+    key: "${api_encryption_key}"
+
 debug:
   update_interval: "never"
 

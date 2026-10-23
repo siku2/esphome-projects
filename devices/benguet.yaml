@@ -1,8 +1,10 @@
 substitutions:
+  api_encryption_key: !secret benguet_api_encryption_key
+  language: "de"
   door_lock_entity_id: "lock.smart_lock_pro"
 
 packages:
-  base: !include "packages/base.yaml"
+  base: !include "../packages/base/device.yaml"
 
 esphome:
   name: "esp-benguet"
@@ -15,13 +17,7 @@ esp32:
 
 api:
   id: "api_server"
-  encryption:
-    key: !secret benguet_api_encryption_key
   homeassistant_services: true
-
-ota:
-- platform: "esphome"
-  password: !secret benguet_ota_password
 
 debug:
   update_interval: 5s

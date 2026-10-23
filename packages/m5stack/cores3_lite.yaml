@@ -57,10 +57,8 @@
 
 substitutions:
   components_source:
-    type: "git"
-    url: "https://github.com/siku2/esphome-projects"
-    ref: "581beaecbea589caa5c336f5e7e3803f39e4303c"
-    path: "components"
+    type: "local"
+    path: "../components"
 
 packages:
   axp2101: !include axp2101.yaml

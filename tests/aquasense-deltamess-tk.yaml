@@ -8,10 +8,6 @@ packages:
 
       api_encryption_key: "BPuGmuUNPrvxVodyymhlYRYbylb2QAPuw6i3PZFdZLc="
 
-      components_source:
-        type: "local"
-        path: "../components"
-
       aqdig_crop_10000:
         top_left:
           x: 142

@@ -1,0 +1,58 @@
+packages:
+  projects: !include
+    file: ../projects/aquasense/deltamess-tk.yaml
+    vars:
+      name: "bean-malabar"
+      friendly_name: "Regenwasserzähler"
+      language: "de"
+
+      api_encryption_key: !secret malabar_api_encryption_key
+
+      aqdig_crop_10000:
+        top_left:
+          x: 53
+          y: 124
+        width: 40
+        height: 64
+      aqdig_crop_1000:
+        top_left:
+          x: 104
+          y: 125
+        width: 40
+        height: 64
+      aqdig_crop_100:
+        top_left:
+          x: 151
+          y: 125
+        width: 40
+        height: 64
+      aqdig_crop_10:
+        top_left:
+          x: 195
+          y: 124
+        width: 40
+        height: 64
+      aqdig_crop_1:
+        top_left:
+          x: 241
+          y: 123
+        width: 40
+        height: 64
+      aqdig_crop_01:
+        top_left:
+          x: 290
+          y: 123
+        width: 40
+        height: 64
+      aqdig_crop_001:
+        top_left:
+          x: 334
+          y: 123
+        width: 40
+        height: 64
+      aqdig_crop_0001:
+        top_left:
+          x: 381
+          y: 123
+        width: 40
+        height: 64

@@ -1,5 +1,9 @@
+substitutions:
+  api_encryption_key: !secret harrar_api_encryption_key
+  language: "de"
+
 packages:
-  base: !include "packages/base.yaml"
+  base: !include "../packages/base/device.yaml"
 
 esphome:
   name: "esp-harrar"
@@ -33,14 +37,6 @@ external_components:
 
 # bluetooth_proxy:
 #   active: true
-
-api:
-  encryption:
-    key: !secret harrar_api_encryption_key
-
-ota:
-- platform: "esphome"
-  password: !secret harrar_ota_password
 
 logger:
   level: "DEBUG"

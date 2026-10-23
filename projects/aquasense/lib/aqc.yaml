@@ -1,13 +1,9 @@
 # Namespace: aqc (core)
 
 substitutions:
-  api_encryption_key: "" # REQUIRED!
-  git_ref: "" # REQUIRED!
   components_source:
-    type: "git"
-    url: "https://github.com/siku2/esphome-projects"
-    ref: "${git_ref}"
-    path: "components"
+    type: "local"
+    path: "../components"
 
   name: "aquasense"
   friendly_name: "Aquasense"
@@ -33,12 +29,3 @@ esphome:
 external_components:
 - source: "${components_source}"
   components: ["camera_snapshot", "meter_reader", "tflite"]
-
-api:
-  encryption:
-    key: "${api_encryption_key}"
-
-ota:
-- id: "aqc_ota"
-  platform: "esphome"
-  encryption: {}

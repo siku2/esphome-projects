@@ -1,5 +1,9 @@
+substitutions:
+  api_encryption_key: !secret bastelraum_ture_api_encryption_key
+  language: "de"
+
 packages:
-  base: !include packages/base.yaml
+  base: !include "../packages/base/device.yaml"
 
 esphome:
   name: bastelraum-ture
@@ -13,14 +17,6 @@ esp32:
   board: esp32dev
   framework:
     type: esp-idf
-
-api:
-  encryption:
-    key: !secret bastelraum_ture_api_encryption_key
-
-ota:
-- platform: esphome
-  password: !secret bastelraum_ture_ota_password
 
 button:
 - platform: template

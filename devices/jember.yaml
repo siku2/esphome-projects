@@ -1,11 +1,9 @@
+substitutions:
+  api_encryption_key: !secret jember_api_encryption_key
+  language: "de"
+
 packages:
-  projects:
-    url: "https://github.com/siku2/esphome-projects"
-    ref: "e1fc1ba69ef58cc2eb43078bbc90aa8116f93618"
-    files:
-      - path: "packages/base.yaml"
-        vars:
-          language: "de"
+  base: !include "../packages/base/device.yaml"
 
 esphome:
   name: "esp-jember"
@@ -16,14 +14,6 @@ esp32:
   board: "esp32dev"
   framework:
     type: "esp-idf"
-
-api:
-  encryption:
-    key: !secret jember_api_encryption_key
-
-ota:
-- platform: esphome
-  password: !secret jember_ota_password
 
 light:
 - name: "Light strip"

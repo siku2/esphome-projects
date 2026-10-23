@@ -1,5 +1,10 @@
+substitutions:
+  api_encryption_key: !secret arusha_api_encryption_key
+  language: "de"
+
 packages:
-  base: !include "packages/base.yaml"
+  base: !include "../packages/base/device.yaml"
+  bluetooth_proxy: !include "../packages/base/bluetooth_proxy.yaml"
 
 esphome:
   name: esp-arusha
@@ -11,24 +16,6 @@ esp32:
   board: "esp32doit-devkit-v1"
   framework:
     type: esp-idf
-
-api:
-  encryption:
-    key: !secret arusha_api_encryption_key
-
-ota:
-- platform: esphome
-  password: !secret arusha_ota_password
-
-esp32_ble_tracker:
-  scan_parameters:
-    # We currently use the defaults to ensure Bluetooth
-    # can co-exist with WiFi In the future we may be able to
-    # enable the built-in coexistence logic in ESP-IDF
-    active: true
-
-bluetooth_proxy:
-  active: true
 
 remote_transmitter:
   pin: 14

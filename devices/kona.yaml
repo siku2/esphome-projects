@@ -1,0 +1,58 @@
+packages:
+  projects: !include
+    file: ../projects/aquasense/rh.yaml
+    vars:
+      name: "bean-kona"
+      friendly_name: "Wasserzähler"
+      language: "de"
+
+      api_encryption_key: !secret kona_api_encryption_key
+
+      aqdig_crop_10000:
+        top_left:
+          x: 165
+          y: 151
+        width: 20
+        height: 32
+      aqdig_crop_1000:
+        top_left:
+          x: 196
+          y: 151
+        width: 20
+        height: 32
+      aqdig_crop_100:
+        top_left:
+          x: 226
+          y: 151
+        width: 20
+        height: 32
+      aqdig_crop_10:
+        top_left:
+          x: 257
+          y: 151
+        width: 20
+        height: 32
+      aqdig_crop_1:
+        top_left:
+          x: 290
+          y: 151
+        width: 20
+        height: 32
+      aqdig_crop_01:
+        top_left:
+          x: 322
+          y: 149
+        width: 20
+        height: 32
+      aqdig_crop_0001:
+        top_left:
+          x: 216
+          y: 292
+        width: 85
+        height: 85
+      aqdig_crop_00001:
+        top_left:
+          x: 135
+          y: 253
+        width: 82
+        height: 82

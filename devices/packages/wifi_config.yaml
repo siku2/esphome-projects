@@ -1,5 +1,0 @@
-wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
-  domain: ".local.bg12.ch"
-  fast_connect: true

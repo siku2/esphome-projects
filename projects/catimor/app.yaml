@@ -3,13 +3,9 @@ substitutions:
   blind_right_cover_id: "" # REQUIRED!
   climate_id: "" # REQUIRED!
 
-  api_encryption_key: "" # REQUIRED!
-  git_ref: "" # REQUIRED!
   components_source:
-    type: "git"
-    url: "https://github.com/siku2/esphome-projects"
-    ref: "${git_ref}"
-    path: "components"
+    type: "local"
+    path: "../components"
 
   name: "esp-catimor"
   friendly_name: "Catimor"
@@ -25,14 +21,6 @@ esphome:
   project:
     name: "siku2.esp-catimor"
     version: "0.1.0"
-
-api:
-  encryption:
-    key: "${api_encryption_key}"
-
-ota:
-- platform: "esphome"
-  encryption: {}
 
 number:
 - id: "display_timeout"

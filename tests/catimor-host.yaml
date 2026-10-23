@@ -11,7 +11,3 @@ packages:
       climate_id: "climate.test"
 
       api_encryption_key: "PelRCiw9w4PveSslEtVgp4V0IbEUWB24tax3cZqjEoU="
-
-      components_source:
-        type: "local"
-        path: "../components"

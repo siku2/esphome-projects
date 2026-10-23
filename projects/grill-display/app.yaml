@@ -1,11 +1,7 @@
 substitutions:
-  api_encryption_key: "" # REQUIRED!
-  git_ref: "" # REQUIRED!
   components_source:
-    type: "git"
-    url: "https://github.com/siku2/esphome-projects"
-    ref: "${git_ref}"
-    path: "components"
+    type: "local"
+    path: "../components"
 
   name: "grill-display"
   friendly_name: "Grill Display"
@@ -49,14 +45,6 @@ esphome:
 external_components:
 - source: "${components_source}"
   components: ["grill_cook"]
-
-api:
-  encryption:
-    key: "${api_encryption_key}"
-
-ota:
-- platform: "esphome"
-  encryption: {}
 
 time:
 - id: !extend "base_homeassistant_time"
