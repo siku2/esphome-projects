@@ -1,6 +1,6 @@
 packages:
   project: !include
-    file: ../projects/heat-storage/esp32.yaml
+    file: "../projects/heat-storage/esp32.yaml"
     vars:
       name: "bean-catuai"
       friendly_name: "Speicher"

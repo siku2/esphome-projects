@@ -1,6 +1,6 @@
 packages:
   projects: !include
-    file: ../projects/aquasense/rh.yaml
+    file: "../projects/aquasense/rh.yaml"
     vars:
       name: "bean-kona"
       friendly_name: "Wasserzähler"

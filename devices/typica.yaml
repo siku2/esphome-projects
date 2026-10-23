@@ -1,6 +1,6 @@
 packages:
   projects: !include
-    file: ../projects/flow-meter/esp32.yaml
+    file: "../projects/flow-meter/esp32.yaml"
     vars:
       name: "bean-typica"
       friendly_name: "Durchflussmesser"

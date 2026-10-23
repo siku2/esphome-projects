@@ -1,6 +1,6 @@
 packages:
   projects: !include
-    file: ../projects/aquasense/deltamess-tk.yaml
+    file: "../projects/aquasense/deltamess-tk.yaml"
     vars:
       name: "bean-malabar"
       friendly_name: "Regenwasserzähler"

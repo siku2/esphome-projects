@@ -1,6 +1,6 @@
 packages:
   project: !include
-    file: ../projects/door-display/esp32.yaml
+    file: "../projects/door-display/esp32.yaml"
     vars:
       name: "bean-benguet"
       friendly_name: "DoorDisplay"

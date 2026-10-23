@@ -1,6 +1,6 @@
 packages:
   receiver: !include
-    file: ../projects/yamaha-receiver/esp32.yaml
+    file: "../projects/yamaha-receiver/esp32.yaml"
     vars:
       name: "bean-java"
       friendly_name: "YAHAMA Receiver"

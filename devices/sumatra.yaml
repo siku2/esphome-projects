@@ -1,6 +1,6 @@
 packages:
   projects: !include
-    file: ../projects/grill-display/core.yaml
+    file: "../projects/grill-display/core.yaml"
     vars:
       name: "bean-sumatra"
       friendly_name: "Grill Display"

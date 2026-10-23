@@ -1,6 +1,6 @@
 packages:
   project: !include
-    file: ../projects/somfy-gates/esp32.yaml
+    file: "../projects/somfy-gates/esp32.yaml"
     vars:
       name: "bean-harrar"
       friendly_name: "Tore Unterstand"

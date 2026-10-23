@@ -1,6 +1,6 @@
 packages:
   projects: !include
-    file: ../projects/catimor/core.yaml
+    file: "../projects/catimor/core.yaml"
     vars:
       name: "bean-catimor"
       friendly_name: "Zimmer Simon Rollladen"
