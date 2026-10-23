@@ -3,7 +3,7 @@ substitutions:
   language: "de"
 
 packages:
-  base: !include "../packages/base/device.yaml"
+  base: !include "../base/device.yaml"
   tank: !include
     file: "../projects/water-tank/tank.yaml"
     vars:

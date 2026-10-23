@@ -5,7 +5,7 @@ substitutions:
   api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
 
 packages:
-  base: !include ../packages/base/device.yaml
+  base: !include ../base/device.yaml
   tank: !include
     file: "../projects/water-tank/tank.yaml"
     vars:

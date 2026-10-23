@@ -22,8 +22,8 @@ substitutions:
       en: !include translations/en.yaml
 
 packages:
-  base: !include ../../packages/base/device.yaml
-  board: !include ../../packages/zeromouse/${board}.yaml
+  base: !include ../../base/device.yaml
+  board: !include ../../boards/zeromouse/${board}.yaml
   settings: !include settings/common.yaml
   settings_board: !include settings/${board}.yaml
   cloud: !include cloud.yaml

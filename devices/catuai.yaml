@@ -7,4 +7,4 @@ packages:
       language: "de"
 
       api_encryption_key: !secret catuai_api_encryption_key
-  bluetooth_proxy: !include ../packages/base/bluetooth_proxy.yaml
+  bluetooth_proxy: !include ../base/bluetooth_proxy.yaml

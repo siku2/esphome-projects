@@ -8,7 +8,7 @@ substitutions:
       en: !include translations/en.yaml
 
 packages:
-  base: !include ../../packages/base/device.yaml
+  base: !include ../../base/device.yaml
 
 esphome:
   name: "${name}"

@@ -9,7 +9,7 @@ substitutions:
       en: !include translations/en.yaml
 
 packages:
-  base: !include ../../packages/base/device.yaml
+  base: !include ../../base/device.yaml
   display: !include display.yaml
   target: !include target.yaml
   fingerprint: !include fingerprint.yaml
