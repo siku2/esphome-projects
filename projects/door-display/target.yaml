@@ -11,31 +11,26 @@ script:
 - id: "perform_target_action"
   mode: "queued"
   then:
-  - lambda: !lambda |
-      HomeassistantActionRequest call{};
-      switch (id(target_entity_selection).active_index().value_or(0)) {
-        // house door
-        case 0:
-          call.set_service(StringRef::from_lit("script.gang_eg_schloss_hausture_toggle"));
-          break;
-        // bicycle
-        case 1: {
-          call.set_service(StringRef::from_lit("cover.toggle"));
-          call.data.init(1);
-          auto &kv = call.data.emplace_back();
-          kv.set_key(StringRef::from_lit("entity_id"));
-          kv.value = "cover.aussen_veloraum";
-          break;
-        }
-        // workshop gate
-        case 2:
-          call.set_service(StringRef::from_lit("script.bastelraum_tor_toggle"));
-          break;
-        default:
-          return;
-      }
-      ESP_LOGI("main", "Performing action %s", call.service_ref_.c_str());
-      id(api_server).send_homeassistant_action(call);
+  - if:
+      condition:
+        lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 0;"
+      then:
+      - homeassistant.action:
+          action: "script.gang_eg_schloss_hausture_toggle"
+  - if:
+      condition:
+        lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 1;"
+      then:
+      - homeassistant.action:
+          action: "cover.toggle"
+          data:
+            entity_id: "cover.aussen_veloraum"
+  - if:
+      condition:
+        lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 2;"
+      then:
+      - homeassistant.action:
+          action: "script.bastelraum_tor_toggle"
 
 text_sensor:
 - platform: "homeassistant"

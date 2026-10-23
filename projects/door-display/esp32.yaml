@@ -27,7 +27,6 @@ esp32:
     type: "esp-idf"
 
 api:
-  id: "api_server"
   homeassistant_services: true
 
 debug:
