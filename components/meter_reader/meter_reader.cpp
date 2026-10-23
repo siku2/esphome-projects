@@ -113,14 +113,21 @@ void MeterReader::on_observation(uint8_t level, float result, float fit, bool ac
 
 void MeterReader::process_cycle_(uint32_t now) {
   char wheels_buf[96];
+  wheels_buf[0] = '\0';
   size_t pos = 0;
   for (const auto &w : this->wheels_) {
     if (w.resolution == 0.0f)
       continue;
+    if (pos >= sizeof(wheels_buf))
+      break;
+    int n;
     if (w.present)
-      pos += snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u=%.2f ", w.level, (double) w.result);
+      n = snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u=%.2f ", w.level, (double) w.result);
     else
-      pos += snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u:- ", w.level);
+      n = snprintf(wheels_buf + pos, sizeof(wheels_buf) - pos, "L%u:- ", w.level);
+    if (n < 0)
+      break;
+    pos += n;
   }
   ESP_LOGD(TAG, "Cycle wheels: %s", wheels_buf);
 
