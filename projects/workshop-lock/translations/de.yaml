@@ -1,0 +1,6 @@
+calibrate: "Kalibrieren"
+button: "Knopf"
+lock: "Schloss"
+locked_position: "Locked Position"
+unlocked_position: "Unlocked Position"
+manual_position: "Manual Position Control"

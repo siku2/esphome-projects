@@ -1,0 +1,9 @@
+packages:
+  project: !include
+    file: ../projects/workshop-lock/esp32.yaml
+    vars:
+      name: "bean-pacamara"
+      friendly_name: "Bastelraum Tor"
+      language: "de"
+
+      api_encryption_key: !secret pacamara_api_encryption_key

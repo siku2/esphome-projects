@@ -1,0 +1,6 @@
+calibrate: "Calibrate"
+button: "Button"
+lock: "Lock"
+locked_position: "Locked Position"
+unlocked_position: "Unlocked Position"
+manual_position: "Manual Position Control"

@@ -1,0 +1,137 @@
+substitutions:
+  name: "workshop-lock"
+  friendly_name: "Workshop Lock"
+  language: "en"
+  i18n:
+    workshoplock:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
+
+packages:
+  base: !include ../../packages/base/device.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "siku2.workshop-lock"
+    version: "0.1.0"
+
+esp32:
+  board: "esp32dev"
+  framework:
+    type: "esp-idf"
+
+button:
+- platform: "template"
+  name: "${i18n.workshoplock[language].calibrate}"
+  id: "btn_calibrate"
+  entity_category: "config"
+  on_press:
+    then:
+    - servo.write:
+        id: "servo_main"
+        level: "-100%"
+    - delay: "250ms"
+    - lock.lock: "lock_main"
+
+binary_sensor:
+- platform: "gpio"
+  name: "${i18n.workshoplock[language].button}"
+  entity_category: "diagnostic"
+  pin:
+    number: "GPIO32"
+    inverted: true
+    mode:
+      input: true
+      pullup: true
+  filters:
+  - delayed_on: "10ms"
+  on_click:
+  - min_length: "50ms"
+    max_length: "2s"
+    then:
+    - lambda: !lambda |
+        auto lock = id(lock_main);
+        if (lock->state == LOCK_STATE_LOCKED) {
+          lock->unlock();
+        } else {
+          lock->lock();
+        }
+
+  - min_length: "5s"
+    max_length: "20s"
+    then:
+    - button.press: "btn_calibrate"
+
+output:
+- platform: "ledc"
+  id: "out_servo"
+  pin: "GPIO13"
+  frequency: "50Hz"
+
+servo:
+- id: "servo_main"
+  output: "out_servo"
+  min_level: "3%"
+  max_level: "11.5%"
+  auto_detach_time: "5s"
+
+lock:
+- platform: "template"
+  id: "lock_main"
+  name: "${i18n.workshoplock[language].lock}"
+  optimistic: true
+  lock_action:
+    then:
+    - servo.write:
+        id: "servo_main"
+        level: !lambda "return id(num_locked).state / 100.0;"
+  unlock_action:
+    then:
+    - servo.write:
+        id: "servo_main"
+        level: !lambda "return id(num_unlocked).state / 100.0;"
+
+number:
+- platform: "template"
+  id: "num_locked"
+  name: "${i18n.workshoplock[language].locked_position}"
+  icon: "mdi:lock"
+  entity_category: "config"
+  unit_of_measurement: "%"
+  min_value: -100
+  initial_value: 0
+  max_value: 100
+  step: 1.0
+  update_interval: "never"
+  optimistic: true
+  restore_value: true
+
+- platform: "template"
+  id: "num_unlocked"
+  name: "${i18n.workshoplock[language].unlocked_position}"
+  icon: "mdi:lock-open"
+  entity_category: "config"
+  unit_of_measurement: "%"
+  min_value: -100
+  initial_value: 0
+  max_value: 100
+  step: 1.0
+  update_interval: "never"
+  optimistic: true
+  restore_value: true
+
+- platform: "template"
+  name: "${i18n.workshoplock[language].manual_position}"
+  entity_category: "diagnostic"
+  min_value: -100
+  initial_value: 0
+  max_value: 100
+  step: 1
+  optimistic: true
+  set_action:
+    then:
+    - servo.write:
+        id: "servo_main"
+        level: !lambda "return x / 100.0;"
