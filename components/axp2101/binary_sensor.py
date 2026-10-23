@@ -1,6 +1,6 @@
 import esphome.codegen as cg
-from esphome.components import binary_sensor
 import esphome.config_validation as cv
+from esphome.components import binary_sensor
 from esphome.const import CONF_TYPE, ENTITY_CATEGORY_DIAGNOSTIC
 
 from . import CONF_AXP2101_ID, AXP2101Component

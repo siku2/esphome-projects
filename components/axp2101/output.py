@@ -1,6 +1,6 @@
 import esphome.codegen as cg
-from esphome.components import output
 import esphome.config_validation as cv
+from esphome.components import output
 from esphome.const import CONF_CHANNEL, CONF_ID, CONF_MAX_VOLTAGE
 
 from . import CONF_AXP2101_ID, AXP2101Component, axp2101_ns

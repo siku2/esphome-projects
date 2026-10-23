@@ -59,7 +59,7 @@ binary_sensor:
   entity_category: "diagnostic"
   on_press:
     then:
-    - lambda: !lambda 'id(fp_num_scans_counter).publish_state(0);'
+    - lambda: !lambda "id(fp_num_scans_counter).publish_state(0);"
     - display.page.show: "pg_enroll"
     - fingerprint_grow.aura_led_control:
         state: "ALWAYS_ON"
@@ -280,8 +280,8 @@ button:
   on_press:
     then:
     - fingerprint_grow.enroll:
-        finger_id: !lambda 'return id(fp_finger_id).state;'
-        num_scans: !lambda 'return id(fp_num_scans).state;'
+        finger_id: !lambda "return id(fp_finger_id).state;"
+        num_scans: !lambda "return id(fp_num_scans).state;"
 
 - platform: "template"
   name: "${i18n.doordisplay[language].cancel_enroll}"
@@ -298,7 +298,7 @@ button:
   on_press:
     then:
     - fingerprint_grow.delete:
-        finger_id: !lambda 'return id(fp_finger_id).state;'
+        finger_id: !lambda "return id(fp_finger_id).state;"
 
 - platform: "template"
   name: "${i18n.doordisplay[language].delete_all}"

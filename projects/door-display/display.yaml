@@ -13,7 +13,7 @@ font:
 - file: "gfonts://Anton"
   id: "font_anton_x32"
   size: 32
-  glyphs: ['E', 'R', 'e', 'g', 'i', 'l', 'n', 'o', 'r', 's', 't']
+  glyphs: ["E", "R", "e", "g", "i", "l", "n", "o", "r", "s", "t"]
 
 - file: "gfonts://Anton"
   id: "font_anton_x24"

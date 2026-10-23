@@ -125,7 +125,6 @@ sensor:
   name: "${i18n.heatstorage[language].heating_flow}"
   address: 0x8B00080362004010
 
-
 # OW2
 - &ow2_template
   <<: *ow1_template
@@ -149,7 +148,6 @@ sensor:
   name: "${i18n.heatstorage[language].heating_collector_flow}"
   address: 0x3100080362C8F810
 
-
 # OW3
 - &ow3_template
   <<: *ow1_template
@@ -168,7 +166,6 @@ sensor:
 - <<: *ow3_template
   name: "${i18n.heatstorage[language].heating_solar}"
   address: 0x790f498a17dfe828
-
 
 # OW4
 - &ow4_template
