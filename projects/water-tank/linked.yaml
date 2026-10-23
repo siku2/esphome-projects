@@ -1,0 +1,56 @@
+packages:
+  calibration: !include calibration.yaml
+
+binary_sensor:
+- id: "${tank_id}_linked_full"
+  internal: true
+  platform: "homeassistant"
+  entity_id: "${linked_full_entity_id}"
+  on_state:
+    then:
+    - binary_sensor.template.publish:
+        id: "${tank_id}_full"
+        state: !lambda "return x;"
+  # The shared surface just left the full mark.
+  on_release:
+    then:
+    - if:
+        condition:
+        - switch.is_on: "${tank_id}_auto_calibrate"
+        - lambda: !lambda "return id(${tank_id}_raw_voltage).has_state();"
+        then:
+        - number.set:
+            id: "${tank_id}_voltage_full"
+            value: !lambda "return id(${tank_id}_raw_voltage).state;"
+        - event.trigger:
+            id: "${tank_id}_diag"
+            event_type: "auto_calibrated_full"
+
+sensor:
+- id: "${tank_id}_linked_volume"
+  internal: true
+  platform: "homeassistant"
+  entity_id: "${linked_volume_entity_id}"
+  on_value:
+    then:
+    - component.update: "${tank_id}_total_volume"
+
+- id: !extend "${tank_id}_fill_volume"
+  on_value:
+    then:
+    - component.update: "${tank_id}_total_volume"
+
+- id: "${tank_id}_total_volume"
+  name: "${name_total_volume}"
+  unit_of_measurement: "L"
+  device_class: "volume"
+  state_class: "measurement"
+  accuracy_decimals: 0
+  icon: "mdi:water-well"
+  lambda: !lambda |-
+    float linked = id(${tank_id}_linked_volume).state;
+    float own = id(${tank_id}_fill_volume).state;
+    if (std::isnan(linked) || std::isnan(own)) return NAN;
+    return linked + own;
+  platform: "template"
+  update_interval: "never"

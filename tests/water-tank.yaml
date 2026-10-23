@@ -34,16 +34,32 @@ packages:
       full_supply_pin: "GPIO22"
       empty_entity_id: "binary_sensor.test_tank_empty"
   tank_2: !include
-    file: "../projects/water-tank/voltage.yaml"
+    file: "../projects/water-tank/tank.yaml"
     vars:
       tank_id: "tank_2"
+      tank_name: "Tank 2"
       adc_pin: "GPIO34"
       attenuation: "6db"
       samples: 10
       sample_interval: "1s"
       window_size: 60
       send_every: 30
+      voltage_max: 1.8
+      initial_voltage_empty: 0.1
+      initial_voltage_full: 1.0
+      initial_volume_full: 500
       name_voltage: "Tank 2 Voltage"
+      name_percentage: "Tank 2 Fill Percentage"
+      name_volume: "Tank 2 Fill Volume"
+      name_volume_full: "Tank 2 Volume Full"
+  tank_2_link: !include
+    file: "../projects/water-tank/linked.yaml"
+    vars:
+      tank_id: "tank_2"
+      tank_name: "Tank 2"
+      linked_full_entity_id: "binary_sensor.test_tank_full"
+      linked_volume_entity_id: "sensor.test_tank_fill_volume"
+      name_total_volume: "Total Volume"
 
 esphome:
   name: "${name}"

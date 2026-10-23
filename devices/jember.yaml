@@ -25,16 +25,32 @@ packages:
       name_volume: "Wassertank Volumen"
       name_volume_full: "Wassertank Volumen"
   tank_2: !include
-    file: "../projects/water-tank/voltage.yaml"
+    file: "../projects/water-tank/tank.yaml"
     vars:
       tank_id: "wt2"
+      tank_name: "Regenwassertank 3"
       adc_pin: "GPIO34"
       attenuation: "6db"
       samples: 10
       sample_interval: "1s"
       window_size: 60
       send_every: 30
+      voltage_max: 1.8
+      initial_voltage_empty: 0.108
+      initial_voltage_full: 1.0
+      initial_volume_full: 4000
       name_voltage: "Wassertank 2 Raw Voltage"
+      name_percentage: "Regenwassertank 3"
+      name_volume: "Regenwassertank 3 Volumen"
+      name_volume_full: "Regenwassertank 3 Volumen Voll"
+  tank_2_link: !include
+    file: "../projects/water-tank/linked.yaml"
+    vars:
+      tank_id: "wt2"
+      tank_name: "Regenwassertank 3"
+      linked_full_entity_id: "binary_sensor.regenwassertank_voll"
+      linked_volume_entity_id: "sensor.rain_water_tank_fill_volume"
+      name_total_volume: "Regenwasser Gesamtvolumen"
 
 esphome:
   name: "bean-jember"
