@@ -1,3 +1,5 @@
+host: {}
+
 display:
 - id: "m5s3l_lcd"
   platform: "sdl"

@@ -1,3 +1,5 @@
+host: {}
+
 display:
 - id: "cp579epd_display"
   platform: "sdl"

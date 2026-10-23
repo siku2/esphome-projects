@@ -1,7 +1,7 @@
 packages:
   app: !include app.yaml
   base: !include
-    file: ../../base/host.yaml
+    file: ../../base/common.yaml
   m5stack_cores3_lite: !include
     file: ../../boards/m5stack/cores3_lite_host.yaml
   covers: !include covers_sim.yaml
