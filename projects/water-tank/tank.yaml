@@ -19,6 +19,7 @@ sensor:
   accuracy_decimals: 0
   filters:
   - lambda: !lambda |-
+      if (std::isnan(x)) return {};
       if (id(${tank_id}_full).state) return 1.0f;
       if (id(${tank_id}_empty).state) return 0.0f;
       float min = id(${tank_id}_voltage_empty).state;
