@@ -70,6 +70,7 @@ class Cc1101 : public Component,
   void command_strobe_(uint8_t strobe);
 
   uint8_t read_reg_(uint8_t addr);
+  uint8_t read_status_(uint8_t addr);
   void write_reg_(uint8_t addr, uint8_t value);
   void write_burst_reg_(uint8_t addr, const uint8_t *data, size_t length);
 

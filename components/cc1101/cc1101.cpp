@@ -144,8 +144,8 @@ void Cc1101::setup() {
     return;
   }
 
-  this->part_number_ = this->read_reg_(CC1101_PARTNUM);
-  this->version_ = this->read_reg_(CC1101_VERSION);
+  this->part_number_ = this->read_status_(CC1101_PARTNUM);
+  this->version_ = this->read_status_(CC1101_VERSION);
   if (this->version_ == 0) {
     this->mark_failed(LOG_STR("CC1101 not found"));
     return;
@@ -248,6 +248,16 @@ uint8_t Cc1101::read_reg_(uint8_t addr) {
   if (!this->enable_and_wait())
     return 0;
   this->transfer_byte(addr | READ_SINGLE);
+  uint8_t value = this->read_byte();
+  this->disable();
+  return value;
+}
+
+// Without the burst bit, addresses 0x30 to 0x3D are command strobes, not status registers
+uint8_t Cc1101::read_status_(uint8_t addr) {
+  if (!this->enable_and_wait())
+    return 0;
+  this->transfer_byte(addr | READ_BURST);
   uint8_t value = this->read_byte();
   this->disable();
   return value;
