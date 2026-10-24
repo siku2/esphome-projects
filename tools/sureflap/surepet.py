@@ -12,6 +12,7 @@ Usage:
 import argparse
 import getpass
 import json
+import os
 import sys
 import urllib.error
 import urllib.parse
@@ -72,8 +73,6 @@ def list_devices(token):
 
 
 def download_firmware(serial, bootloader, outdir):
-    import os
-
     os.makedirs(outdir, exist_ok=True)
     for page in range(MAX_PAGES):
         payload = {
@@ -105,8 +104,10 @@ def main():
     args = parser.parse_args()
 
     if args.command == "devices":
-        email = input("SurePetCare email: ")
-        password = getpass.getpass("SurePetCare password: ")
+        email = os.environ.get("SUREPET_EMAIL") or input("SurePetCare email: ")
+        password = os.environ.get("SUREPET_PASSWORD") or getpass.getpass(
+            "SurePetCare password: "
+        )
         try:
             token = login(email, password)
         except urllib.error.HTTPError as e:
