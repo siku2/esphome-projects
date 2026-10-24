@@ -111,8 +111,8 @@ display:
         it.printf(it.get_width() / 2, it.get_height() / 2, id(font_anton_x24), TextAlign::CENTER,
           "%s %s %s",
           person_name.c_str(),
-          id(fp_hand).current_option(),
-          id(fp_finger).current_option()
+          id(fp_hand).current_option().c_str(),
+          id(fp_finger).current_option().c_str()
         );
       }
       // bottom row
@@ -129,7 +129,7 @@ display:
       id(greeting_selection).make_call().select_next(true).perform();
       it.printf(it.get_width() / 2, it.get_height() / 2, id(font_anton_x48), TextAlign::CENTER,
         "%s %s",
-        id(greeting_selection).current_option(),
+        id(greeting_selection).current_option().c_str(),
         id(fp_last_person).state.c_str()
       );
 
