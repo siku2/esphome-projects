@@ -5,8 +5,11 @@ from esphome.components.ieee802154_sniffer import Ieee802154Sniffer
 from esphome.const import (
     CONF_ID,
     DEVICE_CLASS_CONNECTIVITY,
+    DEVICE_CLASS_SIGNAL_STRENGTH,
     ENTITY_CATEGORY_DIAGNOSTIC,
+    STATE_CLASS_MEASUREMENT,
     STATE_CLASS_TOTAL_INCREASING,
+    UNIT_DECIBEL_MILLIWATT,
 )
 
 CODEOWNERS = ["@siku2"]
@@ -16,7 +19,10 @@ AUTO_LOAD = ["sensor", "binary_sensor"]
 CONF_SNIFFER_ID = "sniffer_id"
 CONF_HEARTBEAT_TIMEOUT = "heartbeat_timeout"
 CONF_FRAMES = "frames"
+CONF_MOVEMENTS = "movements"
+CONF_RSSI = "rssi"
 CONF_FLAP_ONLINE = "flap_online"
+CONF_HUB_ONLINE = "hub_online"
 
 sureflap_ns = cg.esphome_ns.namespace("sureflap")
 SureFlap = sureflap_ns.class_("SureFlap", cg.Component)
@@ -33,7 +39,22 @@ CONFIG_SCHEMA = cv.Schema(
             state_class=STATE_CLASS_TOTAL_INCREASING,
             entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
         ),
+        cv.Optional(CONF_MOVEMENTS): sensor.sensor_schema(
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_TOTAL_INCREASING,
+        ),
+        cv.Optional(CONF_RSSI): sensor.sensor_schema(
+            unit_of_measurement=UNIT_DECIBEL_MILLIWATT,
+            accuracy_decimals=0,
+            device_class=DEVICE_CLASS_SIGNAL_STRENGTH,
+            state_class=STATE_CLASS_MEASUREMENT,
+            entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        ),
         cv.Optional(CONF_FLAP_ONLINE): binary_sensor.binary_sensor_schema(
+            device_class=DEVICE_CLASS_CONNECTIVITY,
+            entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        ),
+        cv.Optional(CONF_HUB_ONLINE): binary_sensor.binary_sensor_schema(
             device_class=DEVICE_CLASS_CONNECTIVITY,
             entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
         ),
@@ -53,6 +74,18 @@ async def to_code(config):
         frames = await sensor.new_sensor(config[CONF_FRAMES])
         cg.add(var.set_frames_sensor(frames))
 
+    if CONF_MOVEMENTS in config:
+        movements = await sensor.new_sensor(config[CONF_MOVEMENTS])
+        cg.add(var.set_movements_sensor(movements))
+
+    if CONF_RSSI in config:
+        rssi = await sensor.new_sensor(config[CONF_RSSI])
+        cg.add(var.set_rssi_sensor(rssi))
+
     if CONF_FLAP_ONLINE in config:
         flap_online = await binary_sensor.new_binary_sensor(config[CONF_FLAP_ONLINE])
         cg.add(var.set_flap_online(flap_online))
+
+    if CONF_HUB_ONLINE in config:
+        hub_online = await binary_sensor.new_binary_sensor(config[CONF_HUB_ONLINE])
+        cg.add(var.set_hub_online(hub_online))

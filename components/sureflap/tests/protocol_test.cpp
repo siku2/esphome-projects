@@ -90,6 +90,24 @@ void test_fdxb_roundtrip() {
   assert(d.national_id == 12345678901ULL);
 }
 
+void test_is_movement() {
+  uint8_t flap_be[8] = {0x70, 0xb3, 0xd5, 0xf9, 0xcf, 0x05, 0x9d, 0xf5};
+  uint8_t hub_be[8] = {0x98, 0x27, 0x82, 0xff, 0xfe, 0xe1, 0x00, 0x6f};
+  // A 38 byte flap type 0x01 frame is a movement.
+  std::vector<uint8_t> payload(MOVEMENT_LEN, 0);
+  payload[0] = MSG_DATA;
+  payload[1] = 0x20;
+  auto f = make_frame(flap_be, payload);
+  assert(is_movement(parse_frame(f.data(), f.size())));
+  // Same payload from the hub is not a movement.
+  auto fh = make_frame(hub_be, payload);
+  assert(!is_movement(parse_frame(fh.data(), fh.size())));
+  // Wrong length is not a movement.
+  payload.push_back(0);
+  auto fl = make_frame(flap_be, payload);
+  assert(!is_movement(parse_frame(fl.data(), fl.size())));
+}
+
 void test_movement_direction() {
   uint8_t buf[MOVEMENT_LEN] = {};
   buf[DIRECTION_OFFSET] = 0x00;
@@ -115,6 +133,7 @@ int main() {
   test_keystream_lock();
   test_keystream_decrypt_needs_all_bytes();
   test_fdxb_roundtrip();
+  test_is_movement();
   test_movement_direction();
   printf("all sureflap protocol tests passed\n");
   return 0;

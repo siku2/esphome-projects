@@ -39,5 +39,11 @@ sureflap:
   sniffer_id: "sureflap_radio"
   frames:
     name: "Frames"
+  movements:
+    name: "Movements"
+  rssi:
+    name: "Cat flap signal"
   flap_online:
     name: "Cat flap online"
+  hub_online:
+    name: "Hub online"

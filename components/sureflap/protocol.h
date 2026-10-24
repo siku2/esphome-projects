@@ -202,6 +202,13 @@ enum Direction : uint8_t {
   DIR_UNKNOWN,
 };
 
+// A movement frame is a flap type 0x01 of the fixed movement length. Identity
+// and direction need the keystream, but the frame itself is recognisable
+// without it, which is enough for a "cat used the flap" activity signal.
+inline bool is_movement(const Frame &f) {
+  return f.valid && !f.src_is_hub && f.type == MSG_DATA && f.payload_len == MOVEMENT_LEN;
+}
+
 // Read the direction from a decrypted payload. The caller provides plaintext.
 inline Direction movement_direction(const uint8_t *decrypted, size_t len) {
   if (len < DIRECTION_OFFSET + 2)
