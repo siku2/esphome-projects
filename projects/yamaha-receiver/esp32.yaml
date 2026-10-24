@@ -1,4 +1,10 @@
 substitutions:
+  receiver_device_id: "" # REQUIRED!
+
+  components_source:
+    type: "local"
+    path: "../components"
+
   name: "yamaha-receiver"
   friendly_name: "Yamaha Receiver"
   language: "en"
@@ -10,10 +16,7 @@ substitutions:
 packages:
   base: !include ../../base/device.yaml
   ir: !include ir.yaml
-  receiver: !include receiver.yaml
-  scripts: !include scripts.yaml
-  state: !include state.yaml
-  controls: !include controls.yaml
+  zones: !include zones.yaml
 
 esphome:
   name: "${name}"

@@ -1,0 +1,66 @@
+external_components:
+- source: "${components_source}"
+  components: ["ir_media_player"]
+
+media_player:
+- platform: "ir_media_player"
+  id: "zone1"
+  name: "${i18n.yamaha[language].zone1}"
+  device_id: "${receiver_device_id}"
+  transmitter_id: "ir_transmitter"
+  receiver_id: "ir_receiver"
+  power_toggle: { address: 0x817E, command: 0xD52A }
+  mute_toggle: { address: 0x857A, command: 0xE31C }
+  volume_up: { address: 0x857A, command: 0xE51A }
+  volume_down: { address: 0x857A, command: 0xE41B }
+
+- platform: "ir_media_player"
+  id: "zone2"
+  name: "${i18n.yamaha[language].zone2}"
+  device_id: "${receiver_device_id}"
+  transmitter_id: "ir_transmitter"
+  receiver_id: "ir_receiver"
+  power_toggle: { address: 0x857A, command: 0x3A45 }
+  mute_toggle: { address: 0x857A, command: 0x23DC }
+  volume_up: { address: 0x857A, command: 0x25DA }
+  volume_down: { address: 0x857A, command: 0x24DB }
+
+select:
+- platform: "ir_media_player"
+  name: "${i18n.yamaha[language].zone1_scene}"
+  device_id: "${receiver_device_id}"
+  media_player_id: "zone1"
+  options:
+  - { name: "DVD", address: 0x857A, command: 0x7F00 }
+  - { name: "TV", address: 0x857A, command: 0x7C03 }
+  - { name: "CD", address: 0x857A, command: 0x7906 }
+  - { name: "RADIO", address: 0x857A, command: 0x7609 }
+
+switch:
+- platform: "ir_media_player"
+  name: "${i18n.yamaha[language].zone1_power_state}"
+  device_id: "${receiver_device_id}"
+  entity_category: "config"
+  media_player_id: "zone1"
+  type: "power"
+
+- platform: "ir_media_player"
+  name: "${i18n.yamaha[language].zone1_mute_state}"
+  device_id: "${receiver_device_id}"
+  entity_category: "config"
+  media_player_id: "zone1"
+  type: "mute"
+
+- platform: "ir_media_player"
+  name: "${i18n.yamaha[language].zone2_power_state}"
+  device_id: "${receiver_device_id}"
+  entity_category: "config"
+  media_player_id: "zone2"
+  type: "power"
+
+- platform: "ir_media_player"
+  name: "${i18n.yamaha[language].zone2_mute_state}"
+  device_id: "${receiver_device_id}"
+  entity_category: "config"
+  media_player_id: "zone2"
+  type: "mute"

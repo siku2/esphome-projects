@@ -5,5 +5,11 @@ packages:
       name: "test-yamaha-receiver"
       friendly_name: "Test Yamaha Receiver"
       language: "de"
+      receiver_device_id: "receiver_device"
 
       api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
+
+esphome:
+  devices:
+  - id: "receiver_device"
+    name: "Test YAMAHA Receiver"
