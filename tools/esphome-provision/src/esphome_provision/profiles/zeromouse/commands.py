@@ -41,7 +41,7 @@ def load_identity(args: argparse.Namespace) -> StockIdentity:
 
 def api_key(args: argparse.Namespace, secrets: dict[str, str] | None) -> str:
     credentials = ha.resolve_credentials(
-        args.api_key, ha.ssh_target(args.ha_ssh), host=args.host
+        args.api_key, ha.ha_url(args.ha_url), host=args.host
     )
     if credentials:
         print(f"API key from {credentials.source}")
@@ -52,7 +52,7 @@ def api_key(args: argparse.Namespace, secrets: dict[str, str] | None) -> str:
         key = secrets.get(f"{args.device}_api_encryption_key")
     if not key:
         raise ProvisionError(
-            f"No API key, pass --api-key, set {KEY_ENV}, give --ha-ssh or give --device "
+            f"No API key, pass --api-key, set {KEY_ENV}, give --ha-url or give --device "
             + "with <device>_api_encryption_key in the secrets"
         )
     return key
@@ -105,7 +105,7 @@ def add_subcommands(
     group = subparsers.add_parser(
         "zeromouse",
         help="ZeroMOUSE commands that use the API of an installed device",
-        description="The API key comes from --api-key, from ESPHOME_API_KEY, from Home Assistant over SSH (--ha-ssh or ESPHOME_PROVISION_HA_SSH), or from <device>_api_encryption_key in the secrets file.",
+        description="The API key comes from --api-key, from ESPHOME_API_KEY, from Home Assistant (--ha-url or ESPHOME_PROVISION_HA_URL), or from <device>_api_encryption_key in the secrets file.",
     )
     commands = group.add_subparsers(dest="zeromouse_command", required=True)
 

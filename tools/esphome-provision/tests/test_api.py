@@ -89,3 +89,8 @@ def test_retry_gives_up_after_two_drops(monkeypatch: pytest.MonkeyPatch) -> None
 
     with pytest.raises(ProvisionError, match="twice"):
         asyncio.run(api.retry_dropped(operation))
+
+
+def test_format_mac() -> None:
+    assert api.format_mac("F0F5BD44B1F8") == "f0:f5:bd:44:b1:f8"
+    assert api.format_mac("f0:f5:bd:44:b1:f8") == "f0:f5:bd:44:b1:f8"

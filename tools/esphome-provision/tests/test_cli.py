@@ -78,4 +78,4 @@ def test_logs_options() -> None:
     assert args.handler is cli.logs.cmd_logs
     assert args.device == "bean-kopi"
     assert args.level == "very_verbose"
-    assert args.ha_ssh is None
+    assert args.ha_url is None

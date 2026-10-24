@@ -42,14 +42,14 @@ async def stream(host: str, psk: str, level: LogLevel) -> None:
 
 def cmd_logs(args: argparse.Namespace) -> None:
     credentials = ha.resolve_credentials(
-        args.api_key, ha.ssh_target(args.ha_ssh), name=args.device
+        args.api_key, ha.ha_url(args.ha_url), host=args.host, name=args.device
     )
     if credentials is None:
         raise ProvisionError(
-            f"No API key, pass --api-key, set {KEY_ENV} or give --ha-ssh "
-            + f"(or set {ha.SSH_ENV}) to read it from Home Assistant"
+            f"No API key, pass --api-key, set {KEY_ENV} or give --ha-url "
+            + f"(or set {ha.URL_ENV}) to read it from Home Assistant"
         )
-    host = args.host or credentials.host
+    host = credentials.host
     if not host:
         raise ProvisionError(
             "logs needs --host unless the key comes from Home Assistant"

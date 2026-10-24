@@ -4,6 +4,7 @@
   install  Backup, then erase and write the firmware, set up Wi-Fi and provision.
   restore  Write a backup (or a raw image) back to the chip.
   logs     Stream the log of an installed device.
+  ha       Log in to or out of Home Assistant.
 
 Profiles add project specific checks, steps and commands, for example
 "zeromouse". The profile is picked from --profile or from the project name
@@ -12,8 +13,9 @@ a basic check over the API.
 
 The API key defaults to all zeros. If the device already has a key, for
 example from Home Assistant, the commands for installed devices look for it in
-this order: --api-key, ESPHOME_API_KEY, then Home Assistant over SSH. Give the
-SSH target with --ha-ssh or ESPHOME_PROVISION_HA_SSH. Only "install --resume",
+this order: --api-key, ESPHOME_API_KEY, then Home Assistant. Give its address
+with --ha-url or ESPHOME_PROVISION_HA_URL. Log in once with "ha login", or set
+ESPHOME_PROVISION_HA_TOKEN to a long-lived token. Only "install --resume",
 "logs" and the profile commands read the key from Home Assistant.
 """
 
@@ -94,8 +96,8 @@ def resume_command(
         parts += ["--secrets", shlex.quote(str(args.secrets))]
     if args.api_key:
         parts += ["--api-key", "<api key>"]
-    if args.ha_ssh:
-        parts += ["--ha-ssh", shlex.quote(args.ha_ssh)]
+    if args.ha_url:
+        parts += ["--ha-url", shlex.quote(args.ha_url)]
     return f"{APP} {' '.join(parts)}"
 
 
@@ -235,7 +237,7 @@ def cmd_resume(args: argparse.Namespace) -> None:
         raise ProvisionError("install --resume needs --host")
     backup = flasher.load_backup(args.backup_dir)
     credentials = ha.resolve_credentials(
-        args.api_key, ha.ssh_target(args.ha_ssh), mac=backup.mac
+        args.api_key, ha.ha_url(args.ha_url), mac=backup.mac
     )
     firmware = read_firmware(args.firmware) if args.firmware else None
     profile_name = args.profile
@@ -365,6 +367,7 @@ def build_parser() -> argparse.ArgumentParser:
     restore.set_defaults(handler=cmd_restore)
 
     logs.add_command(commands)
+    ha.add_command(commands)
     for profile in profiles.values():
         profile.add_subcommands(commands)
     return parser

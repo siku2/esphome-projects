@@ -57,6 +57,35 @@ def invalid_key_message(host: str, psk: str) -> str:
     )
 
 
+def format_mac(mac: str) -> str:
+    """Return the MAC as lowercase pairs with colons, like Home Assistant stores it."""
+    plain = mac.lower().replace(":", "")
+    return ":".join(plain[i : i + 2] for i in range(0, len(plain), 2))
+
+
+async def discover(host: str) -> tuple[str, str]:
+    """Return the name and MAC of a device from its answer to a handshake with a wrong key."""
+    client = APIClient(host, PORT, None, noise_psk=ZERO_PSK)
+    try:
+        await asyncio.wait_for(client.connect(login=False, log_errors=False), 15)
+    except InvalidEncryptionKeyAPIError as error:
+        if not error.received_name or not error.received_mac:
+            raise ProvisionError(
+                f"The device at {host} did not report its MAC"
+            ) from error
+        return error.received_name, format_mac(error.received_mac)
+    except RequiresEncryptionAPIError as error:
+        raise ProvisionError(f"The device at {host} has no encryption key") from error
+    except (APIConnectionError, TimeoutError, OSError) as error:
+        raise ProvisionError(
+            f"Could not connect to {host}:{PORT}: {type(error).__name__}"
+        ) from error
+    await client.disconnect()
+    raise ProvisionError(
+        f"The device at {host} accepts the default key, so it has no key in Home Assistant"
+    )
+
+
 def quiet_api_logging() -> None:
     logging.getLogger("aioesphomeapi").setLevel(logging.CRITICAL)
 

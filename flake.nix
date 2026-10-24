@@ -123,6 +123,7 @@
             ;
           pythonDev = python.withPackages (ps: [
             ps.aioesphomeapi
+            ps.aiohttp
             ps.cryptography
             ps.mypy
             ps.pyserial
@@ -178,6 +179,7 @@
             build-system = [ python.pkgs.hatchling ];
             dependencies = [
               python.pkgs.aioesphomeapi
+              python.pkgs.aiohttp
               python.pkgs.cryptography
               python.pkgs.pyserial
               python.pkgs.pyyaml
