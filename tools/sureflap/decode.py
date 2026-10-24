@@ -3,8 +3,7 @@
 The flap and hub talk over 802.15.4 on PAN 0x3421. Application messages of type
 0x01 are encrypted with a stream cipher. The keystream is fixed for a session
 (the span between two 0x0e session-setup messages) and reused for every message,
-which lets us recover it from known plaintext and decrypt without the key. See
-scratch/sureflap-protocol.md.
+which lets us recover it from known plaintext and decrypt without the key.
 """
 
 import argparse
@@ -14,7 +13,7 @@ import time
 from dataclasses import dataclass, field
 
 PAN = 0x3421
-HUB_SUFFIX = "98:27:82"  # hub extended address OUI part
+HUB_PREFIX = "98:27:82"  # first bytes of the hub extended address
 LINKTYPE_IEEE802_15_4_TAP = 283
 
 
@@ -98,7 +97,7 @@ def _parse_frame(ts: float, f: bytes) -> "Msg | None":
     payload = f[off:]
     if len(payload) < 2:
         return None
-    return Msg(ts, src.startswith(HUB_SUFFIX), payload[1], payload[0], payload)
+    return Msg(ts, src.startswith(HUB_PREFIX), payload[1], payload[0], payload)
 
 
 def split_sessions(msgs: list[Msg]) -> list[list[Msg]]:
