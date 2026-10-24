@@ -29,18 +29,7 @@ esp32:
 api:
   homeassistant_services: true
 
-debug:
-  update_interval: "5s"
-
 text_sensor:
 - platform: "debug"
   device:
     name: "${i18n.doordisplay[language].device_info}"
-  reset_reason:
-    name: "${i18n.doordisplay[language].reset_reason}"
-
-sensor:
-- platform: "internal_temperature"
-  name: "${i18n.doordisplay[language].internal_temperature}"
-  update_interval: "5min"
-  entity_category: "diagnostic"
