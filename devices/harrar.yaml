@@ -5,5 +5,23 @@ packages:
       name: "bean-harrar"
       friendly_name: "Tore Unterstand"
       language: "de"
+      velo_device_id: "velo_device"
+      unterstand_device_id: "unterstand_device"
+      garage_device_id: "garage_device"
 
       api_encryption_key: !secret harrar_api_encryption_key
+
+esphome:
+  areas:
+  - id: "area_shelter"
+    name: "Unterstand"
+  devices:
+  - id: "velo_device"
+    name: "Veloraum"
+    area_id: "area_shelter"
+  - id: "unterstand_device"
+    name: "Unterstand Tor"
+    area_id: "area_shelter"
+  - id: "garage_device"
+    name: "Garagentor"
+    area_id: "area_shelter"

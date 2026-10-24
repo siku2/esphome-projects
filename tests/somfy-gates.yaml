@@ -5,5 +5,23 @@ packages:
       name: "test-somfy-gates"
       friendly_name: "Test Somfy Gates"
       language: "de"
+      velo_device_id: "velo_device"
+      unterstand_device_id: "unterstand_device"
+      garage_device_id: "garage_device"
 
       api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
+
+esphome:
+  areas:
+  - id: "area_test"
+    name: "Test"
+  devices:
+  - id: "velo_device"
+    name: "Velo"
+    area_id: "area_test"
+  - id: "unterstand_device"
+    name: "Shelter"
+    area_id: "area_test"
+  - id: "garage_device"
+    name: "Garage"
+    area_id: "area_test"

@@ -1,7 +1,1 @@
-velo: "Aussen Veloraum"
-unterstand: "Aussen Unterstand Tor"
-garage: "Aussen Garagentor"
-velo_program: "Aussen Veloraum Program"
-unterstand_program: "Aussen Unterstand Tor Program"
-garage_program: "Aussen Garagentor Program"
-velo_brute_force: "Aussen Veloraum Brute-force"
+program: "Programmieren"

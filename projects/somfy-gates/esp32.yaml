@@ -6,6 +6,9 @@ substitutions:
   name: "somfy-gates"
   friendly_name: "Somfy Gates"
   language: "en"
+  velo_device_id: "" # REQUIRED!
+  unterstand_device_id: "" # REQUIRED!
+  garage_device_id: "" # REQUIRED!
   i18n:
     somfygates:
       de: !include translations/de.yaml
@@ -49,7 +52,8 @@ cc1101:
 button:
 - &program_velo
   id: "program_velo"
-  name: "${i18n.somfygates[language].velo_program}"
+  name: "${i18n.somfygates[language].program}"
+  device_id: "${velo_device_id}"
   icon: "mdi:access-point"
   entity_category: "config"
   platform: "template"
@@ -59,38 +63,22 @@ button:
 
 - <<: *program_velo
   id: "program_unterstand"
-  name: "${i18n.somfygates[language].unterstand_program}"
+  device_id: "${unterstand_device_id}"
   on_press:
     then:
     - cover.somfy_cover.program: "unterstand"
 
 - <<: *program_velo
   id: "program_garage"
-  name: "${i18n.somfygates[language].garage_program}"
+  device_id: "${garage_device_id}"
   on_press:
     then:
     - cover.somfy_cover.program: "garage"
 
-- name: "${i18n.somfygates[language].velo_brute_force}"
-  entity_category: "config"
-  on_press:
-    then:
-    - repeat:
-        count: 0x7fff
-        then:
-        - lambda: !lambda |
-            if (iteration % 256 == 0) {
-              uint32_t prog = 100 * iteration / 0x7fff;
-              ESP_LOGI("main", "progress: %d", prog);
-            }
-        - cover.close: "velo"
-        - cover.open: "velo"
-        - delay: "20ms"
-  platform: "template"
-
 cover:
 - id: "velo"
-  name: "${i18n.somfygates[language].velo}"
+  name: ""
+  device_id: "${velo_device_id}"
   device_class: "garage"
   platform: "somfy_cover"
   cc1101_id: "cc_module"
@@ -100,7 +88,8 @@ cover:
   storage_key: "velo"
 
 - id: "unterstand"
-  name: "${i18n.somfygates[language].unterstand}"
+  name: ""
+  device_id: "${unterstand_device_id}"
   device_class: "shutter"
   platform: "somfy_cover"
   cc1101_id: "cc_module"
@@ -110,7 +99,8 @@ cover:
   storage_key: "unterstand"
 
 - id: "garage"
-  name: "${i18n.somfygates[language].garage}"
+  name: ""
+  device_id: "${garage_device_id}"
   device_class: "garage"
   platform: "somfy_cover"
   cc1101_id: "cc_module"
