@@ -169,11 +169,12 @@ bool AW9523Component::digital_read_hw(uint8_t pin) {
   if (this->is_failed())
     return false;
 
-  uint8_t data[2];
-  if (!this->read_bytes(AW9523_REG_INPUT0, data, 2))
+  // A burst read only clears the interrupt of port 0, so read the ports separately
+  uint8_t input0, input1;
+  if (!this->read_byte(AW9523_REG_INPUT0, &input0) || !this->read_byte(AW9523_REG_INPUT1, &input1))
     return false;
 
-  this->value_ = data[0] | (data[1] << 8);
+  this->value_ = input0 | (input1 << 8);
   return true;
 }
 
