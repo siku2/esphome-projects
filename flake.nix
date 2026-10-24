@@ -299,6 +299,25 @@
                 ./cook_model_test
                 touch "$out"
               '';
+
+          test-ir-media-player =
+            pkgs.runCommand "check-test-ir-media-player"
+              {
+                nativeBuildInputs = [ pkgs.stdenv.cc ];
+                src = lib.fileset.toSource {
+                  root = ./.;
+                  fileset = lib.fileset.unions [
+                    ./components/ir_media_player/ir_toggle_state.h
+                    ./components/ir_media_player/tests/ir_toggle_state_test.cpp
+                  ];
+                };
+              }
+              ''
+                g++ -std=c++17 -Wall -Wextra -Werror \
+                  -o ir_toggle_state_test "$src/components/ir_media_player/tests/ir_toggle_state_test.cpp"
+                ./ir_toggle_state_test
+                touch "$out"
+              '';
         }
       );
 
