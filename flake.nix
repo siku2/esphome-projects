@@ -299,6 +299,25 @@
                 ./cook_model_test
                 touch "$out"
               '';
+
+          test-sureflap =
+            pkgs.runCommand "check-test-sureflap"
+              {
+                nativeBuildInputs = [ pkgs.stdenv.cc ];
+                src = lib.fileset.toSource {
+                  root = ./.;
+                  fileset = lib.fileset.unions [
+                    ./components/sureflap/protocol.h
+                    ./components/sureflap/tests/protocol_test.cpp
+                  ];
+                };
+              }
+              ''
+                g++ -std=c++17 -Wall -Wextra -Werror \
+                  -o protocol_test "$src/components/sureflap/tests/protocol_test.cpp"
+                ./protocol_test
+                touch "$out"
+              '';
         }
       );
 
