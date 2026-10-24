@@ -1,0 +1,47 @@
+api:
+  homeassistant_services: true
+
+script:
+- id: "ha_send_target_action"
+  then:
+  - if:
+      condition:
+        lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 0;"
+      then:
+      - homeassistant.action:
+          action: "${door_action}"
+          on_success:
+          - script.stop: "target_action_timeout"
+          on_error:
+          - script.stop: "target_action_timeout"
+          - script.execute:
+              id: "fail_target_action"
+              reason: "${i18n.doordisplay[language].error_failed}"
+  - if:
+      condition:
+        lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 1;"
+      then:
+      - homeassistant.action:
+          action: "cover.toggle"
+          data:
+            entity_id: "${bicycle_cover_entity_id}"
+          on_success:
+          - script.stop: "target_action_timeout"
+          on_error:
+          - script.stop: "target_action_timeout"
+          - script.execute:
+              id: "fail_target_action"
+              reason: "${i18n.doordisplay[language].error_failed}"
+  - if:
+      condition:
+        lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 2;"
+      then:
+      - homeassistant.action:
+          action: "${gate_action}"
+          on_success:
+          - script.stop: "target_action_timeout"
+          on_error:
+          - script.stop: "target_action_timeout"
+          - script.execute:
+              id: "fail_target_action"
+              reason: "${i18n.doordisplay[language].error_failed}"

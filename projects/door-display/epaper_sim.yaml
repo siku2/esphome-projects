@@ -1,0 +1,19 @@
+color:
+- id: "color_ink"
+  red: 0%
+  green: 0%
+  blue: 0%
+  white: 0%
+- id: "color_paper"
+  red: 100%
+  green: 100%
+  blue: 100%
+  white: 100%
+
+display:
+- platform: "sdl"
+  id: "display_main"
+  dimensions:
+    width: 296
+    height: 128
+  update_interval: "never"

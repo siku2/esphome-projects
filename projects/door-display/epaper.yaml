@@ -1,0 +1,26 @@
+color:
+- id: "color_ink"
+  red: 100%
+  green: 100%
+  blue: 100%
+  white: 100%
+- id: "color_paper"
+  red: 0%
+  green: 0%
+  blue: 0%
+  white: 0%
+
+spi:
+  clk_pin: "GPIO33"
+  mosi_pin: "GPIO13"
+
+display:
+- platform: "waveshare_epaper"
+  id: "display_main"
+  model: "2.90inv2-r2"
+  cs_pin: "GPIO14"
+  dc_pin: "GPIO27"
+  busy_pin: "GPIO25"
+  reset_pin: "GPIO26"
+  rotation: "90°"
+  update_interval: "never"

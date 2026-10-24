@@ -1,0 +1,9 @@
+packages:
+  app: !include app.yaml
+  base: !include ../../base/common.yaml
+  epaper: !include epaper_sim.yaml
+  fingerprint_sensor: !include fingerprint_sensor_sim.yaml
+  ha_inputs: !include ha_inputs_sim.yaml
+  ha_actions: !include ha_actions_sim.yaml
+
+host: {}

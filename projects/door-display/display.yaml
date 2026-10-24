@@ -1,7 +1,3 @@
-spi:
-  clk_pin: "GPIO33"
-  mosi_pin: "GPIO13"
-
 font:
 # Glyphs must cover every string shown at this size in all languages.
 # The 48, 32 and 24 fonts also show address, names and errors, so they cover ASCII and umlauts.
@@ -57,24 +53,17 @@ image:
   resize: "32x32"
 
 display:
-- platform: "waveshare_epaper"
-  id: "display_main"
-  model: "2.90inv2-r2"
-  cs_pin: "GPIO14"
-  dc_pin: "GPIO27"
-  busy_pin: "GPIO25"
-  reset_pin: "GPIO26"
-  rotation: "90°"
-  update_interval: "never"
+- id: !extend "display_main"
   on_page_change:
   - then:
     - component.update: "display_main"
   pages:
   - id: "pg_main"
     lambda: !lambda |-
+      it.fill(id(color_paper));
       auto w = it.get_width();
       auto h = it.get_height();
-      it.print(w / 2, h / 2, id(font_anton_x48), TextAlign::CENTER, id(address_text).state.c_str());
+      it.print(w / 2, h / 2, id(font_anton_x48), id(color_ink), TextAlign::CENTER, id(address_text).state.c_str());
 
       BaseImage *icon = nullptr;
       switch (id(target_entity_selection).active_index().value_or(0)) {
@@ -100,10 +89,11 @@ display:
           break;
       }
       if (!api::global_api_server->is_connected_with_state_subscription()) icon = id(img_mdi_lock_alert);
-      if (icon != nullptr) it.image(w / 2, h, icon, ImageAlign::BOTTOM_CENTER);
+      if (icon != nullptr) it.image(w / 2, h, icon, ImageAlign::BOTTOM_CENTER, id(color_ink), id(color_paper));
 
   - id: "pg_enroll"
     lambda: !lambda |-
+      it.fill(id(color_paper));
       // top row
       {
         auto icon = id(img_mdi_fingerprint);
@@ -114,16 +104,16 @@ display:
         font->measure(text, &text_w, &tmp, &tmp, &text_h);
         auto row_w = text_w + icon->get_width();
         auto row_start_x = (it.get_width() - row_w) / 2;
-        it.image(row_start_x, text_h / 2, icon, ImageAlign::CENTER_LEFT);
-        it.print(row_start_x + icon->get_width(), 0, font, TextAlign::TOP_LEFT, text);
-        it.line(0, text_h, it.get_width(), text_h);
+        it.image(row_start_x, text_h / 2, icon, ImageAlign::CENTER_LEFT, id(color_ink), id(color_paper));
+        it.print(row_start_x + icon->get_width(), 0, font, id(color_ink), TextAlign::TOP_LEFT, text);
+        it.line(0, text_h, it.get_width(), text_h, id(color_ink));
       }
       // middle row
       {
         text::Text *names[] = {id(fp_name_1), id(fp_name_2), id(fp_name_3), id(fp_name_4)};
         auto index = id(fp_person).active_index().value_or(0);
         std::string person_name = names[index]->state.empty() ? id(fp_person).current_option() : names[index]->state;
-        it.printf(it.get_width() / 2, it.get_height() / 2, id(font_anton_x24), TextAlign::CENTER,
+        it.printf(it.get_width() / 2, it.get_height() / 2, id(font_anton_x24), id(color_ink), TextAlign::CENTER,
           "%s %s %s",
           person_name.c_str(),
           id(fp_hand).current_option().c_str(),
@@ -132,7 +122,7 @@ display:
       }
       // bottom row
       {
-        it.printf(it.get_width() / 2, it.get_height(), id(font_anton_x24), TextAlign::BOTTOM_CENTER,
+        it.printf(it.get_width() / 2, it.get_height(), id(font_anton_x24), id(color_ink), TextAlign::BOTTOM_CENTER,
           "%d/%d",
           (int) id(fp_num_scans_counter).state,
           (int) id(fp_num_scans).state
@@ -141,17 +131,25 @@ display:
 
   - id: "pg_hello"
     lambda: !lambda |-
+      it.fill(id(color_paper));
       auto font = id(font_anton_x48);
       int text_w, tmp;
       font->measure(id(hello_text).c_str(), &text_w, &tmp, &tmp, &tmp);
       if (text_w > it.get_width()) font = id(font_anton_x32);
-      it.print(it.get_width() / 2, it.get_height() / 2, font, TextAlign::CENTER, id(hello_text).c_str());
+      it.print(it.get_width() / 2, it.get_height() / 2, font, id(color_ink), TextAlign::CENTER, id(hello_text).c_str());
 
   - id: "pg_error"
     lambda: !lambda |-
+      it.fill(id(color_paper));
       auto icon = id(img_mdi_alert_circle);
-      it.image(it.get_width() / 2, it.get_height() / 2 - 4, icon, ImageAlign::BOTTOM_CENTER);
-      it.print(it.get_width() / 2, it.get_height() / 2 + 4, id(font_anton_x32), TextAlign::TOP_CENTER, id(error_text).c_str());
+      it.image(it.get_width() / 2, it.get_height() / 2 - 4, icon, ImageAlign::BOTTOM_CENTER, id(color_ink), id(color_paper));
+      it.print(it.get_width() / 2, it.get_height() / 2 + 4, id(font_anton_x32), id(color_ink), TextAlign::TOP_CENTER, id(error_text).c_str());
+
+api:
+  on_client_connected:
+  - component.update: "display_main"
+  on_client_disconnected:
+  - component.update: "display_main"
 
 text:
 - platform: "template"

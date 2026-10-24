@@ -1,177 +1,4 @@
-uart:
-  rx_pin: "GPIO35"
-  tx_pin: "GPIO32"
-  baud_rate: 57600
-
-fingerprint_grow:
-  sensing_pin:
-    number: "GPIO21"
-    allow_other_uses: true
-  password: "${fingerprint_password}"
-  on_finger_scan_matched:
-  - script.execute: "fp_touch_begin"
-  - lambda: !lambda "id(fp_touch_matched) = true;"
-  - fingerprint_grow.aura_led_control:
-      state: "BREATHING"
-      speed: 200
-      color: "BLUE"
-      count: 1
-  - component.update: "fp_last_person"
-  - event.trigger:
-      id: "fp_scan_event"
-      event_type: "matched"
-  - lambda: !lambda |-
-      auto target = id(target_entity_selection).active_index().value_or(0);
-      bool farewell = target == 0 && id(sensor_door_lock).get_state() == "unlocked";
-      select::Select *selection = farewell ? (select::Select *) id(farewell_selection) : (select::Select *) id(greeting_selection);
-      selection->make_call().select_next(true).perform();
-      id(hello_text) = selection->current_option() + " " + id(fp_last_person).state;
-  - if:
-      condition:
-        display.is_displaying_page: "pg_hello"
-      then:
-      - component.update: "display_main"
-      else:
-      - display.page.show: "pg_hello"
-  - script.execute:
-      id: "overlay_return"
-      timeout: 3000
-  - script.execute: "perform_target_action"
-
-  on_finger_scan_unmatched:
-  - script.execute:
-      id: "fp_bad_scan"
-      kind: 1
-
-  on_finger_scan_misplaced:
-  - script.execute:
-      id: "fp_bad_scan"
-      kind: 2
-
-  on_finger_scan_invalid:
-  - script.execute:
-      id: "fp_bad_scan"
-      kind: 3
-
-  on_enrollment_scan:
-  - lambda: !lambda |-
-      auto counter = id(fp_num_scans_counter);
-      counter->publish_state(counter->state + 1);
-  - fingerprint_grow.aura_led_control:
-      state: "FLASHING"
-      speed: 25
-      color: "BLUE"
-      count: 2
-  - fingerprint_grow.aura_led_control:
-      state: "ALWAYS_ON"
-      speed: 0
-      color: "PURPLE"
-      count: 0
-
-  on_enrollment_done:
-  - fingerprint_grow.aura_led_control:
-      state: "BREATHING"
-      speed: 100
-      color: "BLUE"
-      count: 2
-
-  on_enrollment_failed:
-  - fingerprint_grow.aura_led_control:
-      state: "FLASHING"
-      speed: 25
-      color: "RED"
-      count: 4
-
-binary_sensor:
-- platform: "fingerprint_grow"
-  id: "fp_enrolling"
-  name: "${i18n.doordisplay[language].enroll_active}"
-  entity_category: "diagnostic"
-  on_press:
-    then:
-    - lambda: !lambda "id(fp_num_scans_counter).publish_state(0);"
-    - script.stop: "overlay_return"
-    - display.page.show: "pg_enroll"
-    - fingerprint_grow.aura_led_control:
-        state: "ALWAYS_ON"
-        speed: 0
-        color: "PURPLE"
-        count: 0
-  on_release:
-    then:
-    - display.page.show: "pg_main"
-
-- platform: "gpio"
-  pin:
-    number: "GPIO21"
-    allow_other_uses: true
-  name: "${i18n.doordisplay[language].finger_touch}"
-  entity_category: "diagnostic"
-  filters:
-  - invert
-  on_press:
-    then:
-    - script.execute: "fp_touch_begin"
-  on_release:
-    then:
-    - if:
-        condition:
-          lambda: !lambda "return !id(fp_touch_matched);"
-        then:
-        - if:
-            condition:
-              lambda: !lambda "return millis() - id(fp_touch_start) <= 400;"
-            then:
-            - lambda: !lambda "id(fp_touch_pending) = 0;"
-            - if:
-                condition:
-                  lambda: !lambda "return millis() - id(fp_touch_start) >= 50;"
-                then:
-                - if:
-                    condition:
-                      or:
-                      - display.is_displaying_page: "pg_hello"
-                      - display.is_displaying_page: "pg_error"
-                    then:
-                    - script.stop: "overlay_return"
-                    - display.page.show: "pg_main"
-                    else:
-                    - select.next:
-                        id: "target_entity_selection"
-                    - fingerprint_grow.aura_led_control:
-                        state: "FLASHING"
-                        speed: 50
-                        color: "WHITE"
-                        count: 1
-            else:
-            - if:
-                condition:
-                  lambda: !lambda "return id(fp_touch_pending) != 0;"
-                then:
-                - script.execute:
-                    id: "fp_report_scan"
-                    kind: !lambda "return id(fp_touch_pending);"
-    - lambda: !lambda |-
-        id(fp_touch_start) = 0;
-        id(fp_touch_pending) = 0;
-        id(fp_touch_matched) = false;
-
 sensor:
-- platform: "fingerprint_grow"
-  fingerprint_count:
-    name: "${i18n.doordisplay[language].finger_count}"
-    entity_category: "diagnostic"
-  last_finger_id:
-    name: "${i18n.doordisplay[language].last_finger_id}"
-    id: "fp_last_finger_id"
-    entity_category: "diagnostic"
-  last_confidence:
-    name: "${i18n.doordisplay[language].last_confidence}"
-    entity_category: "diagnostic"
-  capacity:
-    name: "${i18n.doordisplay[language].capacity}"
-    entity_category: "diagnostic"
-
 - platform: "template"
   id: "fp_finger_id"
   name: "${i18n.doordisplay[language].active_id}"
@@ -238,13 +65,14 @@ script:
       id: "fp_scan_event"
       event_type: !lambda |-
         return kind == 1 ? "unmatched" : kind == 2 ? "misplaced" : "invalid";
-  - fingerprint_grow.aura_led_control:
+  - script.execute:
+      id: "fp_led"
       state: "FLASHING"
       speed: 25
       color: "RED"
       count: !lambda "return kind == 1 ? 2 : 1;"
 
-- id: "fp_bad_scan"
+- id: "fp_on_bad_scan"
   parameters:
     kind: "int"
   then:
@@ -263,6 +91,139 @@ script:
           else:
           - lambda: !lambda |-
               if (id(fp_touch_pending) == 0) id(fp_touch_pending) = kind;
+
+- id: "fp_on_matched"
+  then:
+  - script.execute: "fp_touch_begin"
+  - lambda: !lambda "id(fp_touch_matched) = true;"
+  - script.execute:
+      id: "fp_led"
+      state: "BREATHING"
+      speed: 200
+      color: "BLUE"
+      count: 1
+  - component.update: "fp_last_person"
+  - event.trigger:
+      id: "fp_scan_event"
+      event_type: "matched"
+  - lambda: !lambda |-
+      auto target = id(target_entity_selection).active_index().value_or(0);
+      bool farewell = target == 0 && id(sensor_door_lock).get_state() == "unlocked";
+      select::Select *selection = farewell ? (select::Select *) id(farewell_selection) : (select::Select *) id(greeting_selection);
+      selection->make_call().select_next(true).perform();
+      id(hello_text) = selection->current_option() + " " + id(fp_last_person).state;
+  - if:
+      condition:
+        display.is_displaying_page: "pg_hello"
+      then:
+      - component.update: "display_main"
+      else:
+      - display.page.show: "pg_hello"
+  - script.execute:
+      id: "overlay_return"
+      timeout: 3000
+  - script.execute: "perform_target_action"
+
+- id: "fp_on_touch_press"
+  then:
+  - script.execute: "fp_touch_begin"
+
+- id: "fp_on_touch_release"
+  then:
+  - if:
+      condition:
+        lambda: !lambda "return !id(fp_touch_matched);"
+      then:
+      - if:
+          condition:
+            lambda: !lambda "return millis() - id(fp_touch_start) <= 400;"
+          then:
+          - lambda: !lambda "id(fp_touch_pending) = 0;"
+          - if:
+              condition:
+                lambda: !lambda "return millis() - id(fp_touch_start) >= 50;"
+              then:
+              - if:
+                  condition:
+                    or:
+                    - display.is_displaying_page: "pg_hello"
+                    - display.is_displaying_page: "pg_error"
+                  then:
+                  - script.stop: "overlay_return"
+                  - display.page.show: "pg_main"
+                  else:
+                  - select.next:
+                      id: "target_entity_selection"
+                  - script.execute:
+                      id: "fp_led"
+                      state: "FLASHING"
+                      speed: 50
+                      color: "WHITE"
+                      count: 1
+          else:
+          - if:
+              condition:
+                lambda: !lambda "return id(fp_touch_pending) != 0;"
+              then:
+              - script.execute:
+                  id: "fp_report_scan"
+                  kind: !lambda "return id(fp_touch_pending);"
+  - lambda: !lambda |-
+      id(fp_touch_start) = 0;
+      id(fp_touch_pending) = 0;
+      id(fp_touch_matched) = false;
+
+- id: "fp_on_enroll_start"
+  then:
+  - lambda: !lambda "id(fp_num_scans_counter).publish_state(0);"
+  - script.stop: "overlay_return"
+  - display.page.show: "pg_enroll"
+  - script.execute:
+      id: "fp_led"
+      state: "ALWAYS_ON"
+      speed: 0
+      color: "PURPLE"
+      count: 0
+
+- id: "fp_on_enroll_end"
+  then:
+  - display.page.show: "pg_main"
+
+- id: "fp_on_enroll_scan"
+  then:
+  - lambda: !lambda |-
+      auto counter = id(fp_num_scans_counter);
+      counter->publish_state(counter->state + 1);
+  - script.execute:
+      id: "fp_led"
+      state: "FLASHING"
+      speed: 25
+      color: "BLUE"
+      count: 2
+  - script.execute:
+      id: "fp_led"
+      state: "ALWAYS_ON"
+      speed: 0
+      color: "PURPLE"
+      count: 0
+
+- id: "fp_on_enroll_done"
+  then:
+  - script.execute:
+      id: "fp_led"
+      state: "BREATHING"
+      speed: 100
+      color: "BLUE"
+      count: 2
+
+- id: "fp_on_enroll_failed"
+  then:
+  - script.execute:
+      id: "fp_led"
+      state: "FLASHING"
+      speed: 25
+      color: "RED"
+      count: 4
 
 text_sensor:
 - platform: "template"
@@ -403,39 +364,3 @@ number:
   update_interval: "never"
   optimistic: true
   restore_value: true
-
-button:
-- platform: "template"
-  name: "${i18n.doordisplay[language].enroll_button}"
-  icon: "mdi:key-plus"
-  entity_category: "config"
-  on_press:
-    then:
-    - fingerprint_grow.enroll:
-        finger_id: !lambda "return id(fp_finger_id).state;"
-        num_scans: !lambda "return id(fp_num_scans).state;"
-
-- platform: "template"
-  name: "${i18n.doordisplay[language].cancel_enroll}"
-  icon: "mdi:cancel"
-  entity_category: "config"
-  on_press:
-    then:
-    - fingerprint_grow.cancel_enroll:
-
-- platform: "template"
-  name: "${i18n.doordisplay[language].delete}"
-  icon: "mdi:key-minus"
-  entity_category: "config"
-  on_press:
-    then:
-    - fingerprint_grow.delete:
-        finger_id: !lambda "return id(fp_finger_id).state;"
-
-- platform: "template"
-  name: "${i18n.doordisplay[language].delete_all}"
-  icon: "mdi:alert"
-  entity_category: "diagnostic"
-  on_press:
-    then:
-    - fingerprint_grow.delete_all:

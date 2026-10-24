@@ -1,0 +1,9 @@
+packages:
+  core: !include
+    file: ../projects/door-display/host.yaml
+    vars:
+      name: "test-door-display-host"
+      friendly_name: "Test Door Display Host"
+      language: "de"
+
+      api_encryption_key: "bmE7Yq5zL0wHk3xVd9Pj2uTn8RfC4sAoG6yIeM1BtXU="

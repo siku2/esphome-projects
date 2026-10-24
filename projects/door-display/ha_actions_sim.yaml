@@ -1,0 +1,28 @@
+select:
+- platform: "template"
+  id: "sim_action_result"
+  name: "Sim Action Result"
+  optimistic: true
+  restore_value: false
+  initial_option: "success"
+  options:
+  - "success"
+  - "failed"
+  - "no response"
+
+script:
+- id: "ha_send_target_action"
+  then:
+  - if:
+      condition:
+        lambda: !lambda "return id(sim_action_result).current_option() == \"success\";"
+      then:
+      - script.stop: "target_action_timeout"
+  - if:
+      condition:
+        lambda: !lambda "return id(sim_action_result).current_option() == \"failed\";"
+      then:
+      - script.stop: "target_action_timeout"
+      - script.execute:
+          id: "fail_target_action"
+          reason: "${i18n.doordisplay[language].error_failed}"

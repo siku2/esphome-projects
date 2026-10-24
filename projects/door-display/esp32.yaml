@@ -1,40 +1,21 @@
 substitutions:
-  name: "door-display"
-  friendly_name: "Door Display"
-  language: "en"
   door_lock_entity_id: "lock.smart_lock_pro"
   door_action: "script.door_toggle"
   bicycle_cover_entity_id: "cover.bicycle"
   gate_action: "script.gate_toggle"
-  i18n:
-    doordisplay:
-      de: !include translations/de.yaml
-      en: !include translations/en.yaml
 
 packages:
+  app: !include app.yaml
   base: !include ../../base/device.yaml
-  display: !include display.yaml
-  target: !include target.yaml
-  fingerprint: !include fingerprint.yaml
-
-esphome:
-  name: "${name}"
-  friendly_name: "${friendly_name}"
-  project:
-    name: "siku2.door-display"
-    version: "0.1.0"
+  epaper: !include epaper.yaml
+  fingerprint_sensor: !include fingerprint_sensor.yaml
+  ha_inputs: !include ha_inputs.yaml
+  ha_actions: !include ha_actions.yaml
 
 esp32:
   board: "nodemcu-32s"
   framework:
     type: "esp-idf"
-
-api:
-  homeassistant_services: true
-  on_client_connected:
-  - component.update: "display_main"
-  on_client_disconnected:
-  - component.update: "display_main"
 
 text_sensor:
 - platform: "debug"

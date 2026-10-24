@@ -1,0 +1,7 @@
+text_sensor:
+- platform: "homeassistant"
+  id: "sensor_door_lock"
+  entity_id: "${door_lock_entity_id}"
+  on_value:
+    then:
+    - component.update: "display_main"

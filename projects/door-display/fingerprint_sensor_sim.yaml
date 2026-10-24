@@ -1,0 +1,225 @@
+binary_sensor:
+- platform: "template"
+  id: "fp_enrolling"
+  name: "${i18n.doordisplay[language].enroll_active}"
+  entity_category: "diagnostic"
+  on_press:
+    then:
+    - script.execute: "fp_on_enroll_start"
+  on_release:
+    then:
+    - script.execute: "fp_on_enroll_end"
+
+- platform: "template"
+  id: "fp_touch"
+  name: "${i18n.doordisplay[language].finger_touch}"
+  entity_category: "diagnostic"
+  on_press:
+    then:
+    - script.execute: "fp_on_touch_press"
+  on_release:
+    then:
+    - script.execute: "fp_on_touch_release"
+
+sensor:
+- platform: "template"
+  id: "fp_last_finger_id"
+  name: "${i18n.doordisplay[language].last_finger_id}"
+  accuracy_decimals: 0
+  entity_category: "diagnostic"
+
+text_sensor:
+- platform: "template"
+  id: "sim_led"
+  name: "Sim LED"
+
+switch:
+- platform: "template"
+  id: "sim_enrolling"
+  name: "Sim Enrolling"
+  optimistic: true
+  restore_mode: "ALWAYS_OFF"
+  turn_on_action:
+  - binary_sensor.template.publish:
+      id: "fp_enrolling"
+      state: true
+  turn_off_action:
+  - binary_sensor.template.publish:
+      id: "fp_enrolling"
+      state: false
+
+api:
+  actions:
+  - action: "scan"
+    variables:
+      result: "string"
+      finger_id: "int"
+      press_ms: "int"
+      hold_ms: "int"
+    then:
+    - script.execute:
+        id: "fp_sim_scan"
+        result: !lambda "return result;"
+        finger_id: !lambda "return finger_id;"
+        press_ms: !lambda "return press_ms;"
+        hold_ms: !lambda "return hold_ms;"
+
+script:
+- id: "fp_led"
+  parameters:
+    state: "string"
+    color: "string"
+    speed: "int"
+    count: "int"
+  then:
+  - logger.log:
+      level: "INFO"
+      tag: "fp_led"
+      format: "%s %s speed=%d count=%d"
+      args: ["state.c_str()", "color.c_str()", "speed", "count"]
+  - text_sensor.template.publish:
+      id: "sim_led"
+      state: !lambda |-
+        return state + " " + color + " speed=" + to_string(speed) + " count=" + to_string(count);
+
+- id: "fp_sim_scan"
+  mode: "queued"
+  parameters:
+    result: "string"
+    finger_id: "int"
+    press_ms: "int"
+    hold_ms: "int"
+  then:
+  - binary_sensor.template.publish:
+      id: "fp_touch"
+      state: true
+  - delay: !lambda "return press_ms;"
+  - if:
+      condition:
+        lambda: !lambda "return result == \"matched\";"
+      then:
+      - sensor.template.publish:
+          id: "fp_last_finger_id"
+          state: !lambda "return finger_id;"
+      - script.execute: "fp_on_matched"
+  - if:
+      condition:
+        lambda: !lambda "return result == \"unmatched\";"
+      then:
+      - script.execute:
+          id: "fp_on_bad_scan"
+          kind: 1
+  - if:
+      condition:
+        lambda: !lambda "return result == \"misplaced\";"
+      then:
+      - script.execute:
+          id: "fp_on_bad_scan"
+          kind: 2
+  - if:
+      condition:
+        lambda: !lambda "return result == \"invalid\";"
+      then:
+      - script.execute:
+          id: "fp_on_bad_scan"
+          kind: 3
+  - delay: !lambda "return hold_ms > press_ms ? hold_ms - press_ms : 0;"
+  - binary_sensor.template.publish:
+      id: "fp_touch"
+      state: false
+
+button:
+- platform: "template"
+  name: "Sim Tap"
+  on_press:
+  - script.execute:
+      id: "fp_sim_scan"
+      result: "misplaced"
+      finger_id: 0
+      press_ms: 100
+      hold_ms: 150
+
+- platform: "template"
+  name: "Sim Match Person 1"
+  on_press:
+  - script.execute:
+      id: "fp_sim_scan"
+      result: "matched"
+      finger_id: !lambda "return 0 * id(fp_finger).size() * id(fp_hand).size();"
+      press_ms: 300
+      hold_ms: 900
+
+- platform: "template"
+  name: "Sim Match Person 2"
+  on_press:
+  - script.execute:
+      id: "fp_sim_scan"
+      result: "matched"
+      finger_id: !lambda "return 1 * id(fp_finger).size() * id(fp_hand).size();"
+      press_ms: 300
+      hold_ms: 900
+
+- platform: "template"
+  name: "Sim Match Person 3"
+  on_press:
+  - script.execute:
+      id: "fp_sim_scan"
+      result: "matched"
+      finger_id: !lambda "return 2 * id(fp_finger).size() * id(fp_hand).size();"
+      press_ms: 300
+      hold_ms: 900
+
+- platform: "template"
+  name: "Sim Match Person 4"
+  on_press:
+  - script.execute:
+      id: "fp_sim_scan"
+      result: "matched"
+      finger_id: !lambda "return 3 * id(fp_finger).size() * id(fp_hand).size();"
+      press_ms: 300
+      hold_ms: 900
+
+- platform: "template"
+  name: "Sim Unmatched"
+  on_press:
+  - script.execute:
+      id: "fp_sim_scan"
+      result: "unmatched"
+      finger_id: 0
+      press_ms: 300
+      hold_ms: 900
+
+- platform: "template"
+  name: "Sim Misplaced"
+  on_press:
+  - script.execute:
+      id: "fp_sim_scan"
+      result: "misplaced"
+      finger_id: 0
+      press_ms: 300
+      hold_ms: 900
+
+- platform: "template"
+  name: "Sim Invalid"
+  on_press:
+  - script.execute:
+      id: "fp_sim_scan"
+      result: "invalid"
+      finger_id: 0
+      press_ms: 300
+      hold_ms: 900
+
+- platform: "template"
+  name: "Sim Long Touch"
+  on_press:
+  - script.execute:
+      id: "fp_sim_scan"
+      result: "none"
+      finger_id: 0
+      press_ms: 0
+      hold_ms: 900
+
+- platform: "template"
+  name: "Sim Enrollment Scan"
+  on_press:
+  - script.execute: "fp_on_enroll_scan"

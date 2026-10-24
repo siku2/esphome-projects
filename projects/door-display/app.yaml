@@ -1,0 +1,20 @@
+substitutions:
+  name: "door-display"
+  friendly_name: "Door Display"
+  language: "en"
+  i18n:
+    doordisplay:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
+
+packages:
+  display: !include display.yaml
+  target: !include target.yaml
+  fingerprint: !include fingerprint.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "siku2.door-display"
+    version: "0.1.0"
