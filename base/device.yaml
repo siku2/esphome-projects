@@ -1,5 +1,6 @@
 packages:
   common: !include common.yaml
+  wifi_migration: !include wifi_migration.yaml
 
 ota:
 - id: "base_ota"
