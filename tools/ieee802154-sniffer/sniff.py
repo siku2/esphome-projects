@@ -1,6 +1,7 @@
 """Read frames from the ieee802154_sniffer firmware and write them as pcap."""
 
 import argparse
+import os
 import struct
 import sys
 import time
@@ -106,16 +107,30 @@ def main() -> None:
         help="pcap file to write, '-' for stdout (pipe to wireshark -k -i -)",
     )
     parser.add_argument(
+        "--rotate",
+        type=float,
+        metavar="SECONDS",
+        help="with --output as a directory, start a new pcap file this often "
+        "without closing the serial port",
+    )
+    parser.add_argument(
         "-q", "--quiet", action="store_true", help="don't print each frame"
     )
     args = parser.parse_args()
 
+    def open_rotating() -> PcapWriter:
+        name = time.strftime("%Y%m%d-%H%M%S") + ".pcap"
+        return PcapWriter(open(os.path.join(args.output, name), "wb"))
+
     if args.output == "-":
         pcap = PcapWriter(sys.stdout.buffer)
+    elif args.rotate:
+        pcap = open_rotating()
     elif args.output:
         pcap = PcapWriter(open(args.output, "wb"))
     else:
         pcap = None
+    rotate_at = time.monotonic() + args.rotate if args.rotate else None
 
     port = serial.Serial(args.port, timeout=0.05)
     # The device buffers records while no host is reading. Their timestamps
@@ -134,6 +149,15 @@ def main() -> None:
 
     try:
         while True:
+            if (
+                rotate_at is not None
+                and pcap is not None
+                and time.monotonic() >= rotate_at
+            ):
+                pcap.out.close()
+                pcap = open_rotating()
+                rotate_at = time.monotonic() + args.rotate
+
             if hop_at is not None and time.monotonic() >= hop_at:
                 channel_index = (channel_index + 1) % len(CHANNELS)
                 if channel_index == 0:
