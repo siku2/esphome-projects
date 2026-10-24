@@ -3,8 +3,36 @@ packages:
     file: "../projects/heat-storage/esp32.yaml"
     vars:
       name: "bean-catuai"
-      friendly_name: "Speicher"
+      friendly_name: "Catuai"
       language: "de"
+      storage_device_id: "storage_device"
+      heating_circuit_device_id: "heating_circuit_device"
+      stove_device_id: "stove_device"
+      heat_pump_device_id: "heat_pump_device"
+      solar_device_id: "solar_device"
+      initial_mixing_valve_closed: "0.55"
+      initial_mixing_valve_open: "2.49"
 
       api_encryption_key: !secret catuai_api_encryption_key
   bluetooth_proxy: !include ../base/bluetooth_proxy.yaml
+
+esphome:
+  areas:
+  - id: "area_boiler_room"
+    name: "Heizraum"
+  devices:
+  - id: "storage_device"
+    name: "Speicher"
+    area_id: "area_boiler_room"
+  - id: "heating_circuit_device"
+    name: "Heizkreis"
+    area_id: "area_boiler_room"
+  - id: "stove_device"
+    name: "Specksteinofen"
+    area_id: "area_boiler_room"
+  - id: "heat_pump_device"
+    name: "Wärmepumpe"
+    area_id: "area_boiler_room"
+  - id: "solar_device"
+    name: "Solaranlage"
+    area_id: "area_boiler_room"

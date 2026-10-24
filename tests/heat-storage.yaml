@@ -5,5 +5,23 @@ packages:
       name: "test-heat-storage"
       friendly_name: "Test Heat Storage"
       language: "de"
+      storage_device_id: "storage_device"
+      heating_circuit_device_id: "heating_circuit_device"
+      stove_device_id: "stove_device"
+      heat_pump_device_id: "heat_pump_device"
+      solar_device_id: "solar_device"
 
       api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
+
+esphome:
+  devices:
+  - id: "storage_device"
+    name: "Storage"
+  - id: "heating_circuit_device"
+    name: "Heating Circuit"
+  - id: "stove_device"
+    name: "Stove"
+  - id: "heat_pump_device"
+    name: "Heat Pump"
+  - id: "solar_device"
+    name: "Solar"
