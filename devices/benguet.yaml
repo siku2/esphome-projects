@@ -6,6 +6,9 @@ packages:
       friendly_name: "DoorDisplay"
       language: "de"
       door_lock_entity_id: "lock.smart_lock_pro"
+      door_action: "script.gang_eg_schloss_hausture_toggle"
+      bicycle_cover_entity_id: "cover.aussen_veloraum"
+      gate_action: "script.bastelraum_tor_toggle"
 
       api_encryption_key: !secret benguet_api_encryption_key
       fingerprint_password: !secret benguet_fingerprint_password

@@ -9,20 +9,49 @@ fingerprint_grow:
     allow_other_uses: true
   password: "${fingerprint_password}"
   on_finger_scan_matched:
+  - script.execute: "fp_touch_begin"
+  - lambda: !lambda "id(fp_touch_matched) = true;"
   - fingerprint_grow.aura_led_control:
       state: "BREATHING"
       speed: 200
       color: "BLUE"
       count: 1
+  - component.update: "fp_last_person"
+  - event.trigger:
+      id: "fp_scan_event"
+      event_type: "matched"
+  - lambda: !lambda |-
+      auto target = id(target_entity_selection).active_index().value_or(0);
+      bool farewell = target == 0 && id(sensor_door_lock).get_state() == "unlocked";
+      select::Select *selection = farewell ? (select::Select *) id(farewell_selection) : (select::Select *) id(greeting_selection);
+      selection->make_call().select_next(true).perform();
+      id(hello_text) = selection->current_option() + " " + id(fp_last_person).state;
+  - if:
+      condition:
+        display.is_displaying_page: "pg_hello"
+      then:
+      - component.update: "display_main"
+      else:
+      - display.page.show: "pg_hello"
+  - script.execute:
+      id: "overlay_return"
+      timeout: 3000
   - script.execute: "perform_target_action"
-  - display.page.show: "pg_hello"
 
   on_finger_scan_unmatched:
-  - fingerprint_grow.aura_led_control:
-      state: "FLASHING"
-      speed: 25
-      color: "RED"
-      count: 2
+  - script.execute:
+      id: "fp_bad_scan"
+      kind: 1
+
+  on_finger_scan_misplaced:
+  - script.execute:
+      id: "fp_bad_scan"
+      kind: 2
+
+  on_finger_scan_invalid:
+  - script.execute:
+      id: "fp_bad_scan"
+      kind: 3
 
   on_enrollment_scan:
   - lambda: !lambda |-
@@ -55,11 +84,13 @@ fingerprint_grow:
 
 binary_sensor:
 - platform: "fingerprint_grow"
+  id: "fp_enrolling"
   name: "${i18n.doordisplay[language].enroll_active}"
   entity_category: "diagnostic"
   on_press:
     then:
     - lambda: !lambda "id(fp_num_scans_counter).publish_state(0);"
+    - script.stop: "overlay_return"
     - display.page.show: "pg_enroll"
     - fingerprint_grow.aura_led_control:
         state: "ALWAYS_ON"
@@ -78,17 +109,52 @@ binary_sensor:
   entity_category: "diagnostic"
   filters:
   - invert
-  on_click:
-    min_length: "50ms"
-    max_length: "400ms"
+  on_press:
     then:
-    - select.next:
-        id: "target_entity_selection"
-    - fingerprint_grow.aura_led_control:
-        state: "FLASHING"
-        speed: 50
-        color: "WHITE"
-        count: 1
+    - script.execute: "fp_touch_begin"
+  on_release:
+    then:
+    - if:
+        condition:
+          lambda: !lambda "return !id(fp_touch_matched);"
+        then:
+        - if:
+            condition:
+              lambda: !lambda "return millis() - id(fp_touch_start) <= 400;"
+            then:
+            - lambda: !lambda "id(fp_touch_pending) = 0;"
+            - if:
+                condition:
+                  lambda: !lambda "return millis() - id(fp_touch_start) >= 50;"
+                then:
+                - if:
+                    condition:
+                      or:
+                      - display.is_displaying_page: "pg_hello"
+                      - display.is_displaying_page: "pg_error"
+                    then:
+                    - script.stop: "overlay_return"
+                    - display.page.show: "pg_main"
+                    else:
+                    - select.next:
+                        id: "target_entity_selection"
+                    - fingerprint_grow.aura_led_control:
+                        state: "FLASHING"
+                        speed: 50
+                        color: "WHITE"
+                        count: 1
+            else:
+            - if:
+                condition:
+                  lambda: !lambda "return id(fp_touch_pending) != 0;"
+                then:
+                - script.execute:
+                    id: "fp_report_scan"
+                    kind: !lambda "return id(fp_touch_pending);"
+    - lambda: !lambda |-
+        id(fp_touch_start) = 0;
+        id(fp_touch_pending) = 0;
+        id(fp_touch_matched) = false;
 
 sensor:
 - platform: "fingerprint_grow"
@@ -99,9 +165,6 @@ sensor:
     name: "${i18n.doordisplay[language].last_finger_id}"
     id: "fp_last_finger_id"
     entity_category: "diagnostic"
-    on_value:
-      then:
-      - component.update: "fp_last_person"
   last_confidence:
     name: "${i18n.doordisplay[language].last_confidence}"
     entity_category: "diagnostic"
@@ -131,6 +194,75 @@ sensor:
   on_value:
     then:
     - component.update: "display_main"
+
+event:
+- platform: "template"
+  id: "fp_scan_event"
+  name: "${i18n.doordisplay[language].scan_event}"
+  icon: "mdi:fingerprint"
+  event_types:
+  - "matched"
+  - "unmatched"
+  - "misplaced"
+  - "invalid"
+  - "action_failed"
+
+globals:
+# Pending result: 0 none, 1 unmatched, 2 misplaced, 3 invalid
+- id: "fp_touch_pending"
+  type: "int"
+  initial_value: "0"
+- id: "fp_touch_start"
+  type: "uint32_t"
+  initial_value: "0"
+- id: "fp_touch_matched"
+  type: "bool"
+  initial_value: "false"
+
+script:
+# A scan can report before the touch press, so whichever comes first starts the touch
+- id: "fp_touch_begin"
+  then:
+  - lambda: !lambda |-
+      if (id(fp_touch_start) == 0 || millis() - id(fp_touch_start) > 2000) {
+        id(fp_touch_start) = millis();
+        id(fp_touch_pending) = 0;
+        id(fp_touch_matched) = false;
+      }
+
+- id: "fp_report_scan"
+  parameters:
+    kind: "int"
+  then:
+  - event.trigger:
+      id: "fp_scan_event"
+      event_type: !lambda |-
+        return kind == 1 ? "unmatched" : kind == 2 ? "misplaced" : "invalid";
+  - fingerprint_grow.aura_led_control:
+      state: "FLASHING"
+      speed: 25
+      color: "RED"
+      count: !lambda "return kind == 1 ? 2 : 1;"
+
+- id: "fp_bad_scan"
+  parameters:
+    kind: "int"
+  then:
+  - if:
+      condition:
+        lambda: !lambda "return !id(fp_enrolling).state;"
+      then:
+      - script.execute: "fp_touch_begin"
+      - if:
+          condition:
+            lambda: !lambda "return millis() - id(fp_touch_start) > 400;"
+          then:
+          - script.execute:
+              id: "fp_report_scan"
+              kind: !lambda "return kind;"
+          else:
+          - lambda: !lambda |-
+              if (id(fp_touch_pending) == 0) id(fp_touch_pending) = kind;
 
 text_sensor:
 - platform: "template"

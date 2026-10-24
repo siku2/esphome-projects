@@ -8,29 +8,108 @@ script:
       id: "target_entity_selection"
       index: 0
 
+- id: "overlay_return"
+  mode: "restart"
+  parameters:
+    timeout: "int"
+  then:
+  - delay: !lambda "return timeout;"
+  - display.page.show: "pg_main"
+
+- id: "target_action_timeout"
+  mode: "restart"
+  then:
+  - delay: "30s"
+  - script.execute:
+      id: "fail_target_action"
+      reason: "${i18n.doordisplay[language].error_timeout}"
+
+- id: "fail_target_action"
+  mode: "restart"
+  parameters:
+    reason: "string"
+  then:
+  - fingerprint_grow.aura_led_control:
+      state: "FLASHING"
+      speed: 25
+      color: "RED"
+      count: 3
+  - event.trigger:
+      id: "fp_scan_event"
+      event_type: "action_failed"
+  - lambda: !lambda "id(error_text) = reason;"
+  - if:
+      condition:
+        display.is_displaying_page: "pg_error"
+      then:
+      - component.update: "display_main"
+      else:
+      - display.page.show: "pg_error"
+  - script.execute:
+      id: "overlay_return"
+      timeout: 5000
+
 - id: "perform_target_action"
   mode: "queued"
   then:
   - if:
       condition:
-        lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 0;"
+        not:
+          api.connected:
+            state_subscription_only: true
       then:
-      - homeassistant.action:
-          action: "script.gang_eg_schloss_hausture_toggle"
-  - if:
-      condition:
-        lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 1;"
-      then:
-      - homeassistant.action:
-          action: "cover.toggle"
-          data:
-            entity_id: "cover.aussen_veloraum"
-  - if:
-      condition:
-        lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 2;"
-      then:
-      - homeassistant.action:
-          action: "script.bastelraum_tor_toggle"
+      - script.execute:
+          id: "fail_target_action"
+          reason: "${i18n.doordisplay[language].error_no_connection}"
+      else:
+      - script.execute: "target_action_timeout"
+      - if:
+          condition:
+            lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 0;"
+          then:
+          - homeassistant.action:
+              action: "${door_action}"
+              on_success:
+              - script.stop: "target_action_timeout"
+              on_error:
+              - script.stop: "target_action_timeout"
+              - script.execute:
+                  id: "fail_target_action"
+                  reason: "${i18n.doordisplay[language].error_failed}"
+      - if:
+          condition:
+            lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 1;"
+          then:
+          - homeassistant.action:
+              action: "cover.toggle"
+              data:
+                entity_id: "${bicycle_cover_entity_id}"
+              on_success:
+              - script.stop: "target_action_timeout"
+              on_error:
+              - script.stop: "target_action_timeout"
+              - script.execute:
+                  id: "fail_target_action"
+                  reason: "${i18n.doordisplay[language].error_failed}"
+      - if:
+          condition:
+            lambda: !lambda "return id(target_entity_selection).active_index().value_or(0) == 2;"
+          then:
+          - homeassistant.action:
+              action: "${gate_action}"
+              on_success:
+              - script.stop: "target_action_timeout"
+              on_error:
+              - script.stop: "target_action_timeout"
+              - script.execute:
+                  id: "fail_target_action"
+                  reason: "${i18n.doordisplay[language].error_failed}"
+
+globals:
+- id: "hello_text"
+  type: "std::string"
+- id: "error_text"
+  type: "std::string"
 
 text_sensor:
 - platform: "homeassistant"

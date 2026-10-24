@@ -3,6 +3,9 @@ substitutions:
   friendly_name: "Door Display"
   language: "en"
   door_lock_entity_id: "lock.smart_lock_pro"
+  door_action: "script.door_toggle"
+  bicycle_cover_entity_id: "cover.bicycle"
+  gate_action: "script.gate_toggle"
   i18n:
     doordisplay:
       de: !include translations/de.yaml
@@ -28,6 +31,10 @@ esp32:
 
 api:
   homeassistant_services: true
+  on_client_connected:
+  - component.update: "display_main"
+  on_client_disconnected:
+  - component.update: "display_main"
 
 text_sensor:
 - platform: "debug"

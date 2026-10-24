@@ -4,7 +4,7 @@ spi:
 
 font:
 # Glyphs must cover every string shown at this size in all languages.
-# The 48 and 24 fonts also show address and names, so they cover ASCII and umlauts.
+# The 48, 32 and 24 fonts also show address, names and errors, so they cover ASCII and umlauts.
 - file: "gfonts://Anton"
   id: "font_anton_x48"
   size: 48
@@ -13,7 +13,7 @@ font:
 - file: "gfonts://Anton"
   id: "font_anton_x32"
   size: 32
-  glyphs: ["E", "R", "e", "g", "i", "l", "n", "o", "r", "s", "t"]
+  glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~äöüÄÖÜß"
 
 - file: "gfonts://Anton"
   id: "font_anton_x24"
@@ -41,9 +41,19 @@ image:
   id: "img_mdi_door_closed_lock"
   resize: "32x32"
 
+- file: "mdi:alert-circle"
+  type: "BINARY"
+  id: "img_mdi_alert_circle"
+  resize: "32x32"
+
 - file: "mdi:fingerprint"
   type: "BINARY"
   id: "img_mdi_fingerprint"
+  resize: "32x32"
+
+- file: "mdi:lock-alert"
+  type: "BINARY"
+  id: "img_mdi_lock_alert"
   resize: "32x32"
 
 display:
@@ -59,10 +69,6 @@ display:
   on_page_change:
   - then:
     - component.update: "display_main"
-  - to: "pg_hello"
-    then:
-    - delay: "3s"
-    - display.page.show: "pg_main"
   pages:
   - id: "pg_main"
     lambda: !lambda |-
@@ -73,9 +79,17 @@ display:
       BaseImage *icon = nullptr;
       switch (id(target_entity_selection).active_index().value_or(0)) {
         // house door
-        case 0:
-          icon = (id(sensor_door_lock).get_state() == "unlocked") ? id(img_mdi_door_closed) : id(img_mdi_door_closed_lock);
+        case 0: {
+          const std::string &lock = id(sensor_door_lock).get_state();
+          if (lock == "locked" || lock == "locking") {
+            icon = id(img_mdi_door_closed_lock);
+          } else if (lock == "unlocked" || lock == "unlocking" || lock == "open" || lock == "opening") {
+            icon = id(img_mdi_door_closed);
+          } else {
+            icon = id(img_mdi_lock_alert);
+          }
           break;
+        }
         // bicycle
         case 1:
           icon = id(img_mdi_bicycle);
@@ -85,6 +99,7 @@ display:
           icon = id(img_mdi_airplane);
           break;
       }
+      if (!api::global_api_server->is_connected_with_state_subscription()) icon = id(img_mdi_lock_alert);
       if (icon != nullptr) it.image(w / 2, h, icon, ImageAlign::BOTTOM_CENTER);
 
   - id: "pg_enroll"
@@ -126,12 +141,17 @@ display:
 
   - id: "pg_hello"
     lambda: !lambda |-
-      id(greeting_selection).make_call().select_next(true).perform();
-      it.printf(it.get_width() / 2, it.get_height() / 2, id(font_anton_x48), TextAlign::CENTER,
-        "%s %s",
-        id(greeting_selection).current_option().c_str(),
-        id(fp_last_person).state.c_str()
-      );
+      auto font = id(font_anton_x48);
+      int text_w, tmp;
+      font->measure(id(hello_text).c_str(), &text_w, &tmp, &tmp, &tmp);
+      if (text_w > it.get_width()) font = id(font_anton_x32);
+      it.print(it.get_width() / 2, it.get_height() / 2, font, TextAlign::CENTER, id(hello_text).c_str());
+
+  - id: "pg_error"
+    lambda: !lambda |-
+      auto icon = id(img_mdi_alert_circle);
+      it.image(it.get_width() / 2, it.get_height() / 2 - 4, icon, ImageAlign::BOTTOM_CENTER);
+      it.print(it.get_width() / 2, it.get_height() / 2 + 4, id(font_anton_x32), TextAlign::TOP_CENTER, id(error_text).c_str());
 
 text:
 - platform: "template"
