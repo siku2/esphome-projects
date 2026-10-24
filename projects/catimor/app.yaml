@@ -2,6 +2,8 @@ substitutions:
   blind_left_cover_id: "" # REQUIRED!
   blind_right_cover_id: "" # REQUIRED!
   climate_id: "" # REQUIRED!
+  cover_north_device_id: "" # REQUIRED!
+  cover_south_device_id: "" # REQUIRED!
 
   components_source:
     type: "local"

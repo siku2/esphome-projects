@@ -8,6 +8,20 @@ packages:
 
       blind_left_cover_id: "cover.test_left"
       blind_right_cover_id: "cover.test_right"
+      cover_north_device_id: "cover_north_device"
+      cover_south_device_id: "cover_south_device"
       climate_id: "climate.test"
 
       api_encryption_key: "PelRCiw9w4PveSslEtVgp4V0IbEUWB24tax3cZqjEoU="
+
+esphome:
+  areas:
+  - id: "area_test"
+    name: "Test"
+  devices:
+  - id: "cover_north_device"
+    name: "Cover North"
+    area_id: "area_test"
+  - id: "cover_south_device"
+    name: "Cover South"
+    area_id: "area_test"

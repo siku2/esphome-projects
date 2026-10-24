@@ -8,6 +8,20 @@ packages:
 
       blind_left_cover_id: "cover.zimmer_simon_store_sud_shelly2pmg3_28372f2012d0"
       blind_right_cover_id: "cover.zimmer_simon_store_nord_shelly2pmg4_7c2c677a1768"
+      cover_north_device_id: "cover_north_device"
+      cover_south_device_id: "cover_south_device"
       climate_id: "climate.midea_ac_16492674468636"
 
       api_encryption_key: !secret catimor_api_encryption_key
+
+esphome:
+  areas:
+  - id: "area_room_simon"
+    name: "Zimmer Simon"
+  devices:
+  - id: "cover_north_device"
+    name: "Rollladen Nord"
+    area_id: "area_room_simon"
+  - id: "cover_south_device"
+    name: "Rollladen Süd"
+    area_id: "area_room_simon"
