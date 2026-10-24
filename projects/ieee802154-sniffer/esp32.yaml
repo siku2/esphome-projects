@@ -1,0 +1,23 @@
+# Streams all 802.15.4 frames over the USB port. Use `tools/ieee802154-sniffer` on the host.
+
+substitutions:
+  components_source:
+    type: "local"
+    path: "../components"
+
+esphome:
+  name: "ieee802154-sniffer"
+
+packages:
+  board: !include ../../boards/espressif/esp32_c6_devkitc_1.yaml
+
+external_components:
+- source: "${components_source}"
+  components: ["ieee802154_sniffer"]
+
+# The sniffer owns the USB port. Logs go to the UART port.
+logger:
+  hardware_uart: "UART0"
+
+ieee802154_sniffer:
+  channel: 11

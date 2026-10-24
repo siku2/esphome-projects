@@ -359,6 +359,7 @@
               esphomeSim
               esphomeProvision
               pkgs.esptool
+              pkgs.wireshark
             ]
             ++ nixGL;
             shellHook = ''
