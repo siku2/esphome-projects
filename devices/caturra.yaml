@@ -6,4 +6,8 @@ packages:
       friendly_name: "Caturra"
       language: "en"
 
-      api_encryption_key: !secret caturra_api_encryption_key
+# No preset keys. Home Assistant establishes encryption when it adopts the device.
+api:
+  encryption: !remove
+
+ota: !remove

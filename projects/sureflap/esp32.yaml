@@ -10,6 +10,8 @@ substitutions:
   name: "sureflap"
   friendly_name: "SureFlap"
   language: "en"
+  # Devices that will be adopted leave this empty and let Home Assistant set a key.
+  api_encryption_key: ""
 
 packages:
   base: !include ../../base/device.yaml
