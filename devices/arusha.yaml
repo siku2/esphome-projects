@@ -41,13 +41,16 @@ esphome:
   friendly_name: "Arusha"
   areas:
   - id: "area_rain_water"
-    name: "Regenwasser"
+    name: "Regenwassernutzung"
+  - id: "area_basement"
+    name: "Keller"
   devices:
   - id: "rwt_device"
     name: "Regenwassertank"
     area_id: "area_rain_water"
   - id: "ac_device"
     name: "Keller Klimaanlage"
+    area_id: "area_basement"
 
 esp32:
   # See: <https://www.espboards.dev/esp32/esp32doit-devkit-v1/>

@@ -52,7 +52,7 @@ esphome:
   friendly_name: "Jember"
   areas:
   - id: "area_rain_water"
-    name: "Regenwasser"
+    name: "Regenwassernutzung"
   devices:
   - id: "wt_device"
     name: "Amphore"
