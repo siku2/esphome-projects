@@ -1,0 +1,12 @@
+# The sniffer owns the USB port, so logs go to the UART port.
+substitutions:
+  components_source:
+    type: "local"
+    path: "../components"
+
+external_components:
+- source: "${components_source}"
+  components: ["ieee802154_sniffer"]
+
+logger:
+  hardware_uart: "UART0"
