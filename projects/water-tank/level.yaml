@@ -17,7 +17,8 @@ switch:
 
 binary_sensor:
 - id: "${tank_id}_level_full"
-  name: "${tank_name} ${i18n.watertank[language].level_full}"
+  name: "${i18n.watertank[language].level_full}"
+  device_id: "${device_id}"
   platform: "gpio"
   pin:
     number: "${full_pin}"
@@ -47,7 +48,7 @@ binary_sensor:
             event_type: "auto_calibrated_full"
 
 - id: "${tank_id}_level_empty"
-  name: "${tank_name} ${i18n.watertank[language].level_empty}"
+  name: "${i18n.watertank[language].level_empty}"
   platform: "homeassistant"
   entity_id: "${empty_entity_id}"
   on_state:

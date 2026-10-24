@@ -1,3 +1,7 @@
+voltage: "Raw Voltage"
+fill_level: "Fill Level"
+volume: "Volume"
+volume_full: "Full Volume"
 voltage_empty: "Empty Voltage"
 voltage_full: "Full Voltage"
 level_full: "Full"

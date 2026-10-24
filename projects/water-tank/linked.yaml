@@ -1,3 +1,10 @@
+substitutions:
+  language: "en"
+  i18n:
+    watertank:
+      de: !include translations/de.yaml
+      en: !include translations/en.yaml
+
 packages:
   calibration: !include calibration.yaml
 
@@ -34,14 +41,25 @@ sensor:
   on_value:
     then:
     - component.update: "${tank_id}_total_volume"
+    - component.update: "${tank_id}_total_fill_level"
+
+- id: "${tank_id}_linked_volume_full"
+  internal: true
+  platform: "homeassistant"
+  entity_id: "${linked_volume_full_entity_id}"
+  on_value:
+    then:
+    - component.update: "${tank_id}_total_fill_level"
 
 - id: !extend "${tank_id}_fill_volume"
   on_value:
     then:
     - component.update: "${tank_id}_total_volume"
+    - component.update: "${tank_id}_total_fill_level"
 
 - id: "${tank_id}_total_volume"
-  name: "${name_total_volume}"
+  name: "${i18n.watertank[language].volume}"
+  device_id: "${system_device_id}"
   unit_of_measurement: "L"
   device_class: "volume"
   state_class: "measurement"
@@ -54,3 +72,28 @@ sensor:
     return linked + own;
   platform: "template"
   update_interval: "never"
+
+- id: "${tank_id}_total_fill_level"
+  name: "${i18n.watertank[language].fill_level}"
+  device_id: "${system_device_id}"
+  unit_of_measurement: "%"
+  state_class: "measurement"
+  accuracy_decimals: 0
+  icon: "mdi:percent"
+  lambda: !lambda |-
+    float linked = id(${tank_id}_linked_volume).state;
+    float linked_full = id(${tank_id}_linked_volume_full).state;
+    float own = id(${tank_id}_fill_volume).state;
+    float own_full = id(${tank_id}_volume_full).state;
+    if (std::isnan(linked) || std::isnan(linked_full) || std::isnan(own) || std::isnan(own_full)) return NAN;
+    float capacity = linked_full + own_full;
+    if (capacity <= 0) return NAN;
+    return 100.0f * (linked + own) / capacity;
+  platform: "template"
+  update_interval: "never"
+
+number:
+- id: !extend "${tank_id}_volume_full"
+  on_value:
+    then:
+    - component.update: "${tank_id}_total_fill_level"

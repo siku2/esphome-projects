@@ -22,7 +22,8 @@ switch:
 climate:
 - id: "climate_main"
   platform: "coolix"
-  name: "${climate_name}"
+  name: ""
+  device_id: "${device_id}"
   on_control:
     then:
     - if:

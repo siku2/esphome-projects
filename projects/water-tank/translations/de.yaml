@@ -1,3 +1,7 @@
+voltage: "Rohspannung"
+fill_level: "Füllstand"
+volume: "Volumen"
+volume_full: "Volumen Voll"
 voltage_empty: "Spannung Leer"
 voltage_full: "Spannung Voll"
 level_full: "Voll"

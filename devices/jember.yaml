@@ -8,7 +8,7 @@ packages:
     file: "../projects/water-tank/tank.yaml"
     vars:
       tank_id: "wt"
-      tank_name: "Wassertank"
+      device_id: "wt_device"
       adc_pin: "GPIO35"
       # Around 1.5 V when full
       attenuation: "6db"
@@ -17,18 +17,15 @@ packages:
       window_size: 60
       send_every: 30
       voltage_max: 1.8
-      initial_voltage_empty: 1.0
-      initial_voltage_full: 1.0
-      initial_volume_full: 1.0
-      name_voltage: "Wassertank Raw Voltage"
-      name_percentage: "Wassertank"
-      name_volume: "Wassertank Volumen"
-      name_volume_full: "Wassertank Volumen"
+      fill_level_internal: false
+      initial_voltage_empty: 0.234
+      initial_voltage_full: 1.42
+      initial_volume_full: 540
   tank_2: !include
     file: "../projects/water-tank/tank.yaml"
     vars:
       tank_id: "wt2"
-      tank_name: "Regenwassertank 3"
+      device_id: "wt2_device"
       adc_pin: "GPIO34"
       attenuation: "6db"
       samples: 10
@@ -36,25 +33,37 @@ packages:
       window_size: 60
       send_every: 30
       voltage_max: 1.8
+      fill_level_internal: true
       initial_voltage_empty: 0.108
       initial_voltage_full: 1.0
       initial_volume_full: 5000
-      name_voltage: "Wassertank 2 Raw Voltage"
-      name_percentage: "Regenwassertank 3"
-      name_volume: "Regenwassertank 3 Volumen"
-      name_volume_full: "Regenwassertank 3 Volumen Voll"
   tank_2_link: !include
     file: "../projects/water-tank/linked.yaml"
     vars:
       tank_id: "wt2"
-      tank_name: "Regenwassertank 3"
+      device_id: "wt2_device"
+      system_device_id: "rain_water_device"
       linked_full_entity_id: "binary_sensor.regenwassertank_voll"
       linked_volume_entity_id: "sensor.rain_water_tank_fill_volume"
-      name_total_volume: "Regenwasser Gesamtvolumen"
+      linked_volume_full_entity_id: "number.regenwassertank_volumen_voll"
 
 esphome:
   name: "bean-jember"
   friendly_name: "Jember"
+  areas:
+  - id: "area_rain_water"
+    name: "Regenwasser"
+  devices:
+  - id: "wt_device"
+    name: "Amphore"
+  - id: "wt2_device"
+    name: "Regenwassertank 3"
+    area_id: "area_rain_water"
+  - id: "rain_water_device"
+    name: "Regenwasser"
+    area_id: "area_rain_water"
+  - id: "light_device"
+    name: "Lichtstreifen"
 
 esp32:
   board: "esp32dev"
@@ -62,7 +71,8 @@ esp32:
     type: "esp-idf"
 
 light:
-- name: "Light strip"
+- name: ""
+  device_id: "light_device"
   effects:
   - addressable_rainbow:
   - addressable_color_wipe:

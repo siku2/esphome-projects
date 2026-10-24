@@ -1,6 +1,7 @@
 switch:
 - id: "${tank_id}_auto_calibrate"
-  name: "${tank_name} ${i18n.watertank[language].auto_calibrate}"
+  name: "${i18n.watertank[language].auto_calibrate}"
+  device_id: "${device_id}"
   restore_mode: "RESTORE_DEFAULT_ON"
   entity_category: "CONFIG"
   device_class: "switch"
@@ -10,7 +11,8 @@ switch:
 
 event:
 - id: "${tank_id}_diag"
-  name: "${tank_name} ${i18n.watertank[language].diagnostic_events}"
+  name: "${i18n.watertank[language].diagnostic_events}"
+  device_id: "${device_id}"
   platform: "template"
   event_types:
   - "auto_calibrated_full"

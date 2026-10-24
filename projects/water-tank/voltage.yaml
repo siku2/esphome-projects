@@ -1,7 +1,8 @@
 sensor:
 # Pressure sensor, see: <https://www.dfrobot.com/product-1863.html>
 - id: "${tank_id}_raw_voltage"
-  name: "${name_voltage}"
+  name: "${i18n.watertank[language].voltage}"
+  device_id: "${device_id}"
   accuracy_decimals: 3
   entity_category: "DIAGNOSTIC"
   filters:

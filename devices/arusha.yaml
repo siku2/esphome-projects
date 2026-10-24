@@ -9,7 +9,7 @@ packages:
     file: "../projects/water-tank/tank.yaml"
     vars:
       tank_id: "rwt"
-      tank_name: "Regenwassertank"
+      device_id: "rwt_device"
       adc_pin: "GPIO35"
       attenuation: "12db"
       samples: 255
@@ -17,18 +17,15 @@ packages:
       window_size: 60
       send_every: 12
       voltage_max: 4.0
-      initial_voltage_empty: 0.5
-      initial_voltage_full: 1.5
+      fill_level_internal: true
+      initial_voltage_empty: 0.63
+      initial_voltage_full: 1.2
       initial_volume_full: 3800
-      name_voltage: "Rain water tank voltage"
-      name_percentage: "Rain water tank fill percentage"
-      name_volume: "Rain water tank fill volume"
-      name_volume_full: "Regenwassertank Volumen Voll"
   tank_level: !include
     file: "../projects/water-tank/level.yaml"
     vars:
       tank_id: "rwt"
-      tank_name: "Regenwassertank"
+      device_id: "rwt_device"
       full_pin: "GPIO23"
       full_supply_pin: "GPIO22"
       empty_entity_id: "binary_sensor.trinkwasserventil_input"
@@ -36,12 +33,21 @@ packages:
     file: "../projects/coolix-ac/ac.yaml"
     vars:
       transmitter_pin: 14
-      climate_name: "Keller Klimaanlage"
+      device_id: "ac_device"
       power_switch_entity_id: "switch.keller_klimaanlage"
 
 esphome:
   name: "bean-arusha"
-  friendly_name: "Regenwassertank"
+  friendly_name: "Arusha"
+  areas:
+  - id: "area_rain_water"
+    name: "Regenwasser"
+  devices:
+  - id: "rwt_device"
+    name: "Regenwassertank"
+    area_id: "area_rain_water"
+  - id: "ac_device"
+    name: "Keller Klimaanlage"
 
 esp32:
   # See: <https://www.espboards.dev/esp32/esp32doit-devkit-v1/>

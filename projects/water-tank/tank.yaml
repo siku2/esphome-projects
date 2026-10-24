@@ -10,7 +10,9 @@ packages:
 
 sensor:
 - id: "${tank_id}_fill_percentage"
-  name: "${name_percentage}"
+  name: "${i18n.watertank[language].fill_level}"
+  device_id: "${device_id}"
+  internal: ${fill_level_internal}
   unit_of_measurement: "%"
   device_class: ""
   state_class: "measurement"
@@ -38,7 +40,8 @@ sensor:
   source_id: "${tank_id}_raw_voltage"
 
 - id: "${tank_id}_fill_volume"
-  name: "${name_volume}"
+  name: "${i18n.watertank[language].volume}"
+  device_id: "${device_id}"
   unit_of_measurement: "L"
   device_class: "volume"
   state_class: "measurement"
@@ -76,7 +79,8 @@ binary_sensor:
 
 number:
 - id: "${tank_id}_voltage_empty"
-  name: "${tank_name} ${i18n.watertank[language].voltage_empty}"
+  name: "${i18n.watertank[language].voltage_empty}"
+  device_id: "${device_id}"
   entity_category: "CONFIG"
   unit_of_measurement: "V"
   device_class: "voltage"
@@ -94,7 +98,8 @@ number:
   initial_value: "${initial_voltage_empty}"
 
 - id: "${tank_id}_voltage_full"
-  name: "${tank_name} ${i18n.watertank[language].voltage_full}"
+  name: "${i18n.watertank[language].voltage_full}"
+  device_id: "${device_id}"
   entity_category: "CONFIG"
   unit_of_measurement: "V"
   device_class: "voltage"
@@ -112,7 +117,8 @@ number:
   initial_value: "${initial_voltage_full}"
 
 - id: "${tank_id}_volume_full"
-  name: "${name_volume_full}"
+  name: "${i18n.watertank[language].volume_full}"
+  device_id: "${device_id}"
   entity_category: "CONFIG"
   unit_of_measurement: "L"
   device_class: "volume"
