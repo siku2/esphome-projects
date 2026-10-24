@@ -12,3 +12,9 @@ packages:
 
       api_encryption_key: !secret benguet_api_encryption_key
       fingerprint_password: !secret benguet_fingerprint_password
+
+# Temporary until the long USB cable is replaced
+esp32:
+  framework:
+    sdkconfig_options:
+      CONFIG_ESP_BROWNOUT_DET: "n"
