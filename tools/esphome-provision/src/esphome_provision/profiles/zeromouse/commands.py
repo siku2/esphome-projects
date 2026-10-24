@@ -2,12 +2,11 @@
 
 import argparse
 import asyncio
-import os
 from pathlib import Path
 
 from aioesphomeapi.client import ExecuteServiceDataType
 
-from esphome_provision import api
+from esphome_provision import api, ha
 from esphome_provision.common import KEY_ENV, ProvisionError
 from esphome_provision.flasher import load_backup
 from esphome_provision.profiles.zeromouse.nvs import (
@@ -41,15 +40,19 @@ def load_identity(args: argparse.Namespace) -> StockIdentity:
 
 
 def api_key(args: argparse.Namespace, secrets: dict[str, str] | None) -> str:
-    key = args.api_key or os.environ.get(KEY_ENV)
-    if key:
-        return key
+    credentials = ha.resolve_credentials(
+        args.api_key, ha.ssh_target(args.ha_ssh), host=args.host
+    )
+    if credentials:
+        print(f"API key from {credentials.source}")
+        return credentials.key
+    key = None
     if args.device:
         secrets = secrets if secrets is not None else load_secrets(args.secrets)
         key = secrets.get(f"{args.device}_api_encryption_key")
     if not key:
         raise ProvisionError(
-            f"No API key, pass --api-key, set {KEY_ENV} or give --device "
+            f"No API key, pass --api-key, set {KEY_ENV}, give --ha-ssh or give --device "
             + "with <device>_api_encryption_key in the secrets"
         )
     return key
@@ -102,7 +105,7 @@ def add_subcommands(
     group = subparsers.add_parser(
         "zeromouse",
         help="ZeroMOUSE commands that use the API of an installed device",
-        description="The API key comes from --api-key, from ESPHOME_API_KEY, or from <device>_api_encryption_key in the secrets file.",
+        description="The API key comes from --api-key, from ESPHOME_API_KEY, from Home Assistant over SSH (--ha-ssh or ESPHOME_PROVISION_HA_SSH), or from <device>_api_encryption_key in the secrets file.",
     )
     commands = group.add_subparsers(dest="zeromouse_command", required=True)
 
@@ -111,6 +114,7 @@ def add_subcommands(
         _ = sub.add_argument("--host", required=True, help="Address of the device")
         _ = sub.add_argument("--device", help="Secret name prefix, for example kopi")
         _ = sub.add_argument("--api-key", help=f"Defaults to {KEY_ENV}")
+        ha.add_argument(sub)
         _ = sub.add_argument(
             "--secrets", type=Path, help="Defaults to devices/secrets.yaml"
         )

@@ -3,14 +3,18 @@
   backup   Check the chip and save a verified full flash backup.
   install  Backup, then erase and write the firmware, set up Wi-Fi and provision.
   restore  Write a backup (or a raw image) back to the chip.
+  logs     Stream the log of an installed device.
 
 Profiles add project specific checks, steps and commands, for example
 "zeromouse". The profile is picked from --profile or from the project name
 in the firmware. Without a profile, install stops after the Wi-Fi setup and
 a basic check over the API.
 
-The API key defaults to all zeros. Pass --api-key or set ESPHOME_API_KEY
-if the device already has a key, for example from Home Assistant.
+The API key defaults to all zeros. If the device already has a key, for
+example from Home Assistant, the commands for installed devices look for it in
+this order: --api-key, ESPHOME_API_KEY, then Home Assistant over SSH. Give the
+SSH target with --ha-ssh or ESPHOME_PROVISION_HA_SSH. Only "install --resume",
+"logs" and the profile commands read the key from Home Assistant.
 """
 
 import argparse
@@ -20,7 +24,7 @@ import shlex
 import sys
 from pathlib import Path
 
-from esphome_provision import api, flasher
+from esphome_provision import api, flasher, ha, logs
 from esphome_provision.common import KEY_ENV, MAC, ProvisionError
 from esphome_provision.firmware import (
     Firmware,
@@ -90,6 +94,8 @@ def resume_command(
         parts += ["--secrets", shlex.quote(str(args.secrets))]
     if args.api_key:
         parts += ["--api-key", "<api key>"]
+    if args.ha_ssh:
+        parts += ["--ha-ssh", shlex.quote(args.ha_ssh)]
     return f"{APP} {' '.join(parts)}"
 
 
@@ -100,13 +106,14 @@ async def api_phase(
     context: object,
     args: argparse.Namespace,
     firmware: Firmware | None,
+    credentials: ha.Credentials | None,
 ) -> None:
     api.quiet_api_logging()
-    key = args.api_key or os.environ.get(KEY_ENV)
-    print(f"Connecting to {host} with the {'given' if key else 'default'} API key")
+    source = f"API key from {credentials.source}" if credentials else "default API key"
+    print(f"Connecting to {host} with the {source}")
     factory = api.session_factory(
         host,
-        key or api.ZERO_PSK,
+        credentials.key if credentials else api.ZERO_PSK,
         mac=mac,
         project_name=profile.project_name.decode() if profile else None,
         firmware=firmware.data if firmware and not profile else None,
@@ -196,19 +203,22 @@ def cmd_install(args: argparse.Namespace) -> None:
         port = wait_for_port(port, pre.chip.mac, 40)
         host = improv_host(port, ssid, password, args.host)
         print(f"The device is on Wi-Fi at {host}")
-        asyncio.run(api_phase(host, pre.chip.mac, profile, context, args, firmware))
+        credentials = ha.resolve_credentials(args.api_key, None)
+        asyncio.run(
+            api_phase(host, pre.chip.mac, profile, context, args, firmware, credentials)
+        )
     except BaseException:
         fail_hint(args, profile, host, flashed)
         raise
     print_done(pre.chip.mac, directory, restore)
 
 
-async def device_profile(args: argparse.Namespace) -> str | None:
+async def device_profile(
+    args: argparse.Namespace, credentials: ha.Credentials | None
+) -> str | None:
     """Name of the profile whose project name the device reports."""
     api.quiet_api_logging()
-    session = api.Session(
-        args.host, args.api_key or os.environ.get(KEY_ENV) or api.ZERO_PSK
-    )
+    session = api.Session(args.host, credentials.key if credentials else api.ZERO_PSK)
     await session.connect(30)
     try:
         project = (await session.device_info()).project_name
@@ -224,10 +234,13 @@ def cmd_resume(args: argparse.Namespace) -> None:
     if not args.host:
         raise ProvisionError("install --resume needs --host")
     backup = flasher.load_backup(args.backup_dir)
+    credentials = ha.resolve_credentials(
+        args.api_key, ha.ssh_target(args.ha_ssh), mac=backup.mac
+    )
     firmware = read_firmware(args.firmware) if args.firmware else None
     profile_name = args.profile
     if profile_name is None and firmware is None:
-        profile_name = asyncio.run(device_profile(args))
+        profile_name = asyncio.run(device_profile(args, credentials))
     profile = select_profile(profile_name, firmware)
     require_profile_for_options(args, profile)
     if firmware is not None:
@@ -239,7 +252,11 @@ def cmd_resume(args: argparse.Namespace) -> None:
         profile.prepare(backup.image.read_bytes(), args, secrets) if profile else None
     )
     try:
-        asyncio.run(api_phase(args.host, backup.mac, profile, context, args, firmware))
+        asyncio.run(
+            api_phase(
+                args.host, backup.mac, profile, context, args, firmware, credentials
+            )
+        )
     except BaseException:
         fail_hint(args, profile, args.host, True)
         raise
@@ -322,8 +339,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Device address. Used if Improv gives none, required with --resume",
     )
     _ = install.add_argument(
-        "--api-key", help=f"Noise key of the device. Defaults to {KEY_ENV}, then zeros"
+        "--api-key",
+        help=f"Noise key of the device. Defaults to {KEY_ENV}, then with --resume "
+        + "Home Assistant, then zeros",
     )
+    ha.add_argument(install)
     _ = install.add_argument(
         "--wifi-ssid", help="Use this network instead of wifi_ssid from the secrets"
     )
@@ -344,6 +364,7 @@ def build_parser() -> argparse.ArgumentParser:
     _ = restore.add_argument("--allow-other-device", action="store_true")
     restore.set_defaults(handler=cmd_restore)
 
+    logs.add_command(commands)
     for profile in profiles.values():
         profile.add_subcommands(commands)
     return parser

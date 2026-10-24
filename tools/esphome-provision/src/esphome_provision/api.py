@@ -39,6 +39,10 @@ class ConnectionDropped(ProvisionError):
     """The device closed the connection when no restart was expected."""
 
 
+class ConnectTimeout(ProvisionError):
+    """The device did not accept a connection in time."""
+
+
 def invalid_key_message(host: str, psk: str) -> str:
     if psk == ZERO_PSK:
         return (
@@ -58,9 +62,12 @@ def quiet_api_logging() -> None:
 
 
 class Session:
-    def __init__(self, host: str, psk: str) -> None:
+    def __init__(
+        self, host: str, psk: str, on_line: Callable[[str], None] | None = None
+    ) -> None:
         self.host = host
         self.psk = psk
+        self.on_line = on_line
         self.lines: list[str] = []
         self.states: dict[int, EntityState] = {}
         self.client: APIClient | None = None
@@ -74,7 +81,11 @@ class Session:
 
     def _on_log(self, message: SubscribeLogsResponse) -> None:
         text = strip_ansi(bytes(message.message).decode("utf-8", errors="replace"))
-        self.lines.extend(text.splitlines())
+        for line in text.splitlines():
+            if self.on_line:
+                self.on_line(line)
+            else:
+                self.lines.append(line)
         self._changed.set()
 
     def _on_state(self, state: EntityState) -> None:
@@ -104,7 +115,7 @@ class Session:
             self.client = client
             return
         reason = f": {last}" if last else ""
-        raise ProvisionError(
+        raise ConnectTimeout(
             f"Could not connect to {self.host}:{PORT} within {timeout:.0f} s{reason}"
         )
 
@@ -129,10 +140,17 @@ class Session:
     async def entities(self) -> tuple[list[EntityInfo], list[UserService]]:
         return await self.require_client().list_entities_services()
 
+    def subscribe_logs(
+        self, *, dump_config: bool, level: LogLevel = LogLevel.LOG_LEVEL_DEBUG
+    ) -> None:
+        _ = self.require_client().subscribe_logs(self._on_log, level, dump_config)
+
     def subscribe(self, *, dump_config: bool) -> None:
-        client = self.require_client()
-        _ = client.subscribe_logs(self._on_log, LogLevel.LOG_LEVEL_DEBUG, dump_config)
-        client.subscribe_states(self._on_state)
+        self.subscribe_logs(dump_config=dump_config)
+        self.require_client().subscribe_states(self._on_state)
+
+    async def wait_stopped(self) -> None:
+        await self._stopped.wait()
 
     async def wait_until(
         self, condition: Callable[[], bool], timeout: float, what: str

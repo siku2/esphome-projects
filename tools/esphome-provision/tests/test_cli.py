@@ -71,3 +71,11 @@ def test_profile_detection() -> None:
     profile = all_profiles()["zeromouse"]
     assert detect_profile(b"xx" + profile.project_name + b"yy") is profile
     assert detect_profile(b"nothing here") is None
+
+
+def test_logs_options() -> None:
+    args = parse("logs", "bean-kopi", "--host", "h")
+    assert args.handler is cli.logs.cmd_logs
+    assert args.device == "bean-kopi"
+    assert args.level == "very_verbose"
+    assert args.ha_ssh is None
