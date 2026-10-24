@@ -9,9 +9,10 @@ import subprocess
 import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
+from esphome_provision import secrets
 from esphome_provision.common import ProvisionError, strip_ansi
 from esphome_provision.efuse import (
     EfuseValue,
@@ -190,30 +191,61 @@ def check_mac(chip: ChipInfo, expected: str, *, allow_other: bool) -> None:
         )
 
 
-def ensure_outside_git(path: Path) -> None:
-    parent = path
-    while not parent.exists():
-        parent = parent.parent
+def run_git(parent: Path, *args: str) -> subprocess.CompletedProcess[str]:
     try:
-        result = subprocess.run(
-            ["git", "-C", str(parent), "rev-parse", "--show-toplevel"],
+        return subprocess.run(
+            ["git", "-C", str(parent), *args],
             capture_output=True,
             text=True,
             timeout=30,
             check=False,
         )
-    except (FileNotFoundError, subprocess.TimeoutExpired) as error:
+    except (OSError, subprocess.SubprocessError) as error:
         raise ProvisionError(
-            "Cannot run git to check that the backup directory is outside a repository"
+            "Cannot run git to check where the backup directory is"
         ) from error
-    if result.returncode == 0:
-        raise ProvisionError(
-            f"The backup directory is inside the git work tree {result.stdout.strip()}"
-        )
-    if "not a git repository" not in result.stderr:
+
+
+def check_git_placement(path: Path) -> None:
+    """Allow a path in a git work tree only if it is ignored or not in our own repository."""
+    parent = path
+    while not parent.exists():
+        parent = parent.parent
+    result = run_git(parent, "rev-parse", "--show-toplevel")
+    if result.returncode != 0:
+        if "not a git repository" in result.stderr:
+            return
         raise ProvisionError(
             "git could not tell whether the backup directory is in a work tree"
         )
+    top = Path(result.stdout.strip()).resolve()
+    ignored = run_git(parent, "check-ignore", "-q", str(path))
+    if ignored.returncode == 0:
+        return
+    if ignored.returncode != 1:
+        raise ProvisionError(
+            "git could not tell whether the backup directory is ignored"
+        )
+    if top == secrets.repo_root().resolve():
+        raise ProvisionError(
+            f"The backup directory is inside the git work tree {top} and is not ignored. "
+            + "Backups contain device keys, so add the directory to .gitignore"
+        )
+    print(
+        f"The backup is inside the git work tree {top} and contains device keys. "
+        + "Commit it only to a private repository."
+    )
+
+
+def default_backup_dir(name: str, today: date | None = None) -> Path:
+    """Return backups/<name>-<date> in the current directory, numbered if it is taken."""
+    base = Path("backups") / f"{name}-{(today or date.today()).isoformat()}"
+    path = base
+    number = 2
+    while path.exists() and (not path.is_dir() or any(path.iterdir())):
+        path = base.with_name(f"{base.name}-{number}")
+        number += 1
+    return path
 
 
 def check_backup_dir(path: Path) -> Path:
@@ -223,7 +255,7 @@ def check_backup_dir(path: Path) -> Path:
             raise ProvisionError(
                 f"The backup directory {path} must be empty or not exist"
             )
-    ensure_outside_git(path.resolve())
+    check_git_placement(path.resolve())
     return path
 
 

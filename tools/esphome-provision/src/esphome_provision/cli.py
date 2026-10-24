@@ -11,6 +11,11 @@ Profiles add project specific checks, steps and commands, for example
 in the firmware. Without a profile, install stops after the Wi-Fi setup and
 a basic check over the API.
 
+Backups hold device keys. Without --backup-dir they go to
+backups/<name>-<date> in the current directory, where <name> is the device
+name or the MAC address. A backup inside a git work tree must be ignored
+there, or the work tree must not be the esphome-projects repository.
+
 The API key defaults to all zeros. If the device already has a key, for
 example from Home Assistant, the commands for installed devices look for it in
 this order: --api-key, ESPHOME_API_KEY, then Home Assistant. Give its address
@@ -147,9 +152,25 @@ def profile_efuses(profile: Profile | None) -> tuple[str, ...]:
     return profile.efuse_names if profile else ()
 
 
+def explicit_backup_dir(args: argparse.Namespace) -> Path | None:
+    return flasher.check_backup_dir(args.backup_dir) if args.backup_dir else None
+
+
+def choose_backup_dir(
+    args: argparse.Namespace, directory: Path | None, pre: flasher.Preflight
+) -> Path:
+    """Use the checked --backup-dir or pick the default, and remember it for the hints."""
+    if directory is None:
+        name = getattr(args, "device", None) or pre.chip.mac.replace(":", "")
+        directory = flasher.check_backup_dir(flasher.default_backup_dir(name))
+    args.backup_dir = directory
+    print(f"Backup directory: {directory}")
+    return directory
+
+
 def cmd_backup(args: argparse.Namespace) -> None:
     flasher.require_tools()
-    directory = flasher.check_backup_dir(args.backup_dir)
+    directory = explicit_backup_dir(args)
     profile = select_profile(args.profile, None)
     pre = flasher.preflight(
         args.port,
@@ -158,6 +179,7 @@ def cmd_backup(args: argparse.Namespace) -> None:
     )
     if profile:
         profile.check_device(pre, args)
+    directory = choose_backup_dir(args, directory, pre)
     _ = flasher.make_backup(args.port, directory, pre)
 
 
@@ -175,7 +197,7 @@ def cmd_install(args: argparse.Namespace) -> None:
         profile.check_firmware(firmware.data, args)
     secrets = load_secrets(args.secrets)
     ssid, password = wifi_credentials(secrets, args.wifi_ssid)
-    directory = flasher.check_backup_dir(args.backup_dir)
+    directory = explicit_backup_dir(args)
 
     def check_chip(chip: flasher.ChipInfo) -> None:
         check_target(firmware, chip.chip, chip.flash_size)
@@ -187,6 +209,7 @@ def cmd_install(args: argparse.Namespace) -> None:
     )
     if profile:
         profile.check_device(pre, args)
+    directory = choose_backup_dir(args, directory, pre)
     print(f"Firmware {args.firmware} is a factory image for the {pre.chip.chip.label}")
     image = flasher.make_backup(args.port, directory, pre)
     context = profile.prepare(image.read_bytes(), args, secrets) if profile else None
@@ -235,6 +258,8 @@ async def device_profile(
 def cmd_resume(args: argparse.Namespace) -> None:
     if not args.host:
         raise ProvisionError("install --resume needs --host")
+    if not args.backup_dir:
+        raise ProvisionError("install --resume needs --backup-dir")
     backup = flasher.load_backup(args.backup_dir)
     credentials = ha.resolve_credentials(
         args.api_key, ha.ha_url(args.ha_url), mac=backup.mac
@@ -316,7 +341,11 @@ def build_parser() -> argparse.ArgumentParser:
         "backup", help="Check the chip and save a verified flash backup"
     )
     _ = backup.add_argument("--port", required=True, help="Serial port of the device")
-    _ = backup.add_argument("--backup-dir", type=Path, required=True)
+    _ = backup.add_argument(
+        "--backup-dir",
+        type=Path,
+        help="New directory for the backup. Defaults to backups/<name>-<date>",
+    )
     add_profile_options(backup)
     backup.set_defaults(handler=cmd_backup)
 
@@ -327,8 +356,8 @@ def build_parser() -> argparse.ArgumentParser:
     _ = install.add_argument(
         "--backup-dir",
         type=Path,
-        required=True,
-        help="New directory for the backup, or the existing backup with --resume",
+        help="New directory for the backup. Defaults to backups/<name>-<date>. "
+        + "Required with --resume, where it is the existing backup",
     )
     _ = install.add_argument("--firmware", type=Path, help="firmware.factory.bin")
     _ = install.add_argument(

@@ -42,6 +42,15 @@ def test_profile_commands() -> None:
         parse("zeromouse", "cloud", "--host", "h")
 
 
+def test_backup_dir_is_optional_except_for_restore() -> None:
+    assert parse("backup", "--port", "p").backup_dir is None
+    assert parse("install", "--port", "p", "--firmware", "f").backup_dir is None
+    with pytest.raises(cli.ProvisionError, match="--backup-dir"):
+        cli.cmd_install(parse("install", "--resume", "--host", "h"))
+    with pytest.raises(SystemExit):
+        parse("restore", "--port", "p")
+
+
 def test_restore_needs_a_source() -> None:
     with pytest.raises(SystemExit):
         parse("restore", "--port", "p")

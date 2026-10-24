@@ -1,6 +1,8 @@
 import json
+import os
 import shutil
 import subprocess
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -11,6 +13,7 @@ from esphome_provision.flasher import (
     ChipInfo,
     Preflight,
     check_backup_dir,
+    default_backup_dir,
     load_backup,
     make_manifest,
     parse_flash_id,
@@ -124,10 +127,78 @@ def test_backup_dir_must_be_empty(tmp_path: Path) -> None:
         _ = check_backup_dir(tmp_path / "full")
 
 
-def test_backup_dir_must_be_outside_a_git_work_tree(tmp_path: Path) -> None:
+def git_repo(path: Path, ignore: str = "") -> Path:
     git = shutil.which("git")
     if git is None:
         pytest.skip("git is not available")
-    _ = subprocess.run([git, "init", "-q", str(tmp_path / "repo")], check=True)
-    with pytest.raises(ProvisionError, match="git work tree"):
-        _ = check_backup_dir(tmp_path / "repo" / "backup")
+    env = {"GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_SYSTEM": "/dev/null"}
+    _ = subprocess.run(
+        [git, "-c", "init.defaultBranch=main", "init", "-q", str(path)],
+        check=True,
+        env={**os.environ, **env},
+    )
+    _ = (path / ".gitignore").write_text(ignore)
+    return path
+
+
+@pytest.fixture(autouse=True)
+def no_global_git_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", "/dev/null")
+    monkeypatch.setenv("GIT_CONFIG_SYSTEM", "/dev/null")
+
+
+def test_default_backup_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    day = date(2026, 10, 24)
+    first = default_backup_dir("kopi", day)
+    assert first == Path("backups/kopi-2026-10-24")
+    first.mkdir(parents=True)
+    assert default_backup_dir("kopi", day) == first
+    _ = (first / "file").write_bytes(b"")
+    second = default_backup_dir("kopi", day)
+    assert second == Path("backups/kopi-2026-10-24-2")
+    second.mkdir()
+    _ = (second / "file").write_bytes(b"")
+    assert default_backup_dir("kopi", day) == Path("backups/kopi-2026-10-24-3")
+
+
+def test_backup_dir_ignored_in_own_repo_is_allowed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = git_repo(tmp_path / "repo", "/backups/\n")
+    monkeypatch.chdir(repo)
+    assert check_backup_dir(repo / "backups/x") == repo / "backups/x"
+
+
+def test_backup_dir_not_ignored_in_own_repo_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = git_repo(tmp_path / "repo", "/backups/\n")
+    monkeypatch.chdir(repo)
+    with pytest.raises(ProvisionError, match="not ignored"):
+        _ = check_backup_dir(repo / "other/x")
+
+
+def test_backup_dir_in_other_repo_is_allowed_with_a_note(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    own = git_repo(tmp_path / "own")
+    other = git_repo(tmp_path / "other")
+    monkeypatch.chdir(own)
+    _ = check_backup_dir(other / "backups/x")
+    output = capsys.readouterr().out
+    assert f"git work tree {other.resolve()}" in output
+    assert "private repository" in output
+
+
+def test_backup_dir_outside_any_repo_is_allowed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    own = git_repo(tmp_path / "own")
+    monkeypatch.chdir(own)
+    _ = check_backup_dir(tmp_path / "plain/x")
+    assert capsys.readouterr().out == ""
