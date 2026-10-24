@@ -1,0 +1,43 @@
+# Replacement monitor for the SureFlap hub. Sniffs the 802.15.4 link on channel
+# 15 and decodes it. The sniffer keeps streaming frames over USB, so capturing
+# with `tools/ieee802154-sniffer` still works while the integration grows.
+
+substitutions:
+  components_source:
+    type: "local"
+    path: "../components"
+
+  name: "sureflap"
+  friendly_name: "SureFlap"
+  language: "en"
+
+packages:
+  base: !include ../../base/device.yaml
+  board: !include ../../boards/espressif/esp32_c6_devkitc_1.yaml
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  project:
+    name: "siku2.sureflap"
+    version: "0.1.0"
+
+external_components:
+- source: "${components_source}"
+  components: ["ieee802154_sniffer", "sureflap"]
+
+# The sniffer owns the USB port, so logs go to the UART port.
+logger:
+  hardware_uart: "UART0"
+
+ieee802154_sniffer:
+  id: "sureflap_radio"
+  channel: 15
+
+sureflap:
+  id: "sureflap_monitor"
+  sniffer_id: "sureflap_radio"
+  frames:
+    name: "Frames"
+  flap_online:
+    name: "Cat flap online"

@@ -1,0 +1,9 @@
+packages:
+  project: !include
+    file: ../projects/sureflap/esp32.yaml
+    vars:
+      name: "test-sureflap"
+      friendly_name: "Test SureFlap"
+      language: "en"
+
+      api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="

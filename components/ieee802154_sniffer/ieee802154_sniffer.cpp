@@ -122,6 +122,9 @@ void Ieee802154Sniffer::run_() {
       record[11] = rx.lqi;
       memcpy(record + 12, rx.data, rx.length);
       this->write_record_(record, 12 + rx.length);
+
+      if (this->frame_callback_ready_.load(std::memory_order_acquire) && this->frame_callback_)
+        this->frame_callback_(rx.timestamp, rx.channel, rx.rssi, rx.lqi, rx.data, rx.length);
     }
 
     this->poll_commands_();
