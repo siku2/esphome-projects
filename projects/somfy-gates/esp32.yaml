@@ -30,10 +30,6 @@ external_components:
 - source: "${components_source}"
   components: ["cc1101", "somfy_cover"]
 
-logger:
-  level: "DEBUG"
-  initial_level: "INFO"
-
 spi:
   clk_pin: "GPIO18"
   mosi_pin: "GPIO23"

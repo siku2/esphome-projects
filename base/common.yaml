@@ -27,8 +27,8 @@ debug:
   update_interval: "never"
 
 logger:
-  level: "VERBOSE"
-  initial_level: "DEBUG"
+  level: "DEBUG"
+  initial_level: "INFO"
 
 button:
 - id: "base_restart"
