@@ -37,6 +37,16 @@ def check_option(entity: Entity, option: str) -> str:
     return option
 
 
+def check_text(entity: Entity, text: str) -> str:
+    """Return `text` if it fits the maximum length of a text entity."""
+    if len(text) > entity.max_length:
+        raise SimError(
+            f"{entity.object_id}: text is {len(text)} characters,"
+            f" the maximum is {entity.max_length}"
+        )
+    return text
+
+
 def parse_float(text: str, what: str) -> float:
     """Parse a finite float."""
     try:

@@ -11,6 +11,7 @@ class EntityKind(enum.StrEnum):
     NUMBER = "number"
     SWITCH = "switch"
     SELECT = "select"
+    TEXT = "text"
     SENSOR = "sensor"
     TEXT_SENSOR = "text_sensor"
     BINARY_SENSOR = "binary_sensor"
@@ -37,6 +38,7 @@ class Entity:
     kind: EntityKind
     number_range: NumberRange | None = None
     options: tuple[str, ...] = ()
+    max_length: int = 0
     unit: str = ""
     decimals: int = 1
 

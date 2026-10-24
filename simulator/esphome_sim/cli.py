@@ -188,9 +188,12 @@ async def _set(client: SimClient, object_id: str, value: str) -> None:
             client.set_switch(object_id, parse_bool(value, object_id))
         case EntityKind.SELECT:
             client.set_select(object_id, value)
+        case EntityKind.TEXT:
+            client.set_text(object_id, value)
         case _:
             raise SimError(
-                f"{object_id} is a {entity.kind}, set supports number, switch and select"
+                f"{object_id} is a {entity.kind},"
+                " set supports number, switch, select and text"
             )
 
 
@@ -267,7 +270,7 @@ def _parser() -> argparse.ArgumentParser:
     press.add_argument("project")
     press.add_argument("object_id")
     set_ = commands.add_parser(
-        "set", help="set a number, switch (on/off) or select (option) entity"
+        "set", help="set a number, switch (on/off), select (option) or text entity"
     )
     set_.add_argument("project")
     set_.add_argument("object_id")

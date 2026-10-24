@@ -16,6 +16,7 @@ from esphome_sim.validate import (
     check_number,
     check_option,
     check_service_args,
+    check_text,
     parse_bool,
     parse_service_args,
 )
@@ -27,6 +28,9 @@ BEARING_RANGE = NumberRange(0, 360, 5)
 OUTDOOR_RANGE = NumberRange(-20, 45, 0.5)
 MODE = Entity(
     key=2, object_id="mode", name="Mode", kind=EntityKind.SELECT, options=("a", "b")
+)
+ADDRESS = Entity(
+    key=5, object_id="address", name="Address", kind=EntityKind.TEXT, max_length=8
 )
 PRESS = Service(
     key=3,
@@ -131,3 +135,12 @@ def test_check_service_args_rejects_wrong_array_items() -> None:
     args: dict[str, ArgValue] = {"flag": False, "ratio": 1, "ids": ["1"], "names": []}
     with pytest.raises(SimError, match="expected int"):
         check_service_args(ALL_TYPES, args)
+
+
+def test_check_text_accepts_up_to_the_maximum() -> None:
+    assert check_text(ADDRESS, "12345678") == "12345678"
+
+
+def test_check_text_rejects_longer_text() -> None:
+    with pytest.raises(SimError, match="maximum is 8"):
+        check_text(ADDRESS, "123456789")

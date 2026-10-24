@@ -29,7 +29,12 @@ from esphome_sim.model import (
     ServiceArg,
 )
 from esphome_sim.project import Project
-from esphome_sim.validate import check_number, check_option, check_service_args
+from esphome_sim.validate import (
+    check_number,
+    check_option,
+    check_service_args,
+    check_text,
+)
 
 RETRY_INTERVAL = 2.0
 FATAL_ERRORS = (InvalidEncryptionKeyAPIError, RequiresEncryptionAPIError)
@@ -165,6 +170,13 @@ class SimClient:
         with _connection_errors(self.address):
             self._connected().select_command(entity.key, checked)
 
+    def set_text(self, object_id: str, text: str) -> None:
+        """Set a text entity after checking its maximum length."""
+        entity = self.entity(object_id, EntityKind.TEXT)
+        checked = check_text(entity, text)
+        with _connection_errors(self.address):
+            self._connected().text_command(entity.key, checked)
+
     async def call_service(self, name: str, **args: ArgValue) -> None:
         """Call a user service after checking argument names and types."""
         checked = check_service_args(self.service(name), args)
@@ -239,6 +251,8 @@ def _to_entity(info: api.EntityInfo) -> Entity:
             return replace(entity, kind=EntityKind.SWITCH)
         case api.SelectInfo():
             return replace(entity, kind=EntityKind.SELECT, options=tuple(info.options))
+        case api.TextInfo():
+            return replace(entity, kind=EntityKind.TEXT, max_length=info.max_length)
         case api.SensorInfo():
             return replace(
                 entity,
@@ -274,7 +288,7 @@ def _to_state(entity: Entity, state: api.EntityState) -> EntityState:
             return EntityState(entity, "unknown", None)
         case api.SwitchState() | api.BinarySensorState():
             return EntityState(entity, "on" if state.state else "off", state.state)
-        case api.TextSensorState() | api.SelectState():
+        case api.TextSensorState() | api.SelectState() | api.TextState():
             if state.missing_state:
                 return EntityState(entity, "unknown", None)
             return EntityState(entity, state.state, state.state)
