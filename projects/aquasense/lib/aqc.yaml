@@ -24,7 +24,6 @@ esphome:
   friendly_name: "${friendly_name}"
   project:
     name: "siku2.aquasense"
-    version: "0.1.0"
 
 external_components:
 - source: "${components_source}"

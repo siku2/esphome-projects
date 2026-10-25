@@ -23,7 +23,6 @@ esphome:
   friendly_name: "${friendly_name}"
   project:
     name: "siku2.zeromouse"
-    version: "0.1.0"
 
 ota:
 - id: !extend "base_ota"

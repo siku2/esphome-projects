@@ -1,10 +1,13 @@
 substitutions:
+  # CI sets this to a hash of the build inputs, so the update entity only offers changed firmware
+  firmware_version: "dev"
   language: "en"
   timezone: "Europe/Zurich"
   i18n:
     base:
       de:
         restart: "Neustarten"
+        firmware: "Firmware"
         log_level: "Log-Stufe"
         last_restart: "Letzter Neustart"
         wifi_signal: "WLAN-Signal"
@@ -14,12 +17,18 @@ substitutions:
 
       en:
         restart: "Restart"
+        firmware: "Firmware"
         log_level: "Log Level"
         last_restart: "Last Restart"
         wifi_signal: "WiFi Signal"
         restart_reason: "Restart Reason"
         cpu_temperature: "CPU Temperature"
         nvs_usage: "NVS Usage"
+
+esphome:
+  project:
+    name: "siku2.esphome-projects"
+    version: "${firmware_version}"
 
 api:
   encryption: {}

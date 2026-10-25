@@ -15,7 +15,6 @@ esphome:
   friendly_name: "${friendly_name}"
   project:
     name: "siku2.workshop-lock"
-    version: "0.1.0"
   on_boot:
   - priority: -100
     then:

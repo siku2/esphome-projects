@@ -17,4 +17,3 @@ esphome:
   friendly_name: "${friendly_name}"
   project:
     name: "siku2.door-display"
-    version: "0.1.0"

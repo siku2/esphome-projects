@@ -13,6 +13,15 @@ ota:
 - id: "base_ota"
   platform: "esphome"
   password: ""
+- platform: "http_request"
+
+http_request:
+
+update:
+- id: "base_firmware_update"
+  name: "${i18n.base[language].firmware}"
+  platform: "http_request"
+  source: "https://siku2.github.io/esphome-projects/${name}/manifest.json"
 
 wifi:
   fast_connect: true

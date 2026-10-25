@@ -15,7 +15,6 @@ esphome:
   friendly_name: "${friendly_name}"
   project:
     name: "siku2.flow-meter"
-    version: "0.1.0"
 
 esp32:
   board: "esp32dev"

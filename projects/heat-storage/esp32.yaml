@@ -22,7 +22,6 @@ esphome:
   friendly_name: "${friendly_name}"
   project:
     name: "siku2.heat-storage"
-    version: "0.1.0"
 
 esp32:
   # See: <https://www.espboards.dev/esp32/esp32doit-devkit-v1/>

@@ -1,4 +1,5 @@
 substitutions:
+  name: "bean-arusha"
   language: "de"
 
 packages:
@@ -37,7 +38,7 @@ packages:
       power_switch_entity_id: "switch.keller_klimaanlage"
 
 esphome:
-  name: "bean-arusha"
+  name: "${name}"
   friendly_name: "Arusha"
   areas:
   - id: "area_rain_water"

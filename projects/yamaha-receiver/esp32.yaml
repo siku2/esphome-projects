@@ -23,7 +23,6 @@ esphome:
   friendly_name: "${friendly_name}"
   project:
     name: "siku2.yamaha-receiver"
-    version: "0.1.0"
 
 esp32:
   board: "esp32dev"

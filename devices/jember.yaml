@@ -1,4 +1,5 @@
 substitutions:
+  name: "bean-jember"
   language: "de"
 
 packages:
@@ -47,7 +48,7 @@ packages:
       linked_volume_full_entity_id: "number.regenwassertank_volumen_voll"
 
 esphome:
-  name: "bean-jember"
+  name: "${name}"
   friendly_name: "Jember"
   areas:
   - id: "area_rain_water"
