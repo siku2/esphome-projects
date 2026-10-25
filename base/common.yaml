@@ -11,7 +11,7 @@ substitutions:
         restart_reason: "Neustart Grund"
         cpu_temperature: "CPU Temperatur"
         nvs_usage: "NVS Belegung"
-        wifi_migration: "WLAN Migration"
+        wifi_migration: "WLAN-Migration"
 
       en:
         restart: "Restart"
