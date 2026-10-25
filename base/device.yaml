@@ -7,17 +7,7 @@ esphome:
   on_boot:
   - priority: -100
     then:
-    # Plaintext uploads need the API key as password. Without a key, a random one blocks them
-    - lambda: !lambda |-
-        noise::psk_t psk;
-        if (api::load_saved_noise_psk(psk)) {
-          id(base_ota).set_auth_password(format_hex(psk.data(), psk.size()));
-        } else {
-          char random[33];
-          snprintf(random, sizeof(random), "%08" PRIx32 "%08" PRIx32 "%08" PRIx32 "%08" PRIx32, random_uint32(),
-                   random_uint32(), random_uint32(), random_uint32());
-          id(base_ota).set_auth_password(random);
-        }
+    - script.execute: "base_update_ota_password"
 
 ota:
 - id: "base_ota"
@@ -30,7 +20,34 @@ wifi:
 improv_serial:
 
 provisioning:
-  timeout: "15min"
+  timeout: "1h"
+  on_timeout:
+  - script.execute: "base_update_ota_password"
+
+api:
+  on_client_connected:
+  - script.execute: "base_update_ota_password"
+
+script:
+# Plaintext uploads need the API key as password. Without a key they are open like the API, until the
+# provisioning window closes.
+- id: "base_update_ota_password"
+  then:
+  - lambda: !lambda |-
+      noise::psk_t psk;
+      if (api::load_saved_noise_psk(psk)) {
+        id(base_ota).set_auth_password(format_hex(psk.data(), psk.size()));
+        ESP_LOGI("ota", "Plaintext uploads need the API key");
+      } else if (provisioning::global_provisioning_manager->closed()) {
+        char random[33];
+        snprintf(random, sizeof(random), "%08" PRIx32 "%08" PRIx32 "%08" PRIx32 "%08" PRIx32, random_uint32(),
+                 random_uint32(), random_uint32(), random_uint32());
+        id(base_ota).set_auth_password(random);
+        ESP_LOGI("ota", "Plaintext uploads are blocked until the next boot");
+      } else {
+        id(base_ota).set_auth_password("");
+        ESP_LOGI("ota", "Plaintext uploads are open until the device has an API key");
+      }
 
 sensor:
 - id: "base_wifi_signal"
@@ -64,6 +81,11 @@ sensor:
   state_class: "measurement"
   icon: "mdi:database"
   accuracy_decimals: 0
+  filters:
+  # Only send significant changes or every 24h
+  - or:
+    - throttle: "24h"
+    - delta: 5.0
   platform: "template"
   update_interval: "1h"
   lambda: !lambda |-
