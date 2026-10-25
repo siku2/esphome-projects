@@ -49,7 +49,7 @@ def cmd_logs(args: argparse.Namespace) -> None:
             f"No API key, pass --api-key, set {KEY_ENV} or give --ha-url "
             + f"(or set {ha.URL_ENV}) to read it from Home Assistant"
         )
-    host = credentials.host
+    host = credentials.host or args.host
     if not host:
         raise ProvisionError(
             "logs needs --host unless the key comes from Home Assistant"
