@@ -5,9 +5,9 @@ substitutions:
     base:
       de:
         restart: "Neustarten"
-        log_level: "Log Level"
+        log_level: "Log-Stufe"
         last_restart: "Letzter Neustart"
-        wifi_signal: "WiFi Signal"
+        wifi_signal: "WLAN-Signal"
         restart_reason: "Neustart Grund"
         cpu_temperature: "CPU Temperatur"
         nvs_usage: "NVS Belegung"
