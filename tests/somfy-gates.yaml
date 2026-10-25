@@ -9,8 +9,6 @@ packages:
       unterstand_device_id: "unterstand_device"
       garage_device_id: "garage_device"
 
-      api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
-
 esphome:
   areas:
   - id: "area_test"

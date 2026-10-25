@@ -2,7 +2,6 @@ substitutions:
   name: "test-coolix-ac"
   friendly_name: "Test Coolix AC"
   language: "de"
-  api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
 
 packages:
   base: !include ../base/device.yaml
@@ -10,12 +9,15 @@ packages:
     file: "../projects/coolix-ac/ac.yaml"
     vars:
       transmitter_pin: 14
-      climate_name: "Test Air Conditioner"
+      device_id: "ac_device"
       power_switch_entity_id: "switch.test_air_conditioner"
 
 esphome:
   name: "${name}"
   friendly_name: "${friendly_name}"
+  devices:
+  - id: "ac_device"
+    name: "Test Air Conditioner"
 
 esp32:
   board: "esp32dev"

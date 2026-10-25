@@ -6,8 +6,6 @@ packages:
       friendly_name: "Test Aquasense RH"
       language: "de"
 
-      api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
-
       aqdig_crop_10000:
         top_left:
           x: 110

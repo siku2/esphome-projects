@@ -5,5 +5,3 @@ packages:
       name: "test-door-display"
       friendly_name: "Test Door Display"
       language: "en"
-
-      api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="

@@ -6,8 +6,6 @@ packages:
       friendly_name: "Test Aquasense Deltamess TK"
       language: "de"
 
-      api_encryption_key: "BPuGmuUNPrvxVodyymhlYRYbylb2QAPuw6i3PZFdZLc="
-
       aqdig_crop_10000:
         top_left:
           x: 142

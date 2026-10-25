@@ -2,7 +2,6 @@ substitutions:
   name: "test-water-tank"
   friendly_name: "Test Water Tank"
   language: "de"
-  api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
 
 packages:
   base: !include ../base/device.yaml

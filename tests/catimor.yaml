@@ -12,8 +12,6 @@ packages:
       cover_south_device_id: "cover_south_device"
       climate_id: "climate.test"
 
-      api_encryption_key: "PelRCiw9w4PveSslEtVgp4V0IbEUWB24tax3cZqjEoU="
-
 esphome:
   areas:
   - id: "area_test"

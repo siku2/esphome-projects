@@ -11,8 +11,6 @@ packages:
       heat_pump_device_id: "heat_pump_device"
       solar_device_id: "solar_device"
 
-      api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
-
 esphome:
   devices:
   - id: "storage_device"

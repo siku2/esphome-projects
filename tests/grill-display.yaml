@@ -5,5 +5,3 @@ packages:
       name: "test-grill-display"
       friendly_name: "Test Grill Display"
       language: "de"
-
-      api_encryption_key: "j/+/ENFUx0rHq87Yz1/Cll3lOqfVXsQ3TC+zXp/A9CI="

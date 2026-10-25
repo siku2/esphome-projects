@@ -5,5 +5,3 @@ packages:
       name: "test-workshop-lock"
       friendly_name: "Test Workshop Lock"
       language: "de"
-
-      api_encryption_key: "cMNhlkc/B+MweuxUD90PfqrTs3fE/RoiOMW3J2YwuRU="
