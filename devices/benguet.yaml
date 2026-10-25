@@ -10,8 +10,6 @@ packages:
       bicycle_cover_entity_id: "cover.aussen_veloraum"
       gate_action: "script.bastelraum_tor_toggle"
 
-# Temporary until the long USB cable is replaced
-esp32:
-  framework:
-    sdkconfig_options:
-      CONFIG_ESP_BROWNOUT_DET: "n"
+# The long supply cable cannot deliver the boot current peaks at full power
+wifi:
+  output_power: "13dB"
