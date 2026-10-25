@@ -3,11 +3,37 @@ uart:
   tx_pin: "GPIO32"
   baud_rate: 57600
 
+esphome:
+  on_boot:
+  - priority: 800
+    then:
+    - lambda: !lambda |-
+        auto pref = global_preferences->make_preference<uint32_t>(fnv1_hash("fingerprint_password"), true);
+        uint32_t password;
+        if (pref.load(&password))
+          id(fp_sensor).set_password(password);
+
+api:
+  actions:
+  - action: "set_fingerprint_password"
+    variables:
+      password: "string"
+    then:
+    - lambda: !lambda |-
+        auto pref = global_preferences->make_preference<uint32_t>(fnv1_hash("fingerprint_password"), true);
+        uint32_t value = strtoul(password.c_str(), nullptr, 0);
+        if (pref.save(&value) && global_preferences->sync()) {
+          ESP_LOGI("fingerprint", "Saved the sensor password, restarting");
+          App.safe_reboot();
+        } else {
+          ESP_LOGE("fingerprint", "Failed to save the sensor password");
+        }
+
 fingerprint_grow:
+  id: "fp_sensor"
   sensing_pin:
     number: "GPIO21"
     allow_other_uses: true
-  password: "${fingerprint_password}"
   on_finger_scan_matched:
   - script.execute: "fp_on_matched"
 

@@ -10,9 +10,6 @@ packages:
       bicycle_cover_entity_id: "cover.aussen_veloraum"
       gate_action: "script.bastelraum_tor_toggle"
 
-      api_encryption_key: !secret benguet_api_encryption_key
-      fingerprint_password: !secret benguet_fingerprint_password
-
 # Temporary until the long USB cable is replaced
 esp32:
   framework:
