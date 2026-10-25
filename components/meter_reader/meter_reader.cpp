@@ -1,6 +1,5 @@
 #include "meter_reader.h"
 
-#include <algorithm>
 #include <cmath>
 
 #include "esphome/core/log.h"
@@ -9,113 +8,51 @@ static const char *const TAG = "meter_reader";
 
 // "METR" as a stable preference key for the single MeterReader per device.
 static const uint32_t PREF_KEY = 0x4D455452U;
-static const uint32_t SAVE_INTERVAL_MS = 60000;
-static constexpr float CYCLE_EMA_ALPHA = 0.3f;
-static constexpr float DIAL_PERIOD = 10.0f;
 
 static const char *const STATUS_STRINGS[] = {"anchoring", "ok", "stale", "divergent"};
 
 namespace esphome::meter_reader {
 
-static float circdist(float a, float b) {
-  float d = std::fmod(std::fabs(a - b), DIAL_PERIOD);
-  return d > DIAL_PERIOD / 2.0f ? DIAL_PERIOD - d : d;
-}
-
-// Wheel at level k shows (u / 10^k) mod 10. Digit drums lag the linear
-// fraction (they creep only near a roll), so they compare by integer digit.
-// Needle dials are geared 10:1 to the next finer dial and track the linear
-// fraction exactly; `linear` selects that expectation.
-static float digit_of(uint64_t u, uint8_t level) {
-  uint64_t p = 1;
-  for (uint8_t i = 0; i < level && i < 18; ++i)
-    p *= 10U;
-  return static_cast<float>((u / p) % 10ULL);
-}
-
-static float dial_of(uint64_t u, uint8_t level) {
-  uint64_t p = 1;
-  for (uint8_t i = 0; i < level && i < 18; ++i)
-    p *= 10U;
-  const uint64_t digit = (u / p) % 10ULL;
-  return static_cast<float>(static_cast<double>(digit) + static_cast<double>(u % p) / static_cast<double>(p));
-}
-
-static float expected_of(uint64_t u, uint8_t level, bool linear) {
-  return linear ? dial_of(u, level) : digit_of(u, level);
-}
-
 void MeterReader::setup() {
-  if (this->snapshotter_ == nullptr || this->wheels_.empty()) {
+  if (this->snapshotter_ == nullptr || !this->core_.has_wheels()) {
     this->mark_failed();
     return;
   }
   // The snapshotter notifies one wheel sensor per loop pass, with
   // arbitrarily long stalls in between. Processing on the cycle-end
   // callback is the only way to see one complete observation set.
-  this->snapshotter_->add_cycle_end_callback([this]() {
-    this->process_cycle_(millis());
-    for (auto &w : this->wheels_)
-      w.present = false;
-  });
+  this->snapshotter_->add_cycle_end_callback([this]() { this->on_cycle_end_(millis()); });
 
   this->rtc_ = global_preferences->make_preference<uint64_t>(PREF_KEY);
   uint64_t stored = 0;
-  this->has_saved_ = this->rtc_.load(&stored);
-  if (this->has_saved_) {
-    this->u_ = stored;
-    ESP_LOGI(TAG, "Restored reading: %.1f L", this->reading_liters_());
+  const bool has_saved = this->rtc_.load(&stored);
+  this->core_.start(millis(), has_saved, stored);
+  if (has_saved) {
+    ESP_LOGI(TAG, "Restored reading: %.1f L", this->core_.reading_liters());
   } else {
     ESP_LOGI(TAG, "No stored reading: set rebase to start");
   }
-  const uint32_t now = millis();
-  this->last_commit_ms_ = now;
-  this->last_save_ms_ = now;
   this->publish_reading_();
   this->publish_rejected_();
-  this->update_status_();
+  this->publish_status_();
 }
 
 void MeterReader::loop() {
-  const uint32_t now = millis();
-
-  // Only the finest occupied wheels gate staleness: the reading machinery
-  // cannot advance without them. Absent coarse wheels reduce cross-checking
-  // but are common in practice (permanently mid-roll digits).
-  bool stale = false;
-  uint8_t checked = 0;
-  for (const auto &w : this->wheels_) {
-    if (w.resolution == 0.0f)
-      continue;  // unoccupied level slot
-    if (checked >= 2)
-      break;
-    checked++;
-    if (now - w.last_accepted_ms > this->stale_after_ms_)
-      stale = true;
-  }
-  if (stale != this->stale_) {
-    this->stale_ = stale;
-    this->update_status_();
-  }
+  if (this->core_.update_stale(millis()))
+    this->publish_status_();
 }
 
 void MeterReader::on_observation(uint8_t level, float result, float fit, bool accepted) {
-  if (this->is_failed() || level >= this->wheels_.size())
+  if (this->is_failed() || !accepted)
     return;
-  if (!accepted)
-    return;
-  Wheel &w = this->wheels_[level];
-  w.result = result;
-  w.fit = fit;
-  w.present = true;
-  w.last_accepted_ms = millis();
+  this->core_.observe(level, result, fit, millis());
 }
 
-void MeterReader::process_cycle_(uint32_t now) {
+void MeterReader::on_cycle_end_(uint32_t now) {
   char wheels_buf[96];
   wheels_buf[0] = '\0';
   size_t pos = 0;
-  for (const auto &w : this->wheels_) {
+  for (const auto &w : this->core_.wheels()) {
     if (w.resolution == 0.0f)
       continue;
     if (pos >= sizeof(wheels_buf))
@@ -132,299 +69,90 @@ void MeterReader::process_cycle_(uint32_t now) {
   }
   ESP_LOGD(TAG, "Cycle wheels: %s", wheels_buf);
 
-  if (!this->wheels_[0].present) {
+  const auto result = this->core_.end_cycle(now);
+  if (!result.ran) {
     if (this->confidence_sensor_ != nullptr)
       this->confidence_sensor_->publish_state(NAN);
     return;
   }
+  if (result.has_consistency && this->consistency_sensor_ != nullptr)
+    this->consistency_sensor_->publish_state(result.consistency_error);
+  if (result.has_fit && this->confidence_sensor_ != nullptr)
+    this->confidence_sensor_->publish_state(100.0f * result.min_fit);
+  this->log_events_(result);
+  this->apply_(result);
+}
 
-  const float err = this->consistency_error_(this->u_);
-  this->last_consistency_error_ = err;
-  // Pre-anchor the reading is meaningless, so only publish once anchored.
-  if (this->anchored_ && this->consistency_sensor_ != nullptr)
-    this->consistency_sensor_->publish_state(err);
-
-  float min_fit = 1.0f;
-  for (const auto &w : this->wheels_) {
-    if (w.present && w.fit < min_fit)
-      min_fit = w.fit;
-  }
-  if (this->confidence_sensor_ != nullptr)
-    this->confidence_sensor_->publish_state(100.0f * min_fit);
-
-  const bool u_consistent = this->consistent_(this->u_);
-  if (u_consistent) {
-    this->inconsistent_since_ms_ = 0;
-  } else if (this->inconsistent_since_ms_ == 0) {
-    this->inconsistent_since_ms_ = now;
-  }
-  if (!this->divergent_ && !u_consistent && (this->anchored_ || this->has_saved_) &&
-      this->inconsistent_since_ms_ != 0 && now - this->inconsistent_since_ms_ > this->stale_after_ms_) {
-    this->divergent_ = true;
-    ESP_LOGE(TAG, "Dials inconsistent with reading for %u s: marking divergent",
-             (unsigned) ((now - this->inconsistent_since_ms_) / 1000));
-    this->update_status_();
-  }
-
-  if (!this->anchored_) {
-    if (this->has_saved_) {
-      uint64_t candidate = 0;
-      if (this->find_consistent_(this->u_, this->reanchor_span_u_(), &candidate)) {
-        if (candidate != this->u_) {
-          ESP_LOGW(TAG, "Reanchoring: adopting %llu (%+lld quanta)", (unsigned long long) candidate,
-                   (long long) (candidate - this->u_));
-        }
-        this->u_ = candidate;
-        this->anchor_(true, now);
-      }
-    }
-    return;
-  }
-
-  const float quantum = this->quantum_();
-  // Clamped so a long freeze cannot starve the CPU with an ever growing
-  // search window.
-  static constexpr uint64_t MAX_SEARCH_QUANTA = 100000;
-  uint64_t cap =
-      static_cast<uint64_t>(std::ceil(this->max_flow_ * (now - this->last_commit_ms_) / 1000.0f / quantum)) + 1;
-  cap = std::min(cap, MAX_SEARCH_QUANTA);
-  const uint64_t back = this->back_span_u_();
-  const uint64_t lo = this->u_ > back ? this->u_ - back : 0;
-
-  // The best candidate minimizes the joint dial error across all present
-  // wheels, preferring values close to the committed reading. The bounded
-  // backward window lets OCR jitter overshoots self-heal; real meters do
-  // not roll back beyond it.
-  const Wheel &finest = this->wheels_[0];
-  uint64_t u_star = this->u_;
-  bool found = false;
-  float best_err = 0.0f;
-  uint64_t best_dist = 0;
-  for (uint64_t c = lo; c <= this->u_ + cap; ++c) {
-    if (circdist(digit_of(c, 0), finest.result) > finest.tolerance)
-      continue;
-    if (!this->coarse_consistent_(c))
-      continue;
-    const float err = this->dial_error_(c);
-    const uint64_t dist = c >= this->u_ ? c - this->u_ : this->u_ - c;
-    if (!found || err < best_err || (err == best_err && dist < best_dist)) {
-      found = true;
-      best_err = err;
-      best_dist = dist;
-      u_star = c;
+void MeterReader::log_events_(const ::meter_reader_core::CycleResult &result) {
+  using ::meter_reader_core::EventKind;
+  for (size_t i = 0; i < result.event_count; ++i) {
+    const auto &e = result.events[i];
+    switch (e.kind) {
+      case EventKind::REANCHOR:
+        ESP_LOGW(TAG, "Reanchoring: adopting %llu (%+lld quanta)", (unsigned long long) e.a, (long long) e.b);
+        break;
+      case EventKind::DIVERGENT:
+        ESP_LOGE(TAG, "Dials inconsistent with reading for %u s: marking divergent", (unsigned) e.a);
+        break;
+      case EventKind::WHEEL_EXCLUDED:
+        ESP_LOGD(TAG, "Wheel L%d is outside tolerance for every candidate: ignored this cycle", (int) e.a);
+        break;
+      case EventKind::VETO:
+        ESP_LOGD(TAG, "Veto: no consistent value in [U-%llu, U+%llu]", (unsigned long long) e.a,
+                 (unsigned long long) e.b);
+        break;
+      case EventKind::PHANTOM:
+        ESP_LOGD(TAG, "Phantom pending value %llu rejected", (unsigned long long) e.a);
+        break;
     }
   }
+}
 
-  if (!found) {
-    this->rejected_++;
+void MeterReader::apply_(const ::meter_reader_core::CycleResult &result) {
+  if (result.reading_changed)
+    this->publish_reading_();
+  if (result.committed && this->consumption_sensor_ != nullptr && result.commit_dt_ms != 0) {
+    const double quantum = this->core_.quantum();
+    const double delta = (static_cast<double>(this->core_.u()) - static_cast<double>(result.prev_u)) * quantum;
+    this->consumption_sensor_->publish_state(static_cast<float>(delta / (result.commit_dt_ms / 1000.0)));
+  }
+  if (result.rejected_changed)
     this->publish_rejected_();
-    ESP_LOGD(TAG, "Veto: no consistent value in [U-%llu, U+%llu]", (unsigned long long) (this->u_ - lo),
-             (unsigned long long) cap);
-  } else {
-    if (this->has_pending_) {
-      const bool confirms = this->pending_u_ > this->u_ ? u_star >= this->pending_u_ : u_star <= this->pending_u_;
-      if (confirms) {
-        this->pending_confirmed_++;
-        if (this->pending_confirmed_ >= this->corroborations_)
-          this->commit_(this->pending_u_, now);
-      } else {
-        this->has_pending_ = false;
-        this->rejected_++;
-        this->publish_rejected_();
-        ESP_LOGD(TAG, "Phantom pending value %llu rejected", (unsigned long long) this->pending_u_);
-      }
-    }
-    if (!this->has_pending_ && u_star != this->u_) {
-      this->pending_u_ = u_star;
-      this->pending_confirmed_ = 0;
-      this->pending_ms_ = now;
-      this->has_pending_ = true;
-    }
+  if (result.status_changed)
+    this->publish_status_();
+  if (result.anchored)
+    ESP_LOGI(TAG, "Anchored at %.1f L", this->core_.reading_liters());
+  if (result.save) {
+    const uint64_t u = this->core_.u();
+    this->rtc_.save(&u);
+    // Without flush the value waits for the preferences syncer
+    // (flash_write_interval and shutdown).
+    if (result.flush)
+      global_preferences->sync();
   }
-
-  if (this->has_pending_ && now - this->pending_ms_ > this->pending_window_ms_)
-    this->has_pending_ = false;
-}
-
-void MeterReader::commit_(uint64_t u, uint32_t now) {
-  const uint32_t dt_ms = now - this->last_commit_ms_;
-  const float prev_liters = this->reading_liters_();
-  this->u_ = u;
-  this->has_pending_ = false;
-  this->last_commit_ms_ = now;
-  this->publish_reading_();
-  if (this->consumption_sensor_ != nullptr && dt_ms != 0) {
-    const float liters = this->reading_liters_();
-    this->consumption_sensor_->publish_state((liters - prev_liters) / (dt_ms / 1000.0f));
-  }
-  if (now - this->last_save_ms_ >= SAVE_INTERVAL_MS)
-    this->save_pref_(now);
-}
-
-void MeterReader::anchor_(bool jump, uint32_t now) {
-  this->anchored_ = true;
-  this->divergent_ = false;
-  this->inconsistent_since_ms_ = 0;
-  this->has_pending_ = false;
-  this->last_commit_ms_ = now;
-  this->publish_reading_();
-  this->update_status_();
-  ESP_LOGI(TAG, "Anchored at %.1f L", this->reading_liters_());
-  if (jump)
-    this->save_pref_(now, true);
 }
 
 void MeterReader::apply_rebase(float liters) {
-  if (this->wheels_.empty() || std::isnan(liters) || liters < 0.0f)
+  const auto result = this->core_.rebase(liters, millis());
+  if (!result.reading_changed)
     return;
-  const uint64_t u =
-      static_cast<uint64_t>(std::llround(static_cast<double>(liters) / static_cast<double>(this->quantum_())));
-  const uint32_t now = millis();
-  this->u_ = u;
-  this->has_pending_ = false;
-  this->divergent_ = false;
-  this->stale_ = false;
-  this->inconsistent_since_ms_ = 0;
-  this->anchored_ = true;
-  this->last_commit_ms_ = now;
-  this->publish_reading_();
-  this->update_status_();
-  this->save_pref_(now, true);
-  ESP_LOGI(TAG, "Rebased to %.1f L (%llu quanta)", static_cast<double>(liters), (unsigned long long) u);
-}
-
-void MeterReader::add_wheel(uint8_t level, float resolution, float tolerance, bool linear) {
-  if (level >= this->wheels_.size())
-    this->wheels_.resize(level + 1);
-  Wheel w{};
-  w.level = level;
-  w.resolution = resolution;
-  w.tolerance = tolerance;
-  w.linear = linear;
-  this->wheels_[level] = w;
-}
-
-float MeterReader::quantum_() const {
-  if (this->wheels_.empty())
-    return 0.0f;
-  return this->wheels_[0].resolution / 10.0f;
-}
-
-float MeterReader::reading_liters_() const {
-  return static_cast<float>(static_cast<double>(this->u_) * static_cast<double>(this->quantum_()));
-}
-
-uint64_t MeterReader::reanchor_span_u_() const {
-  const float quantum = this->quantum_();
-  if (quantum <= 0.0f)
-    return 0;
-  return static_cast<uint64_t>(std::ceil(this->reanchor_tolerance_ / quantum));
-}
-
-uint64_t MeterReader::back_span_u_() const {
-  const float quantum = this->quantum_();
-  if (quantum <= 0.0f)
-    return 0;
-  return static_cast<uint64_t>(std::ceil(this->back_tolerance_ / quantum));
-}
-
-float MeterReader::consistency_error_(uint64_t u) const {
-  float err = 0.0f;
-  for (const auto &w : this->wheels_) {
-    if (!w.present)
-      continue;
-    const float d = circdist(expected_of(u, w.level, w.linear), w.result);
-    if (d > err)
-      err = d;
-  }
-  return err;
-}
-
-float MeterReader::dial_error_(uint64_t u) const {
-  float err = 0.0f;
-  for (const auto &w : this->wheels_) {
-    if (!w.present)
-      continue;
-    err += circdist(expected_of(u, w.level, w.linear), w.result);
-  }
-  return err;
-}
-
-bool MeterReader::coarse_consistent_(uint64_t u) const {
-  for (const auto &w : this->wheels_) {
-    if (w.level == 0 || !w.present)
-      continue;
-    if (circdist(expected_of(u, w.level, w.linear), w.result) > w.tolerance)
-      return false;
-  }
-  return true;
-}
-
-bool MeterReader::consistent_(uint64_t u) const {
-  for (const auto &w : this->wheels_) {
-    if (!w.present)
-      continue;
-    if (circdist(expected_of(u, w.level, w.linear), w.result) > w.tolerance)
-      return false;
-  }
-  return true;
-}
-
-bool MeterReader::find_consistent_(uint64_t center, uint64_t span, uint64_t *out) const {
-  // Closest-first scan around the stored reading: the first consistent
-  // candidate is also the most conservative adoption.
-  for (uint64_t off = 0; off <= span; ++off) {
-    const uint64_t forward = center + off;
-    if (this->consistent_(forward)) {
-      *out = forward;
-      return true;
-    }
-    if (off > 0 && center >= off) {
-      const uint64_t backward = center - off;
-      if (this->consistent_(backward)) {
-        *out = backward;
-        return true;
-      }
-    }
-  }
-  return false;
+  this->apply_(result);
+  ESP_LOGI(TAG, "Rebased to %.1f L (%llu quanta)", static_cast<double>(liters), (unsigned long long) this->core_.u());
 }
 
 void MeterReader::publish_reading_() {
   if (this->reading_sensor_ != nullptr)
-    this->reading_sensor_->publish_state(this->reading_liters_());
+    this->reading_sensor_->publish_state(this->core_.reading_liters());
 }
 
 void MeterReader::publish_rejected_() {
   if (this->rejected_sensor_ != nullptr)
-    this->rejected_sensor_->publish_state(static_cast<float>(this->rejected_));
+    this->rejected_sensor_->publish_state(static_cast<float>(this->core_.rejected()));
 }
 
-void MeterReader::update_status_() {
-  ReaderStatus status = STATUS_ANCHORING;
-  if (this->anchored_) {
-    if (this->divergent_) {
-      status = STATUS_DIVERGENT;
-    } else if (this->stale_) {
-      status = STATUS_STALE;
-    } else {
-      status = STATUS_OK;
-    }
-  }
-  if (status == this->status_ && this->status_sensor_ != nullptr && this->status_sensor_->has_state())
-    return;
-  this->status_ = status;
+void MeterReader::publish_status_() {
   if (this->status_sensor_ != nullptr)
-    this->status_sensor_->publish_state(STATUS_STRINGS[status]);
-}
-
-// Without flush the value waits for the preferences syncer (flash_write_interval
-// and shutdown). Only explicit user or re-anchor jumps force a flash write.
-void MeterReader::save_pref_(uint32_t now, bool flush) {
-  this->last_save_ms_ = now;
-  this->rtc_.save(&this->u_);
-  if (flush)
-    global_preferences->sync();
+    this->status_sensor_->publish_state(STATUS_STRINGS[this->core_.status()]);
 }
 
 void MeterRebaseNumber::control(float value) {
@@ -435,14 +163,14 @@ void MeterRebaseNumber::control(float value) {
 
 void MeterReader::dump_config() {
   ESP_LOGCONFIG(TAG, "MeterReader:");
-  ESP_LOGCONFIG(TAG, "  Max flow: %.3f L/s", this->max_flow_);
-  ESP_LOGCONFIG(TAG, "  Corroborations: %u", this->corroborations_);
-  ESP_LOGCONFIG(TAG, "  Pending window: %.1f s", this->pending_window_ms_ / 1000.0f);
-  ESP_LOGCONFIG(TAG, "  Stale after: %.1f s", this->stale_after_ms_ / 1000.0f);
-  ESP_LOGCONFIG(TAG, "  Reanchor tolerance: %.1f L", this->reanchor_tolerance_);
-  ESP_LOGCONFIG(TAG, "  Back tolerance: %.1f L", this->back_tolerance_);
-  ESP_LOGCONFIG(TAG, "  Quantum: %g L", (double) this->quantum_());
-  for (const auto &w : this->wheels_) {
+  ESP_LOGCONFIG(TAG, "  Max flow: %.3f L/s", this->core_.params.max_flow);
+  ESP_LOGCONFIG(TAG, "  Corroborations: %u", this->core_.params.corroborations);
+  ESP_LOGCONFIG(TAG, "  Pending window: %.1f s", this->core_.params.pending_window_ms / 1000.0f);
+  ESP_LOGCONFIG(TAG, "  Stale after: %.1f s", this->core_.params.stale_after_ms / 1000.0f);
+  ESP_LOGCONFIG(TAG, "  Reanchor tolerance: %.1f L", this->core_.params.reanchor_tolerance);
+  ESP_LOGCONFIG(TAG, "  Back tolerance: %.1f L", this->core_.params.back_tolerance);
+  ESP_LOGCONFIG(TAG, "  Quantum: %g L", (double) this->core_.quantum());
+  for (const auto &w : this->core_.wheels()) {
     if (w.resolution == 0.0f)
       continue;  // unoccupied level slot
     ESP_LOGCONFIG(TAG, "  Wheel level %u: %.1f L/rev, tolerance %.2f", (unsigned) w.level, (double) w.resolution,

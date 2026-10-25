@@ -326,6 +326,25 @@
                 ./ir_toggle_state_test
                 touch "$out"
               '';
+
+          test-meter-reader =
+            pkgs.runCommand "check-test-meter-reader"
+              {
+                nativeBuildInputs = [ pkgs.stdenv.cc ];
+                src = lib.fileset.toSource {
+                  root = ./.;
+                  fileset = lib.fileset.unions [
+                    ./components/meter_reader/reader_core.h
+                    ./components/meter_reader/tests/reader_core_test.cpp
+                  ];
+                };
+              }
+              ''
+                g++ -std=c++17 -Wall -Wextra -Werror \
+                  -o reader_core_test "$src/components/meter_reader/tests/reader_core_test.cpp"
+                ./reader_core_test
+                touch "$out"
+              '';
         }
       );
 
