@@ -16,6 +16,23 @@ esphome:
   project:
     name: "siku2.workshop-lock"
     version: "0.1.0"
+  on_boot:
+  - priority: -100
+    then:
+    # The firmware cannot sense the latch, so drive it to the last commanded state
+    - if:
+        condition:
+          lambda: !lambda "return id(lock_locked);"
+        then:
+        - lock.lock: "lock_main"
+        else:
+        - lock.unlock: "lock_main"
+
+globals:
+- id: "lock_locked"
+  type: "bool"
+  restore_value: true
+  initial_value: "true"
 
 esp32:
   board: "esp32dev"
@@ -84,11 +101,17 @@ lock:
   optimistic: true
   lock_action:
     then:
+    - globals.set:
+        id: "lock_locked"
+        value: "true"
     - servo.write:
         id: "servo_main"
         level: !lambda "return id(num_locked).state / 100.0;"
   unlock_action:
     then:
+    - globals.set:
+        id: "lock_locked"
+        value: "false"
     - servo.write:
         id: "servo_main"
         level: !lambda "return id(num_unlocked).state / 100.0;"
