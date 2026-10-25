@@ -13,7 +13,6 @@ packages:
       initial_mixing_valve_closed: "0.55"
       initial_mixing_valve_open: "2.49"
 
-      api_encryption_key: !secret catuai_api_encryption_key
   bluetooth_proxy: !include ../base/bluetooth_proxy.yaml
 
 esphome:

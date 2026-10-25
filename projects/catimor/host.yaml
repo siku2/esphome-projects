@@ -6,3 +6,7 @@ packages:
     file: ../../boards/m5stack/cores3_lite_host.yaml
   covers: !include covers_sim.yaml
   ha_inputs: !include ha_inputs_sim.yaml
+
+api:
+  encryption:
+    key: "${api_encryption_key}"

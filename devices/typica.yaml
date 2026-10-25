@@ -5,5 +5,3 @@ packages:
       name: "bean-typica"
       friendly_name: "Durchflussmesser"
       language: "de"
-
-      api_encryption_key: !secret typica_api_encryption_key

@@ -9,8 +9,6 @@ packages:
       unterstand_device_id: "unterstand_device"
       garage_device_id: "garage_device"
 
-      api_encryption_key: !secret harrar_api_encryption_key
-
 esphome:
   areas:
   - id: "area_shelter"

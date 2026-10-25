@@ -5,5 +5,3 @@ packages:
       name: "bean-pacamara"
       friendly_name: "Bastelraum Tor"
       language: "de"
-
-      api_encryption_key: !secret pacamara_api_encryption_key

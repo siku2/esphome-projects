@@ -11,8 +11,6 @@ substitutions:
         restart_reason: "Neustart Grund"
         cpu_temperature: "CPU Temperatur"
         nvs_usage: "NVS Belegung"
-        wifi_migration: "WLAN-Migration"
-        api_key_migration: "API-Schlüssel-Migration"
 
       en:
         restart: "Restart"
@@ -22,12 +20,9 @@ substitutions:
         restart_reason: "Restart Reason"
         cpu_temperature: "CPU Temperature"
         nvs_usage: "NVS Usage"
-        wifi_migration: "WiFi Migration"
-        api_key_migration: "API Key Migration"
 
 api:
-  encryption:
-    key: "${api_encryption_key}"
+  encryption: {}
 
 debug:
   update_interval: "never"

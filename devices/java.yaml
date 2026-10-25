@@ -7,7 +7,6 @@ packages:
       language: "de"
       receiver_device_id: "receiver_device"
 
-      api_encryption_key: !secret java_api_encryption_key
   bluetooth_proxy: !include ../base/bluetooth_proxy.yaml
 
 esphome:

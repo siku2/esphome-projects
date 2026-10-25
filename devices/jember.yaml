@@ -1,5 +1,4 @@
 substitutions:
-  api_encryption_key: !secret jember_api_encryption_key
   language: "de"
 
 packages:

@@ -7,3 +7,7 @@ packages:
   ha_actions: !include ha_actions_sim.yaml
 
 host: {}
+
+api:
+  encryption:
+    key: "${api_encryption_key}"

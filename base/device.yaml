@@ -1,22 +1,36 @@
 packages:
   common: !include common.yaml
-  wifi_migration: !include wifi_migration.yaml
-  api_key_migration: !include api_key_migration.yaml
 
 esphome:
   includes:
   - "<nvs.h>"
+  on_boot:
+  - priority: -100
+    then:
+    # Plaintext uploads need the API key as password, unprovisioned devices take none
+    - lambda: !lambda |-
+        noise::psk_t psk;
+        if (api::load_saved_noise_psk(psk)) {
+          id(base_ota).set_auth_password(format_hex(psk.data(), psk.size()));
+        } else {
+          char random[33];
+          snprintf(random, sizeof(random), "%08" PRIx32 "%08" PRIx32 "%08" PRIx32 "%08" PRIx32, random_uint32(),
+                   random_uint32(), random_uint32(), random_uint32());
+          id(base_ota).set_auth_password(random);
+        }
 
 ota:
 - id: "base_ota"
   platform: "esphome"
-  encryption: {}
+  password: ""
 
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
-  domain: !secret wifi_domain
   fast_connect: true
+
+improv_serial:
+
+provisioning:
+  timeout: "15min"
 
 sensor:
 - id: "base_wifi_signal"

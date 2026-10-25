@@ -1,5 +1,4 @@
 substitutions:
-  api_encryption_key: !secret arusha_api_encryption_key
   language: "de"
 
 packages:

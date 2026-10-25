@@ -6,8 +6,6 @@ packages:
       friendly_name: "Regenwasserzähler"
       language: "de"
 
-      api_encryption_key: !secret malabar_api_encryption_key
-
       aqdig_crop_10000:
         top_left:
           x: 53

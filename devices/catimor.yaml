@@ -12,8 +12,6 @@ packages:
       cover_south_device_id: "cover_south_device"
       climate_id: "climate.midea_ac_16492674468636"
 
-      api_encryption_key: !secret catimor_api_encryption_key
-
 esphome:
   areas:
   - id: "area_room_simon"

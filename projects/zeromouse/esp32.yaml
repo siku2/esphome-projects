@@ -1,6 +1,4 @@
 substitutions:
-  api_encryption_key: "" # REQUIRED!
-
   name: "zeromouse"
   friendly_name: "ZeroMOUSE"
   language: "en"

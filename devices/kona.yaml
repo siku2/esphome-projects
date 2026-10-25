@@ -6,8 +6,6 @@ packages:
       friendly_name: "Wasserzähler"
       language: "de"
 
-      api_encryption_key: !secret kona_api_encryption_key
-
       aqdig_crop_10000:
         top_left:
           x: 165
