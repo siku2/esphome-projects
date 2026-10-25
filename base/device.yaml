@@ -1,6 +1,7 @@
 packages:
   common: !include common.yaml
   wifi_migration: !include wifi_migration.yaml
+  api_key_migration: !include api_key_migration.yaml
 
 esphome:
   includes:
