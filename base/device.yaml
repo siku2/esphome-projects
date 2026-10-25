@@ -7,7 +7,7 @@ esphome:
   on_boot:
   - priority: -100
     then:
-    # Plaintext uploads need the API key as password, unprovisioned devices take none
+    # Plaintext uploads need the API key as password. Without a key, a random one blocks them
     - lambda: !lambda |-
         noise::psk_t psk;
         if (api::load_saved_noise_psk(psk)) {
