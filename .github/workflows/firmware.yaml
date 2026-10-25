@@ -47,6 +47,8 @@ jobs:
       with:
         persist-credentials: false
     - uses: "cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b" # 31.11.3
+    # The ESPHome FHS environment runs in bubblewrap, which needs unprivileged user namespaces
+    - run: "sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0"
     - uses: "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9" # v6.1.0
       with:
         path: "~/.platformio"
@@ -58,12 +60,12 @@ jobs:
         restore-keys: "esphome-${{ matrix.device }}-${{ hashFiles('flake.lock') }}-"
     - id: "version"
       run: |
-        version="$(nix develop --command .github/scripts/firmware-version.sh "${DEVICE}")"
+        version="$(nix shell .#esphome --command .github/scripts/firmware-version.sh "${DEVICE}")"
         echo "version=${version}" >> "${GITHUB_OUTPUT}"
     - env:
         VERSION: "${{ steps.version.outputs.version }}"
       run: |
-        nix develop --command esphome -s firmware_version "${VERSION}" compile "devices/${DEVICE}.yaml"
+        nix shell .#esphome --command esphome -s firmware_version "${VERSION}" compile "devices/${DEVICE}.yaml"
         .github/scripts/package-firmware.sh "${DEVICE}" "${VERSION}" public
     - uses: "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9" # v7.0.2
       with:
