@@ -1,9 +1,16 @@
 packages:
   common: !include common.yaml
 
+substitutions:
+  components_source:
+    type: "local"
+    path: "../components"
+
+external_components:
+- source: "${components_source}"
+  components: ["nvs_usage"]
+
 esphome:
-  includes:
-  - "<nvs.h>"
   on_boot:
   - priority: -100
     then:
@@ -85,20 +92,9 @@ sensor:
 
 - id: "base_nvs_usage"
   name: "${i18n.base[language].nvs_usage}"
-  entity_category: "DIAGNOSTIC"
-  unit_of_measurement: "%"
-  state_class: "measurement"
-  icon: "mdi:database"
-  accuracy_decimals: 0
   filters:
   # Only send significant changes or every 24h
   - or:
     - throttle: "24h"
     - delta: 5.0
-  platform: "template"
-  update_interval: "1h"
-  lambda: !lambda |-
-    nvs_stats_t stats;
-    if (nvs_get_stats(nullptr, &stats) != ESP_OK || stats.total_entries == 0)
-      return NAN;
-    return 100.0f * stats.used_entries / stats.total_entries;
+  platform: "nvs_usage"
