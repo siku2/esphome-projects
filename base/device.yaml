@@ -2,6 +2,10 @@ packages:
   common: !include common.yaml
   wifi_migration: !include wifi_migration.yaml
 
+esphome:
+  includes:
+  - "<nvs.h>"
+
 ota:
 - id: "base_ota"
   platform: "esphome"
@@ -37,3 +41,18 @@ sensor:
   - or:
     - throttle: "24h"
     - delta: 5.0
+
+- id: "base_nvs_usage"
+  name: "${i18n.base[language].nvs_usage}"
+  entity_category: "DIAGNOSTIC"
+  unit_of_measurement: "%"
+  state_class: "measurement"
+  icon: "mdi:database"
+  accuracy_decimals: 0
+  platform: "template"
+  update_interval: "1h"
+  lambda: !lambda |-
+    nvs_stats_t stats;
+    if (nvs_get_stats(nullptr, &stats) != ESP_OK || stats.total_entries == 0)
+      return NAN;
+    return 100.0f * stats.used_entries / stats.total_entries;
