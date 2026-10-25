@@ -226,8 +226,14 @@
       formatter = forSystems ({ treefmt, ... }: treefmt.config.build.wrapper);
 
       packages = forSystems (
-        { esphomeSim, esphomeProvision, ... }:
         {
+          esphome,
+          esphomeSim,
+          esphomeProvision,
+          ...
+        }:
+        {
+          inherit esphome;
           esphome-sim = esphomeSim;
           esphome-provision = esphomeProvision;
         }
