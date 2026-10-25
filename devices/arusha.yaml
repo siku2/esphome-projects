@@ -12,10 +12,11 @@ packages:
       device_id: "rwt_device"
       adc_pin: "GPIO35"
       attenuation: "12db"
-      samples: 255
-      sample_interval: "5s"
-      window_size: 60
-      send_every: 12
+      # Average out mains hum on the long cable. 33 ms is not a multiple of the 20 ms period.
+      samples: 16
+      sample_interval: "33ms"
+      average_interval: "60s"
+      window_size: 5
       voltage_max: 4.0
       fill_level_internal: true
       initial_voltage_empty: 0.63

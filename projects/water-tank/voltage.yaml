@@ -6,10 +6,11 @@ sensor:
   accuracy_decimals: 3
   entity_category: "DIAGNOSTIC"
   filters:
+  - throttle_average: "${average_interval}"
   - sliding_window_moving_average:
       window_size: "${window_size}"
-      send_every: "${send_every}"
-      send_first_at: "${send_every}"
+      send_every: 1
+      send_first_at: 1
   - delta: 0.0005
   - round: 3
   - timeout:

@@ -14,8 +14,8 @@ packages:
       attenuation: "6db"
       samples: 10
       sample_interval: "1s"
-      window_size: 60
-      send_every: 30
+      average_interval: "30s"
+      window_size: 2
       voltage_max: 1.8
       fill_level_internal: false
       initial_voltage_empty: 0.234
@@ -30,8 +30,8 @@ packages:
       attenuation: "6db"
       samples: 10
       sample_interval: "1s"
-      window_size: 60
-      send_every: 30
+      average_interval: "30s"
+      window_size: 2
       voltage_max: 1.8
       fill_level_internal: true
       initial_voltage_empty: 0.108
