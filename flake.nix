@@ -125,6 +125,7 @@
             ps.aioesphomeapi
             ps.aiohttp
             ps.cryptography
+            esphomeUnwrapped
             ps.mypy
             ps.pyserial
             ps.pytest
@@ -181,6 +182,7 @@
               python.pkgs.aioesphomeapi
               python.pkgs.aiohttp
               python.pkgs.cryptography
+              esphomeUnwrapped
               python.pkgs.pyserial
               python.pkgs.pyyaml
             ];

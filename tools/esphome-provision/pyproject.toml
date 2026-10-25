@@ -7,7 +7,7 @@ name = "esphome-provision"
 version = "0.1.0"
 description = "Install ESPHome firmware on ESP32 devices with a verified backup and provision them"
 requires-python = ">=3.13"
-dependencies = ["aiohttp", "aioesphomeapi", "cryptography", "pyserial", "PyYAML"]
+dependencies = ["aiohttp", "aioesphomeapi", "cryptography", "esphome", "pyserial", "PyYAML"]
 
 [project.scripts]
 esphome-provision = "esphome_provision.cli:main"

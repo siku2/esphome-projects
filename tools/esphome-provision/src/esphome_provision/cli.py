@@ -4,6 +4,7 @@
   install  Backup, then erase and write the firmware, set up Wi-Fi and provision.
   restore  Write a backup (or a raw image) back to the chip.
   logs     Stream the log of an installed device.
+  upload   Upload a firmware image to an installed device over the air.
   ha       Log in to or out of Home Assistant.
 
 Profiles add project specific checks, steps and commands, for example
@@ -21,7 +22,7 @@ example from Home Assistant, the commands for installed devices look for it in
 this order: --api-key, ESPHOME_API_KEY, then Home Assistant. Give its address
 with --ha-url or ESPHOME_PROVISION_HA_URL. Log in once with "ha login", or set
 ESPHOME_PROVISION_HA_TOKEN to a long-lived token. Only "install --resume",
-"logs" and the profile commands read the key from Home Assistant.
+"logs", "upload" and the profile commands read the key from Home Assistant.
 """
 
 import argparse
@@ -31,7 +32,7 @@ import shlex
 import sys
 from pathlib import Path
 
-from esphome_provision import api, flasher, ha, logs
+from esphome_provision import api, flasher, ha, logs, upload
 from esphome_provision.common import KEY_ENV, MAC, ProvisionError
 from esphome_provision.firmware import (
     Firmware,
@@ -396,6 +397,7 @@ def build_parser() -> argparse.ArgumentParser:
     restore.set_defaults(handler=cmd_restore)
 
     logs.add_command(commands)
+    upload.add_command(commands)
     ha.add_command(commands)
     for profile in profiles.values():
         profile.add_subcommands(commands)
