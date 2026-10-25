@@ -5,6 +5,7 @@ external_components:
 time:
 - id: "zm_sntp"
   platform: "sntp"
+  timezone: "${timezone}"
 
 zeromouse:
   id: "zm_controller"
