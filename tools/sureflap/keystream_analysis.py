@@ -135,22 +135,26 @@ def main():
 
     linear_hits = 0
 
+    # Read every pcap as one continuous timeline. The recorder rotates files
+    # hourly, so a session can start in one file and finish in the next. Parsing
+    # files separately would drop those split sessions.
+    msgs = []
+    for path in args.pcaps:
+        try:
+            msgs.extend(decode.read_pcap(path))
+        except Exception as e:
+            print(f"skip {path}: {e}", file=sys.stderr)
+
     samples = []  # (nonce_bytes, {offset: ks_byte})
     nonce_seen = {}
     inconsistent = 0
-    for path in args.pcaps:
-        try:
-            msgs = decode.read_pcap(path)
-        except Exception as e:
-            print(f"skip {path}: {e}", file=sys.stderr)
-            continue
-        for nonce, enc in sessions_with_nonce(msgs):
-            ks, ok = recover_keystream_bytes(enc)
-            if not ok:
-                inconsistent += 1
-            if ks:
-                samples.append((nonce, ks))
-                nonce_seen.setdefault(nonce, []).append(ks)
+    for nonce, enc in sessions_with_nonce(msgs):
+        ks, ok = recover_keystream_bytes(enc)
+        if not ok:
+            inconsistent += 1
+        if ks:
+            samples.append((nonce, ks))
+            nonce_seen.setdefault(nonce, []).append(ks)
 
     print(f"sessions with recovered keystream bytes: {len(samples)}")
     print(f"sessions with within-session crib disagreement: {inconsistent}")
