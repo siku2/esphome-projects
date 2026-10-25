@@ -23,7 +23,10 @@ Usage:
 """
 
 import argparse
+import glob
+import os
 import sys
+import time
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import decode  # noqa: E402
@@ -108,14 +111,29 @@ def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("pcaps", nargs="+")
+    parser.add_argument("pcaps", nargs="*")
     parser.add_argument(
         "--holdout",
         type=float,
         default=0.3,
         help="fraction of sessions held out for validation",
     )
+    parser.add_argument(
+        "--watch",
+        metavar="DIR",
+        help="scan all pcaps under DIR, append a summary to DIR/keystream-watch.log, "
+        "and touch DIR/KEYSTREAM-LINEAR-HIT if any keystream bit looks linear",
+    )
     args = parser.parse_args()
+
+    if args.watch:
+        args.pcaps = sorted(
+            glob.glob(os.path.join(args.watch, "**", "*.pcap"), recursive=True)
+        )
+    if not args.pcaps:
+        parser.error("no pcaps given (pass files or --watch DIR)")
+
+    linear_hits = 0
 
     samples = []  # (nonce_bytes, {offset: ks_byte})
     nonce_seen = {}
@@ -180,12 +198,30 @@ def main():
                 feat = sum(b << i for i, b in enumerate(bits_lsb(s))) | (1 << 128)
                 correct += predict(w, feat) == ((ks[off] >> bit) & 1)
             acc = correct / len(te)
+            if acc > 0.95:
+                linear_hits += 1
             flag = (
                 "  <== LINEAR" if acc > 0.95 else ("" if acc < 0.7 else "  (partial)")
             )
             print(
                 f"  offset {off} bit {bit}: holdout accuracy {acc:.2f} on {len(te)} sessions{flag}"
             )
+
+    summary = f"SUMMARY sessions={len(samples)} distinct_nonces={len(nonce_seen)} linear_bits={linear_hits}"
+    print("\n" + summary)
+
+    if args.watch:
+        with open(os.path.join(args.watch, "keystream-watch.log"), "a") as f:
+            f.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} {summary}\n")
+        flag_path = os.path.join(args.watch, "KEYSTREAM-LINEAR-HIT")
+        if linear_hits:
+            with open(flag_path, "w") as f:
+                f.write(summary + "\n")
+        elif os.path.exists(flag_path):
+            os.remove(flag_path)
+
+    if linear_hits:
+        sys.exit(10)
 
 
 if __name__ == "__main__":
