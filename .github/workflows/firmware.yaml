@@ -15,7 +15,7 @@ concurrency:
 jobs:
   devices:
     name: "List devices"
-    runs-on: "ubuntu-24.04"
+    runs-on: "ubuntu-26.04"
     permissions:
       contents: "read"
     outputs:
@@ -33,7 +33,7 @@ jobs:
   build:
     name: "Build ${{ matrix.device }}"
     needs: "devices"
-    runs-on: "ubuntu-24.04"
+    runs-on: "ubuntu-26.04"
     permissions:
       contents: "read"
     strategy:
@@ -76,7 +76,7 @@ jobs:
     name: "Publish to GitHub Pages"
     if: "github.event_name != 'pull_request' && github.ref == 'refs/heads/main'"
     needs: "build"
-    runs-on: "ubuntu-24.04"
+    runs-on: "ubuntu-26.04"
     # deploy-pages publishes the site and proves the run's identity with an OIDC token
     permissions:
       pages: "write"
