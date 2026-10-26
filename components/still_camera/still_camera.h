@@ -19,6 +19,9 @@
 #ifdef USE_I2C
 #include "esphome/components/i2c/i2c_bus.h"
 #endif
+#ifdef USE_SWITCH
+#include "esphome/components/switch/switch.h"
+#endif
 
 #include "camera_image.h"
 #include "frame.h"
@@ -39,6 +42,14 @@ class BeforeCaptureDoneAction : public Action<> {
  protected:
   StillCamera *parent_;
 };
+
+#ifdef USE_SWITCH
+/// Turns the boxes and labels of the preview on or off.
+class OverlaySwitch : public switch_::Switch, public Parented<StillCamera> {
+ protected:
+  void write_state(bool state) override;
+};
+#endif
 
 /// Takes one RGB565 frame per capture and hands it to the processors in a worker task. Serves the last frame with
 /// the processors' overlays as JPEG when a client asks for an image.
@@ -73,6 +84,12 @@ class StillCamera final : public camera::Camera {
   void set_agc_auto(bool enabled) { this->agc_auto_ = enabled; }
   void set_agc_value(uint8_t value) { this->agc_value_ = value; }
   void set_wb_mode(uint8_t mode) { this->wb_mode_ = mode; }
+
+#ifdef USE_SWITCH
+  void set_overlay_switch(OverlaySwitch *overlay_switch) { this->overlay_switch_ = overlay_switch; }
+#endif
+  /// Main loop only. Redraws the preview of the current frame with or without the overlays.
+  void set_overlay_enabled(bool enabled);
 
   Trigger<> *get_before_capture_trigger() { return &this->before_capture_; }
   Action<> *get_before_capture_done_action() { return &this->before_capture_done_; }
@@ -112,24 +129,26 @@ class StillCamera final : public camera::Camera {
 
  protected:
   enum class State : uint8_t { IDLE, PREPARING, CAPTURING, PROCESSING };
-  enum class JobKind : uint8_t { CAPTURE, SERVE_IMAGE };
+  enum class JobKind : uint8_t { CAPTURE, SERVE_IMAGE, REDRAW_IMAGE };
   enum class EventKind : uint8_t { CAPTURED, CAPTURE_FAILED, PROCESSED, IMAGE };
 
   struct Event {
     EventKind kind{EventKind::CAPTURED};
-    std::shared_ptr<camera::CameraImage> image;
+    std::shared_ptr<JpegBuffer> jpeg;
+    uint8_t requesters{0};
   };
 
   static void worker_task_(void *arg);
   void run_worker_();
   void run_cycle_();
-  void serve_image_();
+  void serve_image_(bool force = false);
+  void deliver_image_(const std::shared_ptr<JpegBuffer> &jpeg, uint8_t requesters);
   std::shared_ptr<JpegBuffer> encode_jpeg_();
   void run_requested_capture_();
   void release_frame_();
   void apply_sensor_settings_();
   void handle_event_(Event event);
-  void post_event_(EventKind kind, std::shared_ptr<camera::CameraImage> image = nullptr);
+  void post_event_(EventKind kind, std::shared_ptr<JpegBuffer> jpeg = nullptr, uint8_t requesters = 0);
 
   camera_config_t config_{};
   Rotation rotation_{Rotation::ROTATE_0};
@@ -164,8 +183,17 @@ class StillCamera final : public camera::Camera {
   TaskHandle_t task_{nullptr};
   task_util::TaskInbox<JobKind> jobs_{4};
   task_util::LoopInbox<Event> events_{this, 8};
+#ifdef USE_SWITCH
+  OverlaySwitch *overlay_switch_{nullptr};
+#endif
+  // Main loop only. The last JPEG the worker produced.
+  std::shared_ptr<JpegBuffer> cached_jpeg_;
+  // Requesters that still wait for a JPEG because none was cached when they asked.
   std::atomic<uint8_t> single_requesters_{0};
   std::atomic<uint8_t> stream_requesters_{0};
+  // Set by every request and stream start. The next cycle then encodes a fresh JPEG.
+  std::atomic<bool> preview_wanted_{false};
+  std::atomic<bool> overlay_enabled_{true};
 
   // Worker task only.
   camera_fb_t *fb_{nullptr};

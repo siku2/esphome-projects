@@ -29,6 +29,7 @@ class JpegImage : public camera::CameraImage {
   JpegImage(std::shared_ptr<JpegBuffer> buffer, uint8_t requesters)
       : buffer_(std::move(buffer)), requesters_(requesters) {}
 
+  const std::shared_ptr<JpegBuffer> &buffer() const { return this->buffer_; }
   uint8_t *get_data_buffer() override { return this->buffer_->data(); }
   size_t get_data_length() override { return this->buffer_->length(); }
   bool was_requested_by(camera::CameraRequester requester) const override {

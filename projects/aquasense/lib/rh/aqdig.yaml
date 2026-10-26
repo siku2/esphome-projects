@@ -112,7 +112,7 @@ sensor:
   crop: "${aqdig_crop_0001}"
   interpreter: "aqdig_analog_interpreter"
   output_format: "analog_continuous_cw"
-  min_fit: "60%"
+  min_fit: "85%"
   max_update_interval: "0s"
 
 - <<: *aqdig_0001

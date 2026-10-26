@@ -17,7 +17,7 @@ namespace esphome::still_camera {
 static const char *const TAG = "still_camera";
 static constexpr uint32_t WORKER_STACK_SIZE = 8192;
 static constexpr UBaseType_t WORKER_PRIORITY = 1;
-static constexpr BaseType_t WORKER_CORE = 1;
+static constexpr BaseType_t WORKER_CORE = 0;
 static constexpr size_t JPEG_INITIAL_CAPACITY = 64 * 1024;
 
 struct JpegSink {
@@ -47,6 +47,13 @@ static size_t write_jpeg_chunk(void *arg, size_t index, const void *data, size_t
 }
 
 void BeforeCaptureDoneAction::play() { this->parent_->on_before_capture_done(); }
+
+#ifdef USE_SWITCH
+void OverlaySwitch::write_state(bool state) {
+  this->parent_->set_overlay_enabled(state);
+  this->publish_state(state);
+}
+#endif
 
 StillCamera::StillCamera() {
   this->config_.pin_pwdn = -1;
@@ -113,6 +120,14 @@ void StillCamera::setup() {
   }
   this->jobs_.set_task(this->task_);
   this->disable_loop();
+
+#ifdef USE_SWITCH
+  if (this->overlay_switch_ != nullptr) {
+    const bool enabled = this->overlay_switch_->get_initial_state_with_restore_mode().value_or(true);
+    this->overlay_enabled_ = enabled;
+    this->overlay_switch_->publish_state(enabled);
+  }
+#endif
 
   if (this->update_interval_ != SCHEDULER_DONT_RUN)
     this->set_interval("capture", this->update_interval_, [this]() { this->capture(); });
@@ -198,7 +213,7 @@ void StillCamera::capture() {
   if (this->is_failed())
     return;
   if (this->state_ != State::IDLE) {
-    ESP_LOGW(TAG, "A capture is still running, skipping this one");
+    this->capture_again_ = true;
     return;
   }
   this->state_ = State::PREPARING;
@@ -271,18 +286,38 @@ void StillCamera::handle_event_(Event event) {
       this->run_requested_capture_();
       break;
     case EventKind::IMAGE:
-      for (auto *listener : this->listeners_)
-        listener->on_camera_image(event.image);
+      this->cached_jpeg_ = event.jpeg;
+      if (event.requesters != 0)
+        this->deliver_image_(event.jpeg, event.requesters);
       break;
   }
 }
 
-void StillCamera::post_event_(EventKind kind, std::shared_ptr<camera::CameraImage> image) {
-  if (!this->events_.post(Event{kind, std::move(image)}))
+void StillCamera::post_event_(EventKind kind, std::shared_ptr<JpegBuffer> jpeg, uint8_t requesters) {
+  if (!this->events_.post(Event{kind, std::move(jpeg), requesters}))
     ESP_LOGW(TAG, "Dropped an event because the main loop is busy");
 }
 
+void StillCamera::deliver_image_(const std::shared_ptr<JpegBuffer> &jpeg, uint8_t requesters) {
+  auto image = std::make_shared<JpegImage>(jpeg, requesters);
+  for (auto *listener : this->listeners_)
+    listener->on_camera_image(image);
+}
+
+void StillCamera::set_overlay_enabled(bool enabled) {
+  if (this->overlay_enabled_.exchange(enabled) == enabled)
+    return;
+  this->cached_jpeg_.reset();
+  if (this->task_ != nullptr)
+    this->jobs_.post(JobKind::REDRAW_IMAGE);
+}
+
 void StillCamera::request_image(camera::CameraRequester requester) {
+  this->preview_wanted_ = true;
+  if (this->cached_jpeg_) {
+    this->defer([this, jpeg = this->cached_jpeg_, requester]() { this->deliver_image_(jpeg, 1U << requester); });
+    return;
+  }
   this->single_requesters_ |= (1U << requester);
   this->jobs_.post(JobKind::SERVE_IMAGE);
 }
@@ -291,6 +326,11 @@ void StillCamera::start_stream(camera::CameraRequester requester) {
   for (auto *listener : this->listeners_)
     listener->on_stream_start();
   this->stream_requesters_ |= (1U << requester);
+  this->preview_wanted_ = true;
+  if (this->cached_jpeg_) {
+    this->defer([this, jpeg = this->cached_jpeg_, requester]() { this->deliver_image_(jpeg, 1U << requester); });
+    return;
+  }
   this->jobs_.post(JobKind::SERVE_IMAGE);
 }
 
@@ -309,10 +349,18 @@ void StillCamera::run_worker_() {
       this->jobs_.wait();
       continue;
     }
-    if (job == JobKind::CAPTURE)
-      this->run_cycle_();
-    else
-      this->serve_image_();
+    switch (job) {
+      case JobKind::CAPTURE:
+        this->run_cycle_();
+        break;
+      case JobKind::SERVE_IMAGE:
+        this->serve_image_();
+        break;
+      case JobKind::REDRAW_IMAGE:
+        this->jpeg_.reset();
+        this->serve_image_(true);
+        break;
+    }
   }
 }
 
@@ -367,18 +415,19 @@ void StillCamera::run_cycle_() {
   this->serve_image_();
 }
 
-void StillCamera::serve_image_() {
+void StillCamera::serve_image_(bool force) {
   if (!this->frame_.has_value())
     return;
   const uint8_t single = this->single_requesters_.exchange(0);
   const uint8_t requesters = single | this->stream_requesters_;
-  if (requesters == 0)
+  const bool wanted = this->preview_wanted_.exchange(false);
+  if (!force && !wanted && requesters == 0)
     return;
   if (!this->jpeg_)
     this->jpeg_ = this->encode_jpeg_();
   if (!this->jpeg_)
     return;
-  this->post_event_(EventKind::IMAGE, std::make_shared<JpegImage>(this->jpeg_, requesters));
+  this->post_event_(EventKind::IMAGE, this->jpeg_, requesters);
 }
 
 std::shared_ptr<JpegBuffer> StillCamera::encode_jpeg_() {
@@ -395,7 +444,8 @@ std::shared_ptr<JpegBuffer> StillCamera::encode_jpeg_() {
       return nullptr;
     }
   }
-  render_overlays(frame, this->overlays_, this->render_buffer_);
+  static const std::vector<Overlay> NO_OVERLAYS;
+  render_overlays(frame, this->overlay_enabled_ ? this->overlays_ : NO_OVERLAYS, this->render_buffer_);
 
   JpegSink sink;
   sink.data = static_cast<uint8_t *>(heap_caps_malloc(JPEG_INITIAL_CAPACITY, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));

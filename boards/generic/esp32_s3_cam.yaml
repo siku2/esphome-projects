@@ -14,6 +14,7 @@
 # ### Still Camera
 #
 # - `e32s3cam_camera`: The camera component.
+# - `e32s3cam_camera_overlay`: Switch for the boxes and labels in the preview.
 #
 # ### I2C
 #
@@ -29,10 +30,12 @@ substitutions:
     e32s3cam:
       de:
         camera: "Kamera"
+        camera_overlay: "Overlay"
         flash: "Blitzlicht"
 
       en:
         camera: "Camera"
+        camera_overlay: "Overlay"
         flash: "Flash"
 
 # ESP32-S3 peripherals
@@ -80,6 +83,9 @@ still_camera:
     pin: "GPIO15"
     frequency: "20MHz"
   i2c_id: "e32s3cam_i2c"
+  overlay:
+    id: "e32s3cam_camera_overlay"
+    name: "${i18n.e32s3cam[language].camera_overlay}"
 
 light:
 - id: "e32s3cam_flash"

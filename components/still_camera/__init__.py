@@ -3,7 +3,7 @@ from typing import Any
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation, pins
-from esphome.components import i2c
+from esphome.components import i2c, switch
 from esphome.components.esp32 import add_idf_component, add_idf_sdkconfig_option
 from esphome.const import (
     CONF_BRIGHTNESS,
@@ -19,11 +19,12 @@ from esphome.const import (
     CONF_SDA,
     CONF_UPDATE_INTERVAL,
     CONF_VSYNC_PIN,
+    ENTITY_CATEGORY_CONFIG,
 )
 from esphome.core.entity_helpers import setup_entity
 from esphome.types import ConfigType
 
-AUTO_LOAD = ["camera", "task_util"]
+AUTO_LOAD = ["camera", "switch", "task_util"]
 DEPENDENCIES = ["esp32", "psram"]
 
 CONF_HREF_PIN = "href_pin"
@@ -45,10 +46,14 @@ CONF_WB_MODE = "wb_mode"
 CONF_BEFORE_CAPTURE = "before_capture"
 CONF_AFTER_CAPTURE = "after_capture"
 CONF_ON_CYCLE_END = "on_cycle_end"
+CONF_OVERLAY = "overlay"
 
 still_camera_ns = cg.esphome_ns.namespace("still_camera")
 Camera = cg.esphome_ns.namespace("camera").class_("Camera", cg.EntityBase, cg.Component)
 StillCamera = still_camera_ns.class_("StillCamera", Camera)
+OverlaySwitch = still_camera_ns.class_(
+    "OverlaySwitch", switch.Switch, cg.Parented.template(StillCamera)
+)
 FrameProcessor = still_camera_ns.class_("FrameProcessor")
 Rotation = still_camera_ns.enum("Rotation", is_class=True)
 CaptureAction = still_camera_ns.class_("CaptureAction", automation.Action)
@@ -154,6 +159,12 @@ CONFIG_SCHEMA = cv.All(
                 single=True
             ),
             cv.Optional(CONF_ON_CYCLE_END): automation.validate_automation(single=True),
+            cv.Optional(CONF_OVERLAY): switch.switch_schema(
+                OverlaySwitch,
+                entity_category=ENTITY_CATEGORY_CONFIG,
+                default_restore_mode="RESTORE_DEFAULT_ON",
+                icon="mdi:vector-rectangle",
+            ),
         }
     ).extend(cv.COMPONENT_SCHEMA),
     cv.has_exactly_one_key(CONF_I2C_PINS, CONF_I2C_ID),
@@ -204,6 +215,11 @@ async def to_code(config: ConfigType) -> None:
     else:
         i2c_pins = config[CONF_I2C_PINS]
         cg.add(var.set_i2c_pins(i2c_pins[CONF_SDA], i2c_pins[CONF_SCL]))
+
+    if conf := config.get(CONF_OVERLAY):
+        overlay = await switch.new_switch(conf)
+        await cg.register_parented(overlay, var)
+        cg.add(var.set_overlay_switch(overlay))
 
     if conf := config.get(CONF_BEFORE_CAPTURE):
         before = await automation.build_automation(
