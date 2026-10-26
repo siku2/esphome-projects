@@ -345,6 +345,25 @@
                 ./reader_core_test
                 touch "$out"
               '';
+
+          test-crop-rect =
+            pkgs.runCommand "check-test-crop-rect"
+              {
+                nativeBuildInputs = [ pkgs.stdenv.cc ];
+                src = lib.fileset.toSource {
+                  root = ./.;
+                  fileset = lib.fileset.unions [
+                    ./components/tflite/rect.h
+                    ./components/tflite/tests/rect_test.cpp
+                  ];
+                };
+              }
+              ''
+                g++ -std=c++17 -Wall -Wextra -Werror \
+                  -o rect_test "$src/components/tflite/tests/rect_test.cpp"
+                ./rect_test
+                touch "$out"
+              '';
         }
       );
 

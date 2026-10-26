@@ -54,6 +54,8 @@ sensor:
   id: "aqdig_10000"
   internal: true
   name: "${i18n.aquasense[language].aqdig_10000}"
+  crop_text:
+    name: "${i18n.aquasense[language].aqdig_10000_crop}"
   state_class: "measurement"
   icon: "mdi:numeric-10-box-outline"
   accuracy_decimals: 1
@@ -67,32 +69,44 @@ sensor:
 - <<: *aqdig_10000
   id: "aqdig_1000"
   name: "${i18n.aquasense[language].aqdig_1000}"
+  crop_text:
+    name: "${i18n.aquasense[language].aqdig_1000_crop}"
   crop: "${aqdig_crop_1000}"
 
 - <<: *aqdig_10000
   id: "aqdig_100"
   name: "${i18n.aquasense[language].aqdig_100}"
+  crop_text:
+    name: "${i18n.aquasense[language].aqdig_100_crop}"
   crop: "${aqdig_crop_100}"
 
 - <<: *aqdig_10000
   id: "aqdig_10"
   name: "${i18n.aquasense[language].aqdig_10}"
+  crop_text:
+    name: "${i18n.aquasense[language].aqdig_10_crop}"
   crop: "${aqdig_crop_10}"
 
 - <<: *aqdig_10000
   id: "aqdig_1"
   name: "${i18n.aquasense[language].aqdig_1}"
+  crop_text:
+    name: "${i18n.aquasense[language].aqdig_1_crop}"
   crop: "${aqdig_crop_1}"
 
 - <<: *aqdig_10000
   id: "aqdig_01"
   name: "${i18n.aquasense[language].aqdig_01}"
+  crop_text:
+    name: "${i18n.aquasense[language].aqdig_01_crop}"
   crop: "${aqdig_crop_01}"
 
 - &aqdig_0001
   <<: *aqdig_10000
   id: "aqdig_0001"
   name: "${i18n.aquasense[language].aqdig_0001}"
+  crop_text:
+    name: "${i18n.aquasense[language].aqdig_0001_crop}"
   icon: "mdi:gauge"
   accuracy_decimals: 2
   crop: "${aqdig_crop_0001}"
@@ -104,5 +118,7 @@ sensor:
 - <<: *aqdig_0001
   id: "aqdig_00001"
   name: "${i18n.aquasense[language].aqdig_00001}"
+  crop_text:
+    name: "${i18n.aquasense[language].aqdig_00001_crop}"
   crop: "${aqdig_crop_00001}"
   max_update_interval: "0s"

@@ -208,6 +208,34 @@ void StillCamera::capture() {
     this->on_before_capture_done();
 }
 
+void StillCamera::request_capture() {
+  if (this->state_ == State::IDLE)
+    this->capture();
+  else
+    this->capture_again_ = true;
+}
+
+void StillCamera::run_requested_capture_() {
+  if (!this->capture_again_)
+    return;
+  this->capture_again_ = false;
+  this->capture();
+}
+
+static bool is_sideways(Rotation rotation) {
+  return rotation == Rotation::ROTATE_90 || rotation == Rotation::ROTATE_270;
+}
+
+uint16_t StillCamera::get_frame_width() const {
+  const auto &size = resolution[this->config_.frame_size];
+  return is_sideways(this->rotation_) ? size.height : size.width;
+}
+
+uint16_t StillCamera::get_frame_height() const {
+  const auto &size = resolution[this->config_.frame_size];
+  return is_sideways(this->rotation_) ? size.width : size.height;
+}
+
 void StillCamera::on_before_capture_done() {
   if (this->state_ != State::PREPARING)
     return;
@@ -233,12 +261,14 @@ void StillCamera::handle_event_(Event event) {
     case EventKind::CAPTURE_FAILED:
       this->state_ = State::IDLE;
       this->after_capture_callbacks_.call();
+      this->run_requested_capture_();
       break;
     case EventKind::PROCESSED:
       for (auto *processor : this->processors_)
         processor->publish();
       this->state_ = State::IDLE;
       this->cycle_end_callbacks_.call();
+      this->run_requested_capture_();
       break;
     case EventKind::IMAGE:
       for (auto *listener : this->listeners_)

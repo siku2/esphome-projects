@@ -17,12 +17,58 @@ void CameraSensor::setup() {
     this->mark_failed();
     return;
   }
+  this->restore_crop_();
   if (this->crop_.empty()) {
     this->mark_failed(LOG_STR("Crop region is empty"));
     return;
   }
   this->camera_->add_processor(this);
   this->disable_loop();
+}
+
+void CropText::control(const std::string &value) { this->parent_->apply_crop_text(value); }
+
+void CameraSensor::publish_crop_text_() {
+  char buffer[32];
+  format_crop(this->text_crop_, buffer, sizeof(buffer));
+  this->crop_text_->publish_state(buffer);
+}
+
+void CameraSensor::restore_crop_() {
+  this->text_crop_ = this->crop_;
+  if (this->crop_text_ == nullptr)
+    return;
+  this->crop_pref_ = global_preferences->make_preference<Rect>(this->crop_text_->get_preference_hash());
+  Rect saved;
+  if (this->crop_pref_.load(&saved)) {
+    if (saved.fits(this->camera_->get_frame_width(), this->camera_->get_frame_height())) {
+      this->crop_ = saved;
+      this->text_crop_ = saved;
+    } else {
+      ESP_LOGW(TAG, "Ignoring the saved crop because it lies outside the frame");
+    }
+  }
+  this->publish_crop_text_();
+}
+
+void CameraSensor::apply_crop_text(const std::string &value) {
+  Rect rect;
+  if (!parse_crop(value.c_str(), this->camera_->get_frame_width(), this->camera_->get_frame_height(), rect)) {
+    ESP_LOGW(TAG, "Rejecting crop '%s': expected x,y,width,height inside the %ux%u frame", value.c_str(),
+             this->camera_->get_frame_width(), this->camera_->get_frame_height());
+    this->publish_crop_text_();
+    return;
+  }
+  this->text_crop_ = rect;
+  {
+    LockGuard guard(this->crop_mutex_);
+    this->next_crop_ = rect;
+    this->has_next_crop_ = true;
+  }
+  this->crop_pref_.save(&rect);
+  this->last_update_ = 0;
+  this->publish_crop_text_();
+  this->camera_->request_capture();
 }
 
 static std::tuple<float, float> read_output_digit_softmax10(const TfLiteTensor &output) {
@@ -218,6 +264,13 @@ bool CameraSensor::get_overlay(Overlay &overlay) const {
 }
 
 void CameraSensor::process(const Frame &frame) {
+  {
+    LockGuard guard(this->crop_mutex_);
+    if (this->has_next_crop_) {
+      this->crop_ = this->next_crop_;
+      this->has_next_crop_ = false;
+    }
+  }
   this->pending_.valid = false;
   this->set_overlay_(NAN, 0.0f, false);
   if (this->is_failed() || !this->is_due_())

@@ -1,14 +1,17 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import sensor, still_camera
-from esphome.const import CONF_ID
+from esphome.components import sensor, still_camera, text
+from esphome.const import CONF_ID, ENTITY_CATEGORY_CONFIG
 from esphome.types import ConfigType
 
 from . import InterpreterComponent, tflite_ns
 
+AUTO_LOAD = ["text"]
+
 CONF_CAMERA = "camera"
 CONF_INTERPRETER = "interpreter"
 CONF_CROP = "crop"
+CONF_CROP_TEXT = "crop_text"
 CONF_OUTPUT_FORMAT = "output_format"
 CONF_MIN_FIT = "min_fit"
 CONF_MAX_UPDATE_INTERVAL = "max_update_interval"
@@ -19,6 +22,7 @@ CameraSensor = tflite_ns.class_(
     cg.Component,
     still_camera.FrameProcessor,
 )
+CropText = tflite_ns.class_("CropText", text.Text, cg.Parented.template(CameraSensor))
 Point = tflite_ns.struct("Point")
 Rect = tflite_ns.struct("Rect")
 OutputFormat = tflite_ns.enum("OutputFormat")
@@ -106,6 +110,12 @@ CONFIG_SCHEMA = sensor.sensor_schema(CameraSensor).extend(
         cv.GenerateID(CONF_CAMERA): cv.use_id(still_camera.StillCamera),
         cv.GenerateID(CONF_INTERPRETER): cv.use_id(InterpreterComponent),
         cv.Required(CONF_CROP): RECT_SCHEMA,
+        cv.Optional(CONF_CROP_TEXT): text.text_schema(
+            CropText,
+            entity_category=ENTITY_CATEGORY_CONFIG,
+            icon="mdi:crop",
+            mode="TEXT",
+        ),
         cv.Required(CONF_OUTPUT_FORMAT): cv.enum(
             OUTPUT_FORMAT_OPTIONS,
             lower=True,
@@ -131,3 +141,8 @@ async def to_code(config: ConfigType) -> None:
     cg.add(var.set_output_format(config[CONF_OUTPUT_FORMAT]))
     cg.add(var.set_min_fit(config[CONF_MIN_FIT]))
     cg.add(var.set_max_update_interval(config[CONF_MAX_UPDATE_INTERVAL]))
+
+    if crop_text_config := config.get(CONF_CROP_TEXT):
+        crop_text = await text.new_text(crop_text_config, min_length=7, max_length=31)
+        await cg.register_parented(crop_text, var)
+        cg.add(var.set_crop_text(crop_text))

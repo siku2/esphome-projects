@@ -93,6 +93,12 @@ class StillCamera final : public camera::Camera {
   /// Starts a capture cycle. Main loop only. Ignored while a cycle is running.
   void capture();
   void on_before_capture_done();
+  /// Main loop only. Starts a capture now, or right after the running cycle ends.
+  void request_capture();
+
+  /// Size of the processed frame after rotation.
+  uint16_t get_frame_width() const;
+  uint16_t get_frame_height() const;
 
   void setup() override;
   void loop() override;
@@ -119,6 +125,7 @@ class StillCamera final : public camera::Camera {
   void run_cycle_();
   void serve_image_();
   std::shared_ptr<JpegBuffer> encode_jpeg_();
+  void run_requested_capture_();
   void release_frame_();
   void apply_sensor_settings_();
   void handle_event_(Event event);
@@ -146,6 +153,7 @@ class StillCamera final : public camera::Camera {
 
   State state_{State::IDLE};
   bool has_before_capture_{false};
+  bool capture_again_{false};
   Trigger<> before_capture_;
   BeforeCaptureDoneAction before_capture_done_{this};
   LazyCallbackManager<void()> after_capture_callbacks_{};

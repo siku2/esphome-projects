@@ -6,26 +6,15 @@
 
 #include <esphome/components/sensor/sensor.h>
 #include <esphome/components/still_camera/still_camera.h>
+#include <esphome/components/text/text.h>
 #include <esphome/core/component.h>
 #include <esphome/core/helpers.h>
+#include <esphome/core/preferences.h>
 
 #include "interpreter.h"
+#include "rect.h"
 
 namespace esphome::esphome_tflite {
-
-struct Point {
-  uint16_t x;
-  uint16_t y;
-};
-
-struct Rect {
-  Point top_left;
-  Point bottom_right;
-
-  uint16_t width() const { return this->bottom_right.x - this->top_left.x; }
-  uint16_t height() const { return this->bottom_right.y - this->top_left.y; }
-  bool empty() const { return this->width() == 0 || this->height() == 0; }
-};
 
 enum InputFormat {
   INPUT_FORMAT_NHWC3,
@@ -38,6 +27,13 @@ enum OutputFormat {
   OUTPUT_FORMAT_ANALOG_CONTINUOUS_CW,
 };
 
+class CameraSensor;
+
+class CropText : public text::Text, public Parented<CameraSensor> {
+ protected:
+  void control(const std::string &value) override;
+};
+
 class CameraSensor : public sensor::Sensor, public Component, public still_camera::FrameProcessor {
  public:
   void set_interpreter_component(InterpreterComponent *interpreter_component) {
@@ -45,6 +41,9 @@ class CameraSensor : public sensor::Sensor, public Component, public still_camer
   }
   void set_camera(still_camera::StillCamera *camera) { this->camera_ = camera; }
   void set_crop(const Rect &crop) { this->crop_ = crop; }
+  void set_crop_text(CropText *crop_text) { this->crop_text_ = crop_text; }
+  /// Main loop only. Applies a crop edited through the crop text entity.
+  void apply_crop_text(const std::string &value);
   void set_input_format(InputFormat fmt) { this->input_format_ = fmt; }
   void set_output_format(OutputFormat fmt) { this->output_format_ = fmt; }
   void set_min_fit(float min_fit) { this->min_fit_ = min_fit; }
@@ -62,7 +61,15 @@ class CameraSensor : public sensor::Sensor, public Component, public still_camer
  protected:
   InterpreterComponent *interpreter_component_{nullptr};
   still_camera::StillCamera *camera_{nullptr};
+  CropText *crop_text_{nullptr};
+  ESPPreferenceObject crop_pref_;
+  // Main loop only. The crop last accepted from the text entity.
+  Rect text_crop_{};
+  // Worker task only after setup.
   Rect crop_{};
+  Mutex crop_mutex_;
+  Rect next_crop_{};
+  bool has_next_crop_{false};
   InputFormat input_format_{INPUT_FORMAT_NHWC3};
   OutputFormat output_format_{OUTPUT_FORMAT_DIGIT_SOFTMAX10};
   float min_fit_{0.0f};
@@ -83,6 +90,8 @@ class CameraSensor : public sensor::Sensor, public Component, public still_camer
 
   void setup() override;
 
+  void restore_crop_();
+  void publish_crop_text_();
   bool is_due_() const;
   void set_overlay_(float result, float fit, bool has_result);
 
