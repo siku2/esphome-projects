@@ -8,8 +8,8 @@ packages:
 
       aqdig_crop_10000:
         top_left:
-          x: 53
-          y: 124
+          x: 57
+          y: 125
         width: 40
         height: 64
       aqdig_crop_1000:
@@ -20,37 +20,37 @@ packages:
         height: 64
       aqdig_crop_100:
         top_left:
-          x: 151
+          x: 153
           y: 125
         width: 40
         height: 64
       aqdig_crop_10:
         top_left:
-          x: 195
-          y: 124
+          x: 199
+          y: 125
         width: 40
         height: 64
       aqdig_crop_1:
         top_left:
-          x: 241
-          y: 123
+          x: 246
+          y: 125
         width: 40
         height: 64
       aqdig_crop_01:
         top_left:
-          x: 290
-          y: 123
+          x: 287
+          y: 125
         width: 40
         height: 64
       aqdig_crop_001:
         top_left:
-          x: 334
-          y: 123
+          x: 336
+          y: 125
         width: 40
         height: 64
       aqdig_crop_0001:
         top_left:
           x: 381
-          y: 123
+          y: 125
         width: 40
         height: 64
