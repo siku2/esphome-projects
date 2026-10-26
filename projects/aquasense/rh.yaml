@@ -1,20 +1,28 @@
 packages:
   aqc: !include lib/aqc.yaml
   aqdig: !include lib/rh/aqdig.yaml
-  aqcsmp: !include lib/rh/aqcsmp.yaml
 
 still_camera:
   rotate: "90°"
   update_interval: "2s"
-  on_cycle_end:
-  - component.update: "aqcsmp_m3"
-  - component.update: "aqcsmp_10_liters"
-  - component.update: "aqcsmp_confidence_snapshot"
-  - component.update: "aqcsmp_confidence_reading"
 
 meter_reader:
   id: aqmr
   camera: e32s3cam_camera
+  reading:
+    name: "${i18n.aquasense[language].aqmr_reading}"
+  consumption:
+    name: "${i18n.aquasense[language].aqmr_consumption}"
+  confidence:
+    name: "${i18n.aquasense[language].aqmr_confidence}"
+  consistency:
+    name: "${i18n.aquasense[language].aqmr_consistency}"
+  rejected:
+    name: "${i18n.aquasense[language].aqmr_rejected}"
+  status:
+    name: "${i18n.aquasense[language].aqmr_status}"
+  rebase:
+    name: "${i18n.aquasense[language].aqmr_rebase}"
   wheels:
   # Finest dial x0.0001 m3 = 1 L/rev.
   - { source: aqdig_00001, resolution: 1, tolerance: 0.8 }
