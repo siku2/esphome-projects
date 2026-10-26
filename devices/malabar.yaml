@@ -38,7 +38,7 @@ packages:
         height: 64
       aqdig_crop_01:
         top_left:
-          x: 287
+          x: 292
           y: 121
         width: 40
         height: 64
