@@ -11,7 +11,7 @@ CompileFlags:
   CompilationDatabase: "tests/.esphome/build/test-catimor/build"
 ---
 If:
-  PathMatch: "components/(camera_snapshot|meter_reader|tflite)/.*"
+  PathMatch: "components/(meter_reader|still_camera|tflite)/.*"
 CompileFlags:
   CompilationDatabase: "tests/.esphome/build/test-aquasense-rh/build"
 ---

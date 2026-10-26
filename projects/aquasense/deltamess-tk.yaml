@@ -3,10 +3,10 @@ packages:
   aqdig: !include lib/deltamess-tk/aqdig.yaml
   aqcsmp: !include lib/deltamess-tk/aqcsmp.yaml
 
-camera_snapshot:
+still_camera:
   rotate: "180°"
   update_interval: "5s"
-  on_snapshot:
+  on_cycle_end:
   - component.update: "aqcsmp_m3"
   - component.update: "aqcsmp_confidence_snapshot"
   - component.update: "aqcsmp_confidence_reading"

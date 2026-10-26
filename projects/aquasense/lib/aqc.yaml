@@ -15,7 +15,7 @@ substitutions:
 
 packages:
   base: !include ../../../base/device.yaml
-  e32s3cam: !include ../../../boards/keyestudio/esp32_s3_cam.yaml
+  e32s3cam: !include ../../../boards/generic/esp32_s3_cam.yaml
   #
   aqss: !include ./aqss.yaml
 
@@ -27,4 +27,4 @@ esphome:
 
 external_components:
 - source: "${components_source}"
-  components: ["camera_snapshot", "meter_reader", "tflite"]
+  components: ["meter_reader", "still_camera", "task_util", "tflite"]

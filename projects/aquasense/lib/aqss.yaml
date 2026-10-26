@@ -1,13 +1,10 @@
-# Namespace: aqss (snapshot)
+# Namespace: aqss (still camera)
 
-esp32_camera:
+still_camera:
   entity_category: "diagnostic"
-  max_framerate: "2 fps"
-  idle_framerate: "0 fps"
-  frame_buffer_count: 1 # Ideally 0, but not supported :(
+  drain_frame_buffer_count: 1
   # Image settings
   resolution: "640x480"
-  jpeg_quality: 6
   contrast: 2
   brightness: 1
   saturation: -1
@@ -19,11 +16,7 @@ esp32_camera:
   agc_value: 0
   # White balance
   wb_mode: "sunny"
-
-camera_snapshot:
-  id: "aqss_snapshot"
-  drain_frame_buffer_count: 1
-  before_snapshot:
+  before_capture:
   - if:
       condition:
         switch.is_on: "aqss_auto_flashlight"
@@ -33,7 +26,7 @@ camera_snapshot:
           brightness: !lambda |
             return id(aqss_auto_flashlight_brightness).state / 100.0f;
       - delay: "100ms"
-  after_snapshot:
+  after_capture:
   - if:
       condition:
         switch.is_on: "aqss_auto_flashlight"
@@ -46,7 +39,7 @@ button:
   entity_category: "diagnostic"
   platform: "template"
   on_press:
-  - component.update: "aqss_snapshot"
+  - still_camera.capture: "e32s3cam_camera"
 
 - id: "aqss_flashlight_on"
   name: "${i18n.aquasense[language].aqss_flashlight_on}"

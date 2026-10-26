@@ -2,9 +2,9 @@
 
 #include <cstdint>
 
-#include "esphome/components/camera_snapshot/snapshotter.h"
 #include "esphome/components/number/number.h"
 #include "esphome/components/sensor/sensor.h"
+#include "esphome/components/still_camera/still_camera.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
@@ -40,7 +40,7 @@ class MeterReader : public Component {
   void set_stale_after_ms(uint32_t ms) { this->core_.params.stale_after_ms = ms; }
   void set_reanchor_tolerance(float liters) { this->core_.params.reanchor_tolerance = liters; }
   void set_back_tolerance(float liters) { this->core_.params.back_tolerance = liters; }
-  void set_snapshotter(camera::snapshot::Snapshotter *snapshotter) { this->snapshotter_ = snapshotter; }
+  void set_camera(still_camera::StillCamera *camera) { this->camera_ = camera; }
   void add_wheel(uint8_t level, float resolution, float tolerance, bool linear) {
     this->core_.add_wheel(level, resolution, tolerance, linear);
   }
@@ -62,7 +62,7 @@ class MeterReader : public Component {
   void publish_status_();
 
   ::meter_reader_core::ReaderCore core_{};
-  camera::snapshot::Snapshotter *snapshotter_{nullptr};
+  still_camera::StillCamera *camera_{nullptr};
 
   sensor::Sensor *reading_sensor_{nullptr};
   sensor::Sensor *consumption_sensor_{nullptr};

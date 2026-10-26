@@ -14,14 +14,13 @@ static const char *const STATUS_STRINGS[] = {"anchoring", "ok", "stale", "diverg
 namespace esphome::meter_reader {
 
 void MeterReader::setup() {
-  if (this->snapshotter_ == nullptr || !this->core_.has_wheels()) {
+  if (this->camera_ == nullptr || !this->core_.has_wheels()) {
     this->mark_failed();
     return;
   }
-  // The snapshotter notifies one wheel sensor per loop pass, with
-  // arbitrarily long stalls in between. Processing on the cycle-end
-  // callback is the only way to see one complete observation set.
-  this->snapshotter_->add_cycle_end_callback([this]() { this->on_cycle_end_(millis()); });
+  // The camera publishes every wheel sensor before it ends the cycle, so the
+  // cycle-end callback sees one complete observation set.
+  this->camera_->add_cycle_end_callback([this]() { this->on_cycle_end_(millis()); });
 
   this->rtc_ = global_preferences->make_preference<uint64_t>(PREF_KEY);
   uint64_t stored = 0;

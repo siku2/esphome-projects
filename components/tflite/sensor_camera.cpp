@@ -5,13 +5,15 @@
 #include <esphome/core/log.h>
 
 using namespace esphome::esphome_tflite;
-using namespace esphome::camera;
-using namespace esphome::camera::snapshot;
+using esphome::Color;
+using esphome::still_camera::Frame;
+using esphome::still_camera::Overlay;
+using esphome::still_camera::OverlayState;
 
 static const char *const TAG = "tflite.sensor.camera";
 
-void CameraSnapshotSensor::setup() {
-  if (this->interpreter_component_ == nullptr || this->snapshotter_ == nullptr) {
+void CameraSensor::setup() {
+  if (this->interpreter_component_ == nullptr || this->camera_ == nullptr) {
     this->mark_failed();
     return;
   }
@@ -19,7 +21,7 @@ void CameraSnapshotSensor::setup() {
     this->mark_failed(LOG_STR("Crop region is empty"));
     return;
   }
-  this->snapshotter_->add_listener(this);
+  this->camera_->add_processor(this);
   this->disable_loop();
 }
 
@@ -66,6 +68,8 @@ static std::tuple<float, float> read_output_digit_softmax10(const TfLiteTensor &
     result -= 10.0f;
   if (result < 0.0f)
     result += 10.0f;
+  if (result == 0.0f)
+    result = 0.0f;
 
   return {result, fit};
 }
@@ -95,7 +99,7 @@ static std::tuple<float, float> read_output_analog_continuous(const TfLiteTensor
   return {result, fit};
 }
 
-static bool feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, const Rect &crop) {
+static bool feed_tensor_nhwc3(TfLiteTensor &input, const Frame &frame, const Rect &crop) {
   if (input.type != kTfLiteFloat32) {
     ESP_LOGE(TAG, "Input tensor expected to be of type float32");
     return false;
@@ -120,8 +124,8 @@ static bool feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, con
     return false;
   }
   if (crop.bottom_right.x <= crop.top_left.x || crop.bottom_right.y <= crop.top_left.y ||
-      crop.bottom_right.x > snapshot.width() || crop.bottom_right.y > snapshot.height()) {
-    ESP_LOGE(TAG, "Crop region lies outside the %ux%u snapshot", snapshot.width(), snapshot.height());
+      crop.bottom_right.x > frame.width() || crop.bottom_right.y > frame.height()) {
+    ESP_LOGE(TAG, "Crop region lies outside the %ux%u frame", frame.width(), frame.height());
     return false;
   }
 
@@ -167,17 +171,17 @@ static bool feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, con
       if (rel_y >= crop_h)
         rel_y = crop_h - 1;
 
-      // Map crop-relative coordinates to absolute snapshot coordinates
+      // Map crop-relative coordinates to absolute frame coordinates
       uint16_t abs_x = crop.top_left.x + rel_x;
       uint16_t abs_y = crop.top_left.y + rel_y;
 
-      // Extra safety check to stay within physical snapshot boundaries
-      if (abs_x >= snapshot.width())
-        abs_x = snapshot.width() - 1;
-      if (abs_y >= snapshot.height())
-        abs_y = snapshot.height() - 1;
+      // Extra safety check to stay within physical frame boundaries
+      if (abs_x >= frame.width())
+        abs_x = frame.width() - 1;
+      if (abs_y >= frame.height())
+        abs_y = frame.height() - 1;
 
-      Color color = snapshot.get_pixel(abs_x, abs_y);
+      Color color = frame.get_pixel(abs_x, abs_y);
       model_input[out_pixel_idx + 0] = static_cast<float>(color.r);
       model_input[out_pixel_idx + 1] = static_cast<float>(color.g);
       model_input[out_pixel_idx + 2] = static_cast<float>(color.b);
@@ -186,14 +190,37 @@ static bool feed_tensor_nhwc3(TfLiteTensor &input, const Snapshot &snapshot, con
   return true;
 }
 
-bool CameraSnapshotSensor::is_listening() const {
-  if (this->max_update_interval_ == 0 || this->last_update_ == 0)
+bool CameraSensor::is_due_() const {
+  const uint32_t last_update = this->last_update_;
+  if (this->max_update_interval_ == 0 || last_update == 0)
     return true;
-  return (millis() - this->last_update_) >= this->max_update_interval_;
+  return (millis() - last_update) >= this->max_update_interval_;
 }
 
-void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
-  if (this->is_failed())
+void CameraSensor::set_overlay_(float result, float fit, bool has_result) {
+  this->overlay_.x = this->crop_.top_left.x;
+  this->overlay_.y = this->crop_.top_left.y;
+  this->overlay_.width = this->crop_.width();
+  this->overlay_.height = this->crop_.height();
+  this->overlay_.label[0] = '\0';
+  if (!has_result) {
+    this->overlay_.state = OverlayState::NO_RESULT;
+    return;
+  }
+  this->overlay_.state = fit >= this->min_fit_ ? OverlayState::ACCEPTED : OverlayState::REJECTED;
+  const int decimals = this->output_format_ == OUTPUT_FORMAT_ANALOG_CONTINUOUS_CW ? 2 : 1;
+  snprintf(this->overlay_.label, sizeof(this->overlay_.label), "%.*f\n%.0f%%", decimals, result, 100.0f * fit);
+}
+
+bool CameraSensor::get_overlay(Overlay &overlay) const {
+  overlay = this->overlay_;
+  return true;
+}
+
+void CameraSensor::process(const Frame &frame) {
+  this->pending_.valid = false;
+  this->set_overlay_(NAN, 0.0f, false);
+  if (this->is_failed() || !this->is_due_())
     return;
 
   auto &interpreter_opt = this->interpreter_component_->interpreter();
@@ -209,7 +236,7 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
 
   switch (this->input_format_) {
     case INPUT_FORMAT_NHWC3:
-      if (!feed_tensor_nhwc3(*input, snapshot, this->crop_)) {
+      if (!feed_tensor_nhwc3(*input, frame, this->crop_)) {
         ESP_LOGW(TAG, "Skipping inference: could not prepare the input tensor");
         return;
       }
@@ -247,6 +274,18 @@ void CameraSnapshotSensor::on_snapshot(const Snapshot &snapshot) {
   ESP_LOGD(TAG, "Model output: result=%.6f fit=%.2f", result, fit);
   if (std::isnan(result))
     return;
+  this->set_overlay_(result, fit, true);
+  this->pending_.result = result;
+  this->pending_.fit = fit;
+  this->pending_.valid = true;
+}
+
+void CameraSensor::publish() {
+  if (!this->pending_.valid)
+    return;
+  this->pending_.valid = false;
+  const float result = this->pending_.result;
+  const float fit = this->pending_.fit;
   this->last_fit_ = fit;
   this->inference_callbacks_.call(result, fit, fit >= this->min_fit_);
   if (fit < this->min_fit_) {

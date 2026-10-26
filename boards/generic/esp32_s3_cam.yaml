@@ -1,6 +1,7 @@
 # ESP32-S3-CAM
 #
-# See: <https://docs.keyestudio.com/projects/MB0184/en/latest/docs/MB0184%20ESP32-S3%20CAM%20Development%20Board.html>
+# No-name ESP32-S3 camera board with an OV2640 sensor, 8 MB octal PSRAM and a
+# Freenove style pinout.
 #
 # ## Variables
 #
@@ -10,7 +11,7 @@
 #
 # ## Components
 #
-# ### ESP32 Camera
+# ### Still Camera
 #
 # - `e32s3cam_camera`: The camera component.
 #
@@ -60,7 +61,7 @@ output:
 
 # Board peripherals
 
-esp32_camera:
+still_camera:
   id: "e32s3cam_camera"
   name: "${i18n.e32s3cam[language].camera}"
   data_pins:

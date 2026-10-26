@@ -3,10 +3,10 @@ packages:
   aqdig: !include lib/rh/aqdig.yaml
   aqcsmp: !include lib/rh/aqcsmp.yaml
 
-camera_snapshot:
+still_camera:
   rotate: "90°"
   update_interval: "2s"
-  on_snapshot:
+  on_cycle_end:
   - component.update: "aqcsmp_m3"
   - component.update: "aqcsmp_10_liters"
   - component.update: "aqcsmp_confidence_snapshot"
@@ -14,7 +14,7 @@ camera_snapshot:
 
 meter_reader:
   id: aqmr
-  snapshotter: aqss_snapshot
+  camera: e32s3cam_camera
   wheels:
   # Finest dial x0.0001 m3 = 1 L/rev.
   - { source: aqdig_00001, resolution: 1, tolerance: 0.8 }

@@ -1,13 +1,11 @@
 #pragma once
 
+#include <atomic>
 #include <cmath>
 #include <functional>
 
-#include <esphome/components/camera/buffer_impl.h>
-#include <esphome/components/camera/camera.h>
-#include <esphome/components/camera_snapshot/snapshot.h>
-#include <esphome/components/camera_snapshot/snapshotter.h>
 #include <esphome/components/sensor/sensor.h>
+#include <esphome/components/still_camera/still_camera.h>
 #include <esphome/core/component.h>
 #include <esphome/core/helpers.h>
 
@@ -40,12 +38,12 @@ enum OutputFormat {
   OUTPUT_FORMAT_ANALOG_CONTINUOUS_CW,
 };
 
-class CameraSnapshotSensor : public sensor::Sensor, public Component, public camera::snapshot::SnapshotListener {
+class CameraSensor : public sensor::Sensor, public Component, public still_camera::FrameProcessor {
  public:
   void set_interpreter_component(InterpreterComponent *interpreter_component) {
     this->interpreter_component_ = interpreter_component;
   }
-  void set_snapshotter(camera::snapshot::Snapshotter *snapshotter) { this->snapshotter_ = snapshotter; }
+  void set_camera(still_camera::StillCamera *camera) { this->camera_ = camera; }
   void set_crop(const Rect &crop) { this->crop_ = crop; }
   void set_input_format(InputFormat fmt) { this->input_format_ = fmt; }
   void set_output_format(OutputFormat fmt) { this->output_format_ = fmt; }
@@ -55,28 +53,41 @@ class CameraSnapshotSensor : public sensor::Sensor, public Component, public cam
   float get_last_fit() const { return this->last_fit_; }
   float get_published_fit() const { return this->published_fit_; }
 
-  // Fired for every completed inference, before the min_fit gate, so
-  // consumers see rejected observations too.
+  // Fired in the main loop for every completed inference, before the min_fit
+  // gate, so consumers see rejected observations too.
   template<typename F> void add_on_inference_callback(F &&callback) {
     this->inference_callbacks_.add(std::forward<F>(callback));
   }
 
  protected:
   InterpreterComponent *interpreter_component_{nullptr};
-  camera::snapshot::Snapshotter *snapshotter_{nullptr};
+  still_camera::StillCamera *camera_{nullptr};
   Rect crop_{};
   InputFormat input_format_{INPUT_FORMAT_NHWC3};
   OutputFormat output_format_{OUTPUT_FORMAT_DIGIT_SOFTMAX10};
   float min_fit_{0.0f};
   uint32_t max_update_interval_{0};
-  uint32_t last_update_{0};
+  std::atomic<uint32_t> last_update_{0};
   float last_fit_{NAN};
   float published_fit_{NAN};
   LazyCallbackManager<void(float, float, bool)> inference_callbacks_{};
 
+  // Written by the worker task in process(), read by the main loop in publish().
+  struct Pending {
+    bool valid{false};
+    float result{NAN};
+    float fit{0.0f};
+  } pending_;
+  // Worker task only.
+  still_camera::Overlay overlay_;
+
   void setup() override;
 
-  bool is_listening() const override;
-  void on_snapshot(const camera::snapshot::Snapshot &snapshot) override;
+  bool is_due_() const;
+  void set_overlay_(float result, float fit, bool has_result);
+
+  void process(const still_camera::Frame &frame) override;
+  bool get_overlay(still_camera::Overlay &overlay) const override;
+  void publish() override;
 };
 }  // namespace esphome::esphome_tflite

@@ -1,23 +1,23 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import camera_snapshot, sensor
+from esphome.components import sensor, still_camera
 from esphome.const import CONF_ID
 from esphome.types import ConfigType
 
 from . import InterpreterComponent, tflite_ns
 
-CONF_SNAPSHOTTER = "snapshotter"
+CONF_CAMERA = "camera"
 CONF_INTERPRETER = "interpreter"
 CONF_CROP = "crop"
 CONF_OUTPUT_FORMAT = "output_format"
 CONF_MIN_FIT = "min_fit"
 CONF_MAX_UPDATE_INTERVAL = "max_update_interval"
 
-CameraSnapshotSensor = tflite_ns.class_(
-    "CameraSnapshotSensor",
+CameraSensor = tflite_ns.class_(
+    "CameraSensor",
     sensor.Sensor,
     cg.Component,
-    camera_snapshot.SnapshotListener,
+    still_camera.FrameProcessor,
 )
 Point = tflite_ns.struct("Point")
 Rect = tflite_ns.struct("Rect")
@@ -101,9 +101,9 @@ def rect_to_code(config: ConfigType) -> cg.StructInitializer:
     )
 
 
-CONFIG_SCHEMA = sensor.sensor_schema(CameraSnapshotSensor).extend(
+CONFIG_SCHEMA = sensor.sensor_schema(CameraSensor).extend(
     {
-        cv.GenerateID(CONF_SNAPSHOTTER): cv.use_id(camera_snapshot.Snapshotter),
+        cv.GenerateID(CONF_CAMERA): cv.use_id(still_camera.StillCamera),
         cv.GenerateID(CONF_INTERPRETER): cv.use_id(InterpreterComponent),
         cv.Required(CONF_CROP): RECT_SCHEMA,
         cv.Required(CONF_OUTPUT_FORMAT): cv.enum(
@@ -123,8 +123,8 @@ async def to_code(config: ConfigType) -> None:
     await cg.register_component(var, config)
     await sensor.register_sensor(var, config)
 
-    snapshotter = await cg.get_variable(config[CONF_SNAPSHOTTER])
-    cg.add(var.set_snapshotter(snapshotter))
+    camera = await cg.get_variable(config[CONF_CAMERA])
+    cg.add(var.set_camera(camera))
     interpreter = await cg.get_variable(config[CONF_INTERPRETER])
     cg.add(var.set_interpreter_component(interpreter))
     cg.add(var.set_crop(rect_to_code(config[CONF_CROP])))
