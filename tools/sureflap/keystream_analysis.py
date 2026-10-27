@@ -1,15 +1,19 @@
 """Test whether the SureFlap session keystream is a weak function of the 0x0e nonce.
 
 For each session (the run between two 0x0e messages) we take the 16 byte nonce
-from the 0x0e payload and recover a few keystream bytes from known plaintext that
-needs no ground truth:
+from the 0x0e payload and recover keystream bytes from the FDX-B tag field of flap
+movement frames (38 byte flap type 0x01, tag at payload offsets 25-30).
 
-- Movement frames (38 byte flap type 0x01): the FDX-B tag high bytes at payload
-  offsets 28-30 are fixed (country 756 plus the shared high id bits), so
-  keystream[o] = cipher[o] XOR {28:0xd7, 29:0x16, 30:0xbd}.
+Some flap poll/status frames are also 38 bytes but carry an all-zero tag, so a
+plain crib confuses them with movements. With the household tags known (one hex tag
+per line in scratch/sureflap-tags.txt, or the SUREFLAP_TAGS env as a comma list) we
+classify each frame: for every candidate keystream we require all 38 byte frames to
+decode to either a known tag or the all-zero status tag. A session is accepted only
+when that resolves to a single keystream at the shared high bytes (offsets 28-30).
+Single-cat sessions mixed with status frames stay 1-bit ambiguous and are skipped.
 
-Offset 30 (0xbd) is fixed for any country-756 chip, so it is the most reliable.
-Offsets 28-29 are shared by this household's two cats.
+Without a tags file we fall back to the country-756 crib {28:0xd7, 29:0x16, 30:0xbd}
+and require every 38 byte frame to agree.
 
 With (nonce, keystream-bit) pairs from many sessions we fit an affine model over
 GF(2): keystream_bit = XOR of a subset of nonce bits, plus a constant that absorbs
@@ -34,6 +38,25 @@ import decode  # noqa: E402
 # payload offset -> known plaintext byte, for 38 byte flap movement frames
 MOVEMENT_LEN = 38
 TAG_CRIB = {28: 0xD7, 29: 0x16, 30: 0xBD}
+TAG_OFF = 25  # FDX-B tag starts here in a movement frame
+ZERO_TAG = bytes(6)
+
+
+def load_tags(path):
+    """Return known FDX-B tags as 6 byte values. SUREFLAP_TAGS env wins over the file."""
+    env = os.environ.get("SUREFLAP_TAGS")
+    if env:
+        return [bytes.fromhex(t.strip()) for t in env.split(",") if t.strip()]
+    tags = []
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    tags.append(bytes.fromhex(line))
+    except FileNotFoundError:
+        pass
+    return tags
 
 
 def sessions_with_nonce(msgs):
@@ -52,22 +75,58 @@ def sessions_with_nonce(msgs):
         yield nonce, enc
 
 
-def recover_keystream_bytes(enc_msgs):
-    """Return {offset: keystream_byte} recovered in this session, with a flag for
-    whether every contributing frame agreed."""
-    seen: dict[int, set] = {}
-    for m in enc_msgs:
-        if not m.src_is_hub and len(m.payload) == MOVEMENT_LEN:
-            for off, plain in TAG_CRIB.items():
-                seen.setdefault(off, set()).add(m.payload[off] ^ plain)
+def recover_keystream_bytes(enc_msgs, tags=()):
+    """Return ({offset: keystream_byte}, status) for this session.
+
+    status is "ok" (accepted), "ambiguous" (dropped, could not resolve) or "none"
+    (no usable movement frame)."""
+    frames = [
+        m for m in enc_msgs if not m.src_is_hub and len(m.payload) == MOVEMENT_LEN
+    ]
+    if not frames:
+        return {}, "none"
+    if tags:
+        return _recover_with_tags(frames, tags)
+    return _recover_with_crib(frames)
+
+
+def _recover_with_tags(frames, tags):
+    known = set(tags) | {ZERO_TAG}
+    cands = set()
+    for anchor in frames:
+        base = anchor.payload[TAG_OFF : TAG_OFF + 6]
+        for tag in tags:
+            ks6 = bytes(base[j] ^ tag[j] for j in range(6))
+            if all(
+                bytes(f.payload[TAG_OFF + j] ^ ks6[j] for j in range(6)) in known
+                for f in frames
+            ):
+                cands.add(ks6)
+    if not cands:
+        return {}, "none"
+    highs = {c[3:6] for c in cands}
+    if len(highs) != 1:
+        return {}, "ambiguous"  # single-cat plus status: keystream off by the tag
+    ks6 = next(iter(cands))
+    ks = {28: ks6[3], 29: ks6[4], 30: ks6[5]}
+    if len({c[0:3] for c in cands}) == 1:  # low tag bytes also pinned
+        ks[25], ks[26], ks[27] = ks6[0], ks6[1], ks6[2]
+    return ks, "ok"
+
+
+def _recover_with_crib(frames):
+    seen: dict[int, set[int]] = {}
+    for f in frames:
+        for off, plain in TAG_CRIB.items():
+            seen.setdefault(off, set()).add(f.payload[off] ^ plain)
     ks = {}
-    consistent = True
+    status = "ok"
     for off, values in seen.items():
         if len(values) == 1:
             ks[off] = next(iter(values))
         else:
-            consistent = False  # frames in one session disagree: crib or split is wrong
-    return ks, consistent
+            status = "ambiguous"  # frames disagree: a non-movement 38 byte frame
+    return ks, status
 
 
 def bits_lsb(data: bytes) -> list[int]:
@@ -124,7 +183,14 @@ def main():
         help="scan all pcaps under DIR, append a summary to DIR/keystream-watch.log, "
         "and touch DIR/KEYSTREAM-LINEAR-HIT if any keystream bit looks linear",
     )
+    parser.add_argument(
+        "--tags",
+        default="scratch/sureflap-tags.txt",
+        help="file with known FDX-B tags, one hex value per line",
+    )
     args = parser.parse_args()
+
+    tags = load_tags(args.tags)
 
     if args.watch:
         args.pcaps = sorted(
@@ -147,17 +213,18 @@ def main():
 
     samples = []  # (nonce_bytes, {offset: ks_byte})
     nonce_seen = {}
-    inconsistent = 0
+    ambiguous = 0
     for nonce, enc in sessions_with_nonce(msgs):
-        ks, ok = recover_keystream_bytes(enc)
-        if not ok:
-            inconsistent += 1
+        ks, status = recover_keystream_bytes(enc, tags)
+        if status == "ambiguous":
+            ambiguous += 1
         if ks:
             samples.append((nonce, ks))
             nonce_seen.setdefault(nonce, []).append(ks)
 
+    print(f"tags loaded: {len(tags)} ({'classifier' if tags else 'country crib'})")
     print(f"sessions with recovered keystream bytes: {len(samples)}")
-    print(f"sessions with within-session crib disagreement: {inconsistent}")
+    print(f"sessions dropped as ambiguous: {ambiguous}")
     print(f"distinct nonces: {len(nonce_seen)}")
     dup_conflicts = sum(
         1
