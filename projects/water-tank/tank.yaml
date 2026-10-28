@@ -9,16 +9,8 @@ packages:
   voltage: !include voltage.yaml
 
 sensor:
-- id: "${tank_id}_fill_percentage"
-  name: "${i18n.watertank[language].fill_level}"
-  device_id: "${device_id}"
-  internal: ${fill_level_internal}
-  unit_of_measurement: "%"
-  device_class: ""
-  state_class: "measurement"
-  entity_category: ""
-  icon: "mdi:percent"
-  accuracy_decimals: 0
+- id: "${tank_id}_fill_fraction"
+  internal: true
   filters:
   - lambda: !lambda |-
       if (std::isnan(x)) return {};
@@ -30,6 +22,20 @@ sensor:
   - clamp:
       min_value: 0.0
       max_value: 1.0
+  platform: "copy"
+  source_id: "${tank_id}_raw_voltage"
+
+- id: "${tank_id}_fill_percentage"
+  name: "${i18n.watertank[language].fill_level}"
+  device_id: "${device_id}"
+  internal: ${fill_level_internal}
+  unit_of_measurement: "%"
+  device_class: ""
+  state_class: "measurement"
+  entity_category: ""
+  icon: "mdi:percent"
+  accuracy_decimals: 0
+  filters:
   - multiply: 100.0
   - round: 0
   - delta: 0.5
@@ -37,7 +43,7 @@ sensor:
       timeout: "60s"
       value: "last"
   platform: "copy"
-  source_id: "${tank_id}_raw_voltage"
+  source_id: "${tank_id}_fill_fraction"
 
 - id: "${tank_id}_fill_volume"
   name: "${i18n.watertank[language].volume}"
@@ -49,8 +55,6 @@ sensor:
   icon: "mdi:water-well"
   accuracy_decimals: 0
   filters:
-  # Go back from 0..=100 to 0..=1
-  - multiply: 0.01
   - multiply: !lambda "return id(${tank_id}_volume_full).state;"
   - round: 0
   - delta: 0.5
@@ -58,7 +62,7 @@ sensor:
       timeout: "60s"
       value: "last"
   platform: "copy"
-  source_id: "${tank_id}_fill_percentage"
+  source_id: "${tank_id}_fill_fraction"
 
 binary_sensor:
 - id: "${tank_id}_full"
@@ -66,7 +70,7 @@ binary_sensor:
   on_state:
     then:
     - lambda: !lambda |-
-        id(${tank_id}_fill_percentage)->publish_state(id(${tank_id}_raw_voltage).state);
+        id(${tank_id}_fill_fraction)->publish_state(id(${tank_id}_raw_voltage).state);
   platform: "template"
 
 - id: "${tank_id}_empty"
@@ -74,7 +78,7 @@ binary_sensor:
   on_state:
     then:
     - lambda: !lambda |-
-        id(${tank_id}_fill_percentage)->publish_state(id(${tank_id}_raw_voltage).state);
+        id(${tank_id}_fill_fraction)->publish_state(id(${tank_id}_raw_voltage).state);
   platform: "template"
 
 number:
@@ -87,7 +91,7 @@ number:
   on_value:
     then:
     - lambda: !lambda |-
-        id(${tank_id}_fill_percentage)->publish_state(id(${tank_id}_raw_voltage).state);
+        id(${tank_id}_fill_fraction)->publish_state(id(${tank_id}_raw_voltage).state);
   platform: "template"
   min_value: 0.0
   max_value: "${voltage_max}"
@@ -106,7 +110,7 @@ number:
   on_value:
     then:
     - lambda: !lambda |-
-        id(${tank_id}_fill_percentage)->publish_state(id(${tank_id}_raw_voltage).state);
+        id(${tank_id}_fill_fraction)->publish_state(id(${tank_id}_raw_voltage).state);
   platform: "template"
   min_value: 0.0
   max_value: "${voltage_max}"
@@ -125,7 +129,7 @@ number:
   on_value:
     then:
     - lambda: !lambda |-
-        id(${tank_id}_fill_volume)->publish_state(id(${tank_id}_fill_percentage).state);
+        id(${tank_id}_fill_fraction)->publish_state(id(${tank_id}_raw_voltage).state);
   platform: "template"
   min_value: 0
   max_value: 10000
