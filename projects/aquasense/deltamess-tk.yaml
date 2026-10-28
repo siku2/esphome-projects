@@ -1,12 +1,35 @@
 packages:
   aqc: !include lib/aqc.yaml
   aqdig: !include lib/deltamess-tk/aqdig.yaml
-  aqcsmp: !include lib/deltamess-tk/aqcsmp.yaml
 
 still_camera:
   rotate: "180°"
-  update_interval: "5s"
-  on_cycle_end:
-  - component.update: "aqcsmp_m3"
-  - component.update: "aqcsmp_confidence_snapshot"
-  - component.update: "aqcsmp_confidence_reading"
+  update_interval: "2s"
+
+meter_reader:
+  id: aqmr
+  camera: e32s3cam_camera
+  reading:
+    name: "${i18n.aquasense[language].aqmr_reading}"
+  consumption:
+    name: "${i18n.aquasense[language].aqmr_consumption}"
+  confidence:
+    name: "${i18n.aquasense[language].aqmr_confidence}"
+  consistency:
+    name: "${i18n.aquasense[language].aqmr_consistency}"
+  rejected:
+    name: "${i18n.aquasense[language].aqmr_rejected}"
+  status:
+    name: "${i18n.aquasense[language].aqmr_status}"
+  rebase:
+    name: "${i18n.aquasense[language].aqmr_rebase}"
+  wheels:
+  # Finest drum x0.001 m3 = 10 L/rev.
+  - { source: aqdig_0001, resolution: 10, tolerance: 0.8 }
+  - { source: aqdig_001, resolution: 100 }
+  - { source: aqdig_01, resolution: 1000 }
+  - { source: aqdig_1, resolution: 10000 }
+  - { source: aqdig_10, resolution: 100000 }
+  - { source: aqdig_100, resolution: 1000000 }
+  - { source: aqdig_1000, resolution: 10000000 }
+  - { source: aqdig_10000, resolution: 100000000 }

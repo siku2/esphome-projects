@@ -470,6 +470,107 @@ void replay_of_recorded_kona_cycles() {
   CHECK(rig.core.status() == meter_reader_core::STATUS_OK);
 }
 
+constexpr uint32_t MALABAR_CYCLE_MS = 2000;
+constexpr uint64_t MALABAR_START = 1463985;
+
+// Deltamess TK: digit drums only, 1 L per quantum, finest drum is 10 L/rev.
+struct MalabarRig {
+  ReaderCore core;
+  uint32_t now{1000};
+
+  MalabarRig() {
+    core.add_wheel(0, 10.0f, 0.8f, false);
+    for (uint8_t level = 1; level < 8; ++level)
+      core.add_wheel(level, 10.0f * static_cast<float>(meter_reader_core::level_scale(level)), 1.5f, false);
+    core.start(now, false, 0);
+    core.rebase(static_cast<float>(MALABAR_START), now);
+  }
+
+  static Frame frame(uint64_t u) {
+    Frame f;
+    for (uint8_t level = 0; level < 8; ++level)
+      f[level] = Obs{true, render(static_cast<double>(u), level, false)};
+    return f;
+  }
+
+  CycleResult feed(const Frame &f) {
+    now += MALABAR_CYCLE_MS;
+    for (uint8_t level = 0; level < 8; ++level) {
+      if (f[level].present)
+        core.observe(level, f[level].value, 1.0f, now);
+    }
+    return core.end_cycle(now);
+  }
+};
+
+void malabar_finest_drum_flicker_keeps_the_reading() {
+  MalabarRig rig;
+  const float flicker[] = {5.5f, 5.4f, 5.6f};
+  for (int i = 0; i < 60; ++i) {
+    Frame f = MalabarRig::frame(MALABAR_START);
+    f[0].value = flicker[i % 3];
+    rig.feed(f);
+    CHECK(rig.core.u() == MALABAR_START);
+  }
+  CHECK(rig.core.status() == meter_reader_core::STATUS_OK);
+}
+
+void malabar_late_carry_goes_forward() {
+  MalabarRig rig;
+  for (uint64_t u = MALABAR_START; u <= MALABAR_START + 4; ++u) {
+    rig.feed(MalabarRig::frame(u));
+    rig.feed(MalabarRig::frame(u));
+    CHECK(rig.core.u() == u);
+  }
+  // 1463989 -> 1463990: the finest drum has rolled over, the 10 L drum still shows 8.
+  Frame carry = MalabarRig::frame(MALABAR_START + 5);
+  carry[1].value = 8.0f;
+  for (int i = 0; i < 4; ++i) {
+    rig.feed(carry);
+    CHECK(rig.core.u() >= MALABAR_START + 4);
+    CHECK(rig.core.u() <= MALABAR_START + 5);
+  }
+  rig.feed(MalabarRig::frame(MALABAR_START + 5));
+  rig.feed(MalabarRig::frame(MALABAR_START + 5));
+  CHECK(rig.core.u() == MALABAR_START + 5);
+}
+
+void malabar_single_misread_coarse_drum_does_not_jump() {
+  // The 1000 m3 drum shows 1 at the start.
+  MalabarRig rig;
+  Frame f = MalabarRig::frame(MALABAR_START);
+  f[6].value = 5.0f;
+  rig.feed(f);
+  CHECK(rig.core.u() == MALABAR_START);
+  rig.feed(MalabarRig::frame(MALABAR_START));
+  CHECK(rig.core.u() == MALABAR_START);
+  CHECK(rig.core.status() == meter_reader_core::STATUS_OK);
+
+  // The 0.1 m3 drum shows 1 at 1464132.
+  MalabarRig other;
+  other.core.rebase(1464132.0f, other.now);
+  Frame g = MalabarRig::frame(1464132);
+  g[2].value = 5.0f;
+  other.feed(g);
+  CHECK(other.core.u() == 1464132);
+  other.feed(MalabarRig::frame(1464132));
+  CHECK(other.core.u() == 1464132);
+}
+
+void malabar_garbage_frame_is_rejected() {
+  MalabarRig rig;
+  rig.feed(MalabarRig::frame(MALABAR_START));
+  Frame garbage;
+  for (uint8_t level = 0; level < 8; ++level)
+    garbage[level] = Obs{true, 1.0f};
+  const CycleResult r = rig.feed(garbage);
+  CHECK(rig.core.u() == MALABAR_START);
+  CHECK(!r.committed);
+  rig.feed(MalabarRig::frame(MALABAR_START));
+  CHECK(rig.core.u() == MALABAR_START);
+  CHECK(rig.core.status() == meter_reader_core::STATUS_OK);
+}
+
 }  // namespace
 
 int main() {
@@ -486,6 +587,10 @@ int main() {
   wheels_far_from_reading_mark_it_divergent();
   silent_wheels_make_the_reading_stale();
   replay_of_recorded_kona_cycles();
+  malabar_finest_drum_flicker_keeps_the_reading();
+  malabar_late_carry_goes_forward();
+  malabar_single_misread_coarse_drum_does_not_jump();
+  malabar_garbage_frame_is_rejected();
   std::puts("meter_reader tests passed");
   return 0;
 }
