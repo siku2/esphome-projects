@@ -4,7 +4,7 @@ set -euo pipefail
 
 device="$1"
 cache="devices/.esphome"
-data_dir="${cache}/version"
+data_dir="${PWD}/${cache}/version"
 generated="${data_dir}/build/bean-${device}"
 
 # A separate data dir keeps stale files of the cached build out of the hash and leaves that build untouched.
