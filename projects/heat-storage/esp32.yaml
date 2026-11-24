@@ -16,6 +16,15 @@ substitutions:
 
 packages:
   base: !include ../../base/device.yaml
+  hot_water_flow: !include
+    file: ../../base/yf_flow_sensor.yaml
+    vars:
+      prefix: "hot_water"
+      pin: "GPIO33"
+      k: "15"
+      rate_name: "${i18n.heatstorage[language].hot_water_flow_rate}"
+      total_name: "${i18n.heatstorage[language].hot_water_total}"
+      device_id: "${storage_device_id}"
 
 esphome:
   name: "${name}"
