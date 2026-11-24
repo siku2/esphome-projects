@@ -11,3 +11,4 @@ esphome:
   devices:
   - id: "receiver_device"
     name: "Test YAMAHA Receiver"
+    relation: "via"

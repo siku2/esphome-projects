@@ -26,6 +26,7 @@ substitutions:
         nvs_usage: "NVS Usage"
 
 esphome:
+  merge_warnings: false
   project:
     name: "siku2.esphome-projects"
     version: "${firmware_version}"

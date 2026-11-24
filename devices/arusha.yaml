@@ -48,9 +48,11 @@ esphome:
   devices:
   - id: "rwt_device"
     name: "Regenwassertank 1 und 2"
+    relation: "via"
     area_id: "area_rain_water"
   - id: "ac_device"
     name: "Keller Klimaanlage"
+    relation: "via"
     area_id: "area_basement"
 
 esp32:

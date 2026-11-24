@@ -61,6 +61,7 @@ async def to_code(config):
             cv.Required(CONF_ID): cv.use_id(SomfyCover),
         }
     ),
+    synchronous=True,
 )
 async def program_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
@@ -75,6 +76,7 @@ async def program_to_code(config, action_id, template_arg, args):
             cv.Required(CONF_ID): cv.use_id(SomfyCover),
         }
     ),
+    synchronous=True,
 )
 async def reset_rolling_code_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])

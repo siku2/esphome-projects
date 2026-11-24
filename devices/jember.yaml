@@ -56,14 +56,18 @@ esphome:
   devices:
   - id: "wt_device"
     name: "Amphore"
+    relation: "via"
   - id: "wt2_device"
     name: "Regenwassertank 3"
+    relation: "via"
     area_id: "area_rain_water"
   - id: "rain_water_device"
     name: "Regenwasser"
+    relation: "via"
     area_id: "area_rain_water"
   - id: "light_device"
     name: "Lichtstreifen"
+    relation: "via"
 
 esp32:
   board: "esp32dev"

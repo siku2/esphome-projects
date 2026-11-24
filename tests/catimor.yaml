@@ -19,7 +19,9 @@ esphome:
   devices:
   - id: "cover_north_device"
     name: "Cover North"
+    relation: "via"
     area_id: "area_test"
   - id: "cover_south_device"
     name: "Cover South"
+    relation: "via"
     area_id: "area_test"

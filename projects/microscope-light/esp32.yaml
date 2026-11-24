@@ -112,10 +112,10 @@ light:
 - id: light_main
   name: "NeoPixel Light"
   restore_mode: RESTORE_DEFAULT_ON
-  platform: neopixelbus
+  platform: esp32_rmt_led_strip
   num_leds: 24
-  type: GRB
-  variant: WS2812X
+  channel_colors: "GRB"
+  chipset: "WS2812"
   pin: GPIO17
 
 # State

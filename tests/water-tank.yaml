@@ -61,10 +61,13 @@ esphome:
   devices:
   - id: "tank_device"
     name: "Tank"
+    relation: "via"
   - id: "tank_2_device"
     name: "Tank 2"
+    relation: "via"
   - id: "system_device"
     name: "System"
+    relation: "via"
 
 esp32:
   board: "esp32dev"

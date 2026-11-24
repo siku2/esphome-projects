@@ -48,6 +48,7 @@ async def to_code(config):
     await cg.register_component(var, config)
     await remote_base.register_listener(var, config)
     await remote_base.register_transmittable(var, config)
+    remote_base.request_protocol("nec")
 
     cg.add(var.set_echo_window(config[CONF_ECHO_WINDOW].total_milliseconds))
     cg.add(var.set_min_gap(config[CONF_MIN_GAP].total_milliseconds))

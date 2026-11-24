@@ -18,6 +18,7 @@ esphome:
   devices:
   - id: "ac_device"
     name: "Test Air Conditioner"
+    relation: "via"
 
 esp32:
   board: "esp32dev"

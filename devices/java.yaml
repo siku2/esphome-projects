@@ -16,4 +16,5 @@ esphome:
   devices:
   - id: "receiver_device"
     name: "YAMAHA Receiver"
+    relation: "via"
     area_id: "area_stuebli"

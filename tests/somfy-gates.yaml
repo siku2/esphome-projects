@@ -16,10 +16,13 @@ esphome:
   devices:
   - id: "velo_device"
     name: "Velo"
+    relation: "via"
     area_id: "area_test"
   - id: "unterstand_device"
     name: "Shelter"
+    relation: "via"
     area_id: "area_test"
   - id: "garage_device"
     name: "Garage"
+    relation: "via"
     area_id: "area_test"

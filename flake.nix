@@ -61,19 +61,7 @@
                 --replace-fail "in /SDL2 " 'in ''${includedir}/SDL2 '
             '';
           });
-          # nixpkgs writes makeWrapperArgs as if they were shell expanded, so the
-          # wrapper gets literal quotes and a literal $out. Drop this once fixed.
-          esphomeUnwrapped = pkgs.esphome.overridePythonAttrs (old: {
-            makeWrapperArgs = map (
-              arg:
-              if arg == "''" then
-                ""
-              else if arg == "'python'" then
-                "python"
-              else
-                builtins.replaceStrings [ "$out" ] [ (placeholder "out") ] arg
-            ) old.makeWrapperArgs;
-          });
+          esphomeUnwrapped = pkgs.esphome;
           # ESPHome downloads generic Linux binaries for the ESP-IDF toolchain.
           esphome =
             if pkgs.stdenv.hostPlatform.isLinux then

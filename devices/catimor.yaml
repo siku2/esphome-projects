@@ -19,7 +19,9 @@ esphome:
   devices:
   - id: "cover_north_device"
     name: "Rollladen Nord"
+    relation: "via"
     area_id: "area_room_simon"
   - id: "cover_south_device"
     name: "Rollladen Süd"
+    relation: "via"
     area_id: "area_room_simon"
